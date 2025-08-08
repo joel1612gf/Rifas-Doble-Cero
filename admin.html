@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Admin - Rifas Doble Cero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen font-[Montserrat]">
+    <!-- Contenedor general -->
+    <div id="admin-login" class="flex items-center justify-center min-h-screen">
+        <!-- Aquí va tu login actual, igual al que mostraste -->
+        <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
+            <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-17 w-17 rounded-md">
+            <h2 class="text-2xl font-bold text-green-400 text-center mb-6">Panel de Administración</h2>
+            <input type="text" id="admin-username" placeholder="Usuario" class="w-full mb-4 px-4 py-2 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-400">
+            <input type="password" id="admin-password" placeholder="Contraseña" class="w-full mb-6 px-4 py-2 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-400">
+            <button onclick="loginAdmin()" class="w-full bg-green-400 text-gray-900 py-3 rounded font-bold text-lg hover:bg-green-500 transition-all">
+                Iniciar sesión <i class="fas fa-sign-in-alt"></i>
+            </button>
+            <div id="login-error" class="text-red-400 mt-4 text-center hidden">Usuario o contraseña incorrectos</div>
+        </div>
+    </div>
+
+    <!-- Panel principal admin (oculto al inicio) -->
+    <div id="admin-panel" class="hidden">
+        <!-- Navbar -->
+        <nav class="bg-gray-800 px-4 py-3 flex flex-wrap items-center justify-between shadow-lg">
+            <div class="text-green-400 text-xl font-extrabold">00 Admin</div>
+            <div class="space-x-4 flex">
+                <button class="nav-link font-bold" onclick="showSection('raffles')">Rifas</button>
+                <button class="nav-link font-bold" onclick="showSection('payments')">Verificar pagos</button>
+                <button class="nav-link font-bold" onclick="showSection('winners')">Ganadores</button>
+                <button class="nav-link font-bold text-red-400" onclick="logoutAdmin()">Cerrar sesión</button>
+            </div>
+        </nav>
+        <!-- Sección Rifas (por defecto visible) -->
+        <section id="section-raffles" class="p-6 max-w-4xl mx-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-green-400">Rifas</h2>
+                <button onclick="openCreateRaffleForm()" class="bg-green-400 text-gray-900 px-4 py-2 rounded font-bold hover:bg-green-500 transition-all">+ Nueva rifa</button>
+            </div>
+            <div id="raffles-table-wrapper">
+                <!-- Aquí se cargará la tabla de rifas con JS -->
+            </div>
+        </section>
+        <!-- (Las otras secciones las llenamos después) -->
+    </div>
+
+    <script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
+    <script src="admin.js"></script>
+<!-- Formulario de Crear/Editar Rifa (oculto al inicio) -->
+<div id="raffle-form-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+    <div class="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg relative"
+        style="max-height: 90vh; overflow-y: auto;">
+        <button onclick="closeRaffleForm()" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-2xl">&times;</button>
+        <h2 id="raffle-form-title" class="text-2xl font-bold text-green-400 mb-4">Crear Nueva Rifa</h2>
+        <form id="raffle-form" onsubmit="submitRaffleForm(event)">
+            <input type="hidden" id="raffle-id">
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Nombre de la rifa</label>
+                <input type="text" id="raffle-title" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+            </div>
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Descripción</label>
+                <textarea id="raffle-description" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Imagen (URL)</label>
+                <input type="url" id="raffle-image" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+            </div>
+            <div class="mb-4 flex space-x-4">
+                <div class="flex-1">
+                    <label class="block font-bold mb-1">Precio en Bs</label>
+                    <input type="number" id="raffle-priceBs" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+                </div>
+                <div class="flex-1">
+                    <label class="block font-bold mb-1">Precio en USDT</label>
+                    <input type="number" id="raffle-priceUsd" min="0" step="0.01" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
+                </div>
+            </div>
+            <div class="flex-1">
+                <label class="block font-bold mb-1">Fecha del sorteo</label>
+                <input type="date" id="raffle-date" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+            </div>
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Total de números</label>
+                <input type="number" id="raffle-totalNumbers" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+            </div>
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Premios</label>
+                <div id="prizes-list">
+                    <!-- Aquí se agregan los premios con JS -->
+                </div>
+                <button type="button" onclick="addPrizeField()" class="mt-2 bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm">+ Agregar premio</button>
+            </div>
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Estado</label>
+                <select id="raffle-status" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
+                    <option value="activa">Activa</option>
+                    <option value="inactiva">Inactiva</option>
+                </select>
+            </div>
+            <button type="submit" class="w-full bg-green-400 text-gray-900 py-3 rounded font-bold text-lg hover:bg-green-500 transition-all">Guardar</button>
+        </form>
+    </div>
+</div>
+<!-- Sección Verificar Pagos (inicialmente oculta) -->
+<section id="section-payments" class="p-6 max-w-4xl mx-auto hidden">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-green-400">Verificar Pagos</h2>
+    </div>
+    <div id="payments-table-wrapper">
+        <!-- Aquí se cargará la tabla de pagos con JS -->
+    </div>
+</section>
+</body>
+</html>

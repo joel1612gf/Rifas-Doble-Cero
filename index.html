@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifas Doble Cero</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Tailwind CDN para pruebas, quítalo si ya tienes tu build! -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/png" href="img/logopngcolorweb2.png">
+    <!-- Font Awesome CDN para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+</head>
+<body class="bg-gray-950">
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <!-- Header/Navbar -->
+    <header class="bg-black py-4 px-6 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
+                <h1 class="text-2xl font-extrabold
+                 text-green-400 hidden sm:block">Doble Cero</h1>
+            </div>
+            
+            <!-- Menú desktop -->
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="text-green-400 hover:text-green-300 font-medium">Inicio</a>
+                <a href="#como-funciona" class="text-gray-300 hover:text-green-300 font-medium">¿Cómo funciona?</a>
+                <a href="#contacto" class="text-gray-300 hover:text-green-300 font-medium">Contacto</a>
+            </nav>
+            
+            <!-- Botón menú móvil -->
+            <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-green-400">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Menú móvil -->
+        <div id="mobile-menu" class="mobile-menu md:hidden bg-gray-800 mt-2 rounded-lg">
+            <div class="flex flex-col space-y-3 p-4">
+                <a href="#" class="text-green-400 hover:text-green-300 font-medium">Inicio</a>
+                <a href="#como-funciona" class="text-gray-300 hover:text-green-300 font-medium">¿Cómo funciona?</a>
+                <a href="#contacto" class="text-gray-300 hover:text-green-300 font-medium">Contacto</a>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-b from-gray-900 to-gray-800 py-20 px-6">
+        <div class="container mx-auto text-center">
+            <h2 class="text-4xl md:text-5xl font-bold text-green-400 mb-6">Participa en nuestras increíbles rifas</h2>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto mb-8">Compra tus boletos fácilmente y gana fabulosos premios. ¡La suerte podría estar de tu lado!</p>
+            <a href="#rifas" class="bg-green-400 hover:bg-green-500 text-black font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-block">
+                Ver Rifas Disponibles <i class="fas fa-arrow-down ml-2"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- Franja de Rifas -->
+    <section id="rifas" class="flex justify-center items-center w-full bg-gray-900" style="min-height: 420px;">
+        <div class="container mx-auto">
+            <br>
+            <h2 class="text-3xl font-extrabold text-green-400 mb-10 text-center">RIFAS ACTIVAS</h2>
+            <div id="rifas-container" class="w-full"></div>
+        </div>
+    </section>
+
+    <!-- Modal Selector de Números -->
+    <div id="modal-selector" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-800 rounded-2xl shadow-4xl max-w-4xl w-full relative flex flex-col overflow-y-auto" style="max-height:96vh;">
+            <button onclick="cerrarModalSelector()" class="absolute top-3 right-5 text-gray-400 hover:text-red-400 text-3xl font-bold z-10">&times;</button>
+            <div id="selector-content" class="p-0 w-full"></div>           
+        </div>
+    </div>
+
+<!-- MODAL DE CONFIRMAR COMPRA (REEMPLAZA TU MODAL ACTUAL) -->
+<div id="modal-resumen" class="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4 hidden">
+  <div class="bg-gray-800 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+    <div class="sticky top-0 bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
+        <h3 class="text-2xl font-bold text-green-400">Confirmar compra</h3>
+        <button onclick="cerrarModalResumen()" class="text-gray-400 hover:text-white">&times;
+            <i class="fas fa-times text-2xl"></i>
+        </button>
+    </div>
+    <div class="p-6 pb-2">
+      
+      <!-- RESUMEN DE COMPRA -->
+      <div class="bg-gray-700 p-4 rounded-lg mb-6">
+        <h4 class="text-lg font-bold text-green-400 mb-2">Resumen de tu compra</h4>
+        <div class="flex justify-between mb-1">
+          <span class="text-gray-300">Rifa:</span>
+          <span id="resumen-rifa-titulo" class="text-gray-300 font-medium"></span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span class="text-gray-300">Números seleccionados:</span>
+          <span id="resumen-numeros-lista" class="text-gray-300 font-medium">5, 10, 23</span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span class="text-gray-300">Precio por boleto:</span>
+          <span id="resumen-precio-boleto" class="text-gray-300 font-medium"></span>
+        </div>
+        <div class="flex justify-between border-t border-gray-600 pt-2 mt-2">
+          <span class="text-gray-300 font-bold">Total a pagar:</span>
+          <span id="resumen-total-pago" class="text-green-400 font-bold"></span>
+        </div>
+    </div>
+
+      <!-- MÉTODO DE PAGO -->
+      <div class="mb-4">
+        <h4 class="text-xl font-bold text-green-400 mb-4">Método de pago</h4>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <button type="button" onclick="seleccionarMetodoPago('pagoMovil')" class="pago-btn bg-gray-700 hover:bg-gray-600 border-2 border-transparent hover:border-green-400 p-4 rounded-lg transition duration-300">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-mobile-alt text-3xl text-green-400 mb-2"></i>
+                <span class="text-gray-300 font-medium">Pago Móvil</span>
+            </div>
+          </button>
+          <button type="button" onclick="seleccionarMetodoPago('binance')" class="pago-btn bg-gray-700 hover:bg-gray-600 border-2 border-transparent hover:border-green-400 p-4 rounded-lg transition duration-300">
+            <div class="flex flex-col items-center">
+                <i class="fab fa-bitcoin text-3xl text-green-400 mb-2"></i>
+                <span class="text-gray-300 font-medium">Binance</span>
+            </div>
+          </button>
+          <button type="button" onclick="seleccionarMetodoPago('zinli')" class="pago-btn bg-gray-700 hover:bg-gray-600 border-2 border-transparent hover:border-green-400 p-4 rounded-lg transition duration-300">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-wallet text-3xl text-green-400 mb-2"></i>
+                <span class="text-gray-300 font-medium">Zinli</span>
+            </div>
+          </button>
+        </div>
+        <div id="pago-instrucciones" class="mt-2"></div>
+      </div>
+
+      <!-- TUS DATOS -->
+      <form id="form-compra" autocomplete="off" onsubmit="event.preventDefault();">
+        <div class="mb-6">
+            <h4 class="text-xl font-bold text-green-400 mb-4">Tus datos</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="first-name" class="block text-gray-300 mb-2">Nombre</label>
+                        <input type="text" id="first-name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                    </div>
+                    <div>
+                        <label for="last-name" class="block text-gray-300 mb-2">Apellido</label>
+                        <input type="text" id="last-name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="phone" class="block text-gray-300 mb-2">Número de teléfono</label>
+                    <input type="tel" id="phone" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="payment-reference" class="block text-gray-300 mb-2">Referencia de pago</label>
+                    <input type="text" id="payment-reference" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Ej: 123456789" required>
+                </div>
+                <div class="mb-4">
+                    <label for="payment-proof" class="block text-gray-300 mb-2">Captura del pago</label>
+                    <div class="flex items-center">
+                        <label for="payment-proof" class="cursor-pointer bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg border border-gray-600 transition duration-300">
+                            <i class="fas fa-upload mr-2"></i> Seleccionar archivo
+                        </label>
+                        <span id="file-name" class="ml-3 text-gray-400 text-sm">Ningún archivo seleccionado</span>
+                    </div>
+                    <input type="file" id="payment-proof" class="hidden" accept="image/*,.pdf" required>
+                    <p class="text-gray-500 text-xs mt-1">Formatos aceptados: JPG, PNG, PDF (máx. 5MB)</p>
+                </div>
+            <div class="flex justify-center mt-6">
+                <button 
+                    type="button" 
+                    id="btn-confirmar-compra"
+                    onclick="confirmarCompra()"
+                    class="bg-green-500 hover:bg-green-600 text-black font-bold py-3 px-12 rounded-full text-lg flex items-center gap-2 shadow-xl transition-all duration-300"
+                >
+                    Confirmar compra
+                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </button>
+            </div>
+        </form>  
+      </div>
+    </div>  
+  </div>  
+</div>
+
+  
+
+<!-- Sección "Cómo funciona" -->
+<div id="rifas-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <!-- Aquí JS va a agregar las rifas dinámicamente -->
+</div>
+
+    <!-- Sección "Cómo funciona" -->
+    <section id="como-funciona" class="py-16 px-6 bg-gray-800">
+        <div class="container mx-auto">
+            <h2 class="text-3xl font-bold text-green-400 mb-10 text-center">¿Cómo participar en nuestras rifas?</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Paso 1 -->
+                <div class="bg-gray-900 p-6 rounded-lg text-center">
+                    <div class="bg-green-500 text-black w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">1</div>
+                    <h3 class="text-xl font-bold text-green-400 mb-3">Elige tu rifa</h3>
+                    <p class="text-gray-300">Selecciona la rifa en la que deseas participar y haz clic en "Participar".</p>
+                </div>
+                
+                <!-- Paso 2 -->
+                <div class="bg-gray-900 p-6 rounded-lg text-center">
+                    <div class="bg-green-500 text-black w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">2</div>
+                    <h3 class="text-xl font-bold text-green-400 mb-3">Selecciona tus números</h3>
+                    <p class="text-gray-300">Elige los números disponibles que deseas comprar o usa la opción "Número al azar".</p>
+                </div>
+                
+                <!-- Paso 3 -->
+                <div class="bg-gray-900 p-6 rounded-lg text-center">
+                    <div class="bg-green-500 text-black w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">3</div>
+                    <h3 class="text-xl font-bold text-green-400 mb-3">Realiza el pago</h3>
+                    <p class="text-gray-300">Elige tu método de pago preferido, realiza la transferencia y sube el comprobante.</p>
+                </div>
+            </div>
+            <div class="mt-12 bg-gray-900 p-6 rounded-lg">
+                <h3 class="text-2xl font-bold text-green-400 mb-4 text-center">Preguntas frecuentes</h3>
+                
+                <div class="space-y-4">
+                    <!-- Pregunta 1 -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <button class="flex justify-between items-center w-full text-left" onclick="toggleFAQ(1)">
+                            <span class="text-lg font-medium text-gray-300">¿Necesito registrarme para participar?</span>
+                            <i class="fas fa-chevron-down text-green-400 transition-transform duration-300" id="faq-icon-1"></i>
+                        </button>
+                        <div id="faq-content-1" class="hidden mt-2 text-gray-400">
+                            No, no necesitas crear una cuenta. Solo debes proporcionar tus datos básicos (nombre, apellido y teléfono) al momento de realizar la compra de tus boletos.
+                        </div>
+                    </div>
+                    
+                    <!-- Pregunta 2 -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <button class="flex justify-between items-center w-full text-left" onclick="toggleFAQ(2)">
+                            <span class="text-lg font-medium text-gray-300">¿Cómo sé si gané la rifa?</span>
+                            <i class="fas fa-chevron-down text-green-400 transition-transform duration-300" id="faq-icon-2"></i>
+                        </button>
+                        <div id="faq-content-2" class="hidden mt-2 text-gray-400">
+                            Nos comunicaremos contigo por teléfono si resultas ganador. Además, en nuestro canal de whatsapp obtendrás toda la información actualizada.
+                        </div>
+                    </div>
+                    
+                    <!-- Pregunta 3 -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <button class="flex justify-between items-center w-full text-left" onclick="toggleFAQ(3)">
+                            <span class="text-lg font-medium text-gray-300">¿Qué métodos de pago aceptan?</span>
+                            <i class="fas fa-chevron-down text-green-400 transition-transform duration-300" id="faq-icon-3"></i>
+                        </button>
+                        <div id="faq-content-3" class="hidden mt-2 text-gray-400">
+                            Aceptamos Pago Móvil, Binance (USDT) y Zinli. Al momento de comprar tus boletos, te mostraremos las instrucciones detalladas para cada método.
+                        </div>
+                    </div>
+                    
+                    <!-- Pregunta 4 -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <button class="flex justify-between items-center w-full text-left" onclick="toggleFAQ(4)">
+                            <span class="text-lg font-medium text-gray-300">¿Cuánto tiempo tarda la verificación de mi pago?</span>
+                            <i class="fas fa-chevron-down text-green-400 transition-transform duration-300" id="faq-icon-4"></i>
+                        </button>
+                        <div id="faq-content-4" class="hidden mt-2 text-gray-400">
+                            Normalmente verificamos los pagos en un plazo de 1 a 3 horas. Si hay algún problema con tu pago, nos comunicaremos contigo al número que nos proporcionaste.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Contacto -->
+    <section id="contacto" class="py-16 px-6 bg-gray-900">
+        <div class="container mx-auto max-w-4xl">
+            <h2 class="text-3xl font-bold text-green-400 mb-10 text-center">Contáctanos</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-green-400 mb-4">Información de contacto</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-phone-alt text-green-400 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium text-gray-300">Teléfono / WhatsApp</h4>
+                                <p class="text-gray-400">+58 412-9974035</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-envelope text-green-400 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium text-gray-300">Correo electrónico</h4>
+                                <p class="text-gray-400">Doblecero@gmail.com</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-map-marker-alt text-green-400 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium text-gray-300"> Ubicación</h4>
+                                <p class="text-gray-400"> Caracas, Venezuela</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-2xl text-center font-bold text-white mb-5">Síguenos en redes sociales</h3>
+                        <div class="flex justify-center space-x-4">
+                            <a href="https://www.instagram.com/doblecero.ve?igsh=Y3o3czVxOHJwY3lm&utm_source=qr" target="_blank" class="text-green-400 hover:text-green-300 text-6xl">
+                                <i class="fab fa-instagram"></i>
+                                    </a>
+                            <a href="https://www.facebook.com/share/17EU91EqWa/?mibextid=wwXIfr" target="_blank" class="text-green-400 hover:text-green-300 text-6xl">
+                                <i class="fab fa-facebook"></i>
+                                    </a>
+                            <a href="https://www.tiktok.com/@doblecero.ve?_t=ZN-8yTU5xvbCR0&_r=1" target="_blank" class="text-green-400 hover:text-green-300 text-6xl">
+                                <i class="fab fa-tiktok"></i>
+                                    </a>
+                            <a href="https://whatsapp.com/channel/0029VbAY3p1LI8YhXdof092x" target="_blank" class="text-green-400 hover:text-green-300 text-6xl">
+                                <i class="fab fa-whatsapp"></i>
+                                    </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-green-400 mb-4">Envíanos un mensaje</h3>
+                    <form>
+                        <div class="mb-4">
+                            <label for="name" class="block text-gray-300 mb-2">Nombre</label>
+                            <input type="text" id="name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="email" class="block text-gray-300 mb-2">Correo electrónico</label>
+                            <input type="email" id="email" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="message" class="block text-gray-300 mb-2">Mensaje</label>
+                            <textarea id="message" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+                        </div>
+                        <button type="submit" class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded-lg transition duration-300">
+                            Enviar mensaje <i class="fas fa-paper-plane ml-2"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Footer -->
+    <footer class="bg-black py-8 px-6">
+        <div class="container mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-12 w-12 rounded-md">
+                    <h2 class="text-xl font-extrabold text-green-400">Rifas Doble Cero</h2>
+                </div>
+                
+                <div class="text-gray-400 text-center md:text-right">
+                    <p>&copy; 2025 Rifas Doble Cero. Todos los derechos reservados.</p>
+                    <div class="mt-2">
+                        <a href="#" class="text-gray-400 hover:text-green-400 text-sm mr-4">Términos y condiciones</a>
+                        <a href="#" class="text-gray-400 hover:text-green-400 text-sm">Política de privacidad</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+<!-- MODAL DE ÉXITO (NUEVO DISEÑO) -->
+<div id="modal-exito" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4">
+  <div id="exito-card" class="w-full max-w-lg bg-[#202833] text-gray-100 rounded-2xl shadow-2xl border border-white/10 overflow-hidden transform transition duration-200">
+    
+    <!-- Header con icono -->
+    <div class="flex flex-col items-center pt-8 px-6">
+      <div class="h-16 w-16 rounded-full bg-green-500/15 flex items-center justify-center shadow-inner">
+        <i class="fa-solid fa-check text-2xl text-green-400"></i>
+      </div>
+      <h3 class="mt-4 text-xl md:text-2xl font-extrabold text-green-400 text-center">
+        ¡Compra registrada con éxito!
+      </h3>
+    </div>
+
+    <!-- Caja de detalles -->
+    <div class="mx-6 mt-5 bg-[#263140] rounded-xl p-4">
+      <div class="flex justify-between py-1 text-sm">
+        <span class="text-gray-300">Rifa:</span>
+        <span id="exito-rifa" class="font-semibold text-gray-100"></span>
+      </div>
+      <div class="flex justify-between py-1 text-sm">
+        <span class="text-gray-300">Números:</span>
+        <span><span id="exito-numeros" class="font-semibold"></span></span>
+      </div>
+      <div class="flex justify-between py-1 text-sm">
+        <span class="text-gray-300">Método de pago:</span>
+        <span id="exito-metodo" class="font-semibold"></span>
+      </div>
+      <div class="flex justify-between py-1 text-sm">
+        <span class="text-gray-300">Referencia:</span>
+        <span id="exito-referencia" class="font-semibold"></span>
+      </div>
+      <div class="flex justify-between py-2 mt-1 border-t border-white/10 text-sm">
+        <span class="text-gray-300">Total pagado:</span>
+        <span id="exito-total" class="font-extrabold text-green-400"></span>
+      </div>
+    </div>
+
+    <!-- Texto informativo -->
+    <div class="px-6 mt-4 text-sm text-gray-300">
+      <p>Tu pago será verificado por nuestro equipo en las próximas horas. 
+      Si hay algún problema con la verificación, nos comunicaremos al teléfono proporcionado.</p>
+
+      <p class="mt-3 text-center text-green-400 font-semibold">
+        ¡Ya estás participando con esos números! Mucha suerte en el sorteo.
+      </p>
+    </div>
+
+    <!-- CTA -->
+    <div class="px-6 py-6">
+      <button id="btn-exito-volver" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-2.5 rounded-lg transition"
+              onclick="cerrarModalExito(); document.getElementById('rifas').scrollIntoView({behavior:'smooth'});">
+        Volver a las rifas
+      </button>
+    </div>
+  </div>
+</div>
+
+    <script src="main.js"></script>
+</body>
+</html>
+
+
