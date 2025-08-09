@@ -1,0 +1,18 @@
+# SO / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Secretos y archivos generados
+backend/.env
+backend/uploads/
+
+# Builds
+dist/
+build/
+coverage/

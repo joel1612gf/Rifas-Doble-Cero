@@ -69,7 +69,7 @@
     <!-- Modal Selector de Números -->
     <div id="modal-selector" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
         <div class="bg-gray-800 rounded-2xl shadow-4xl max-w-4xl w-full relative flex flex-col overflow-y-auto" style="max-height:96vh;">
-            <button onclick="cerrarModalSelector()" class="absolute top-3 right-5 text-gray-400 hover:text-red-400 text-3xl font-bold z-10">&times;</button>
+            <button onclick="cerrarModalSelector()" class="absolute top-3 right-5 text-white hover:text-red-400 text-2xl font-bold z-10">&times;</button>
             <div id="selector-content" class="p-0 w-full"></div>           
         </div>
     </div>
@@ -79,8 +79,8 @@
   <div class="bg-gray-800 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
     <div class="sticky top-0 bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
         <h3 class="text-2xl font-bold text-green-400">Confirmar compra</h3>
-        <button onclick="cerrarModalResumen()" class="text-gray-400 hover:text-white">&times;
-            <i class="fas fa-times text-2xl"></i>
+        <button onclick="cerrarModalResumen()" class="text-gray-400 hover:text-white" aria-label="Cerrar">
+        <i class="fas fa-times text-2xl"></i>
         </button>
     </div>
     <div class="p-6 pb-2">
@@ -158,10 +158,13 @@
                 <div class="mb-4">
                     <label for="payment-proof" class="block text-gray-300 mb-2">Captura del pago</label>
                     <div class="flex items-center">
-                        <label for="payment-proof" class="cursor-pointer bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-lg border border-gray-600 transition duration-300">
+                        <label for="payment-proof" class="cursor-pointer bg-gray-800 text-gray-200 px-4 py-2 rounded-lg border border-gray-600 transition duration-300">
                             <i class="fas fa-upload mr-2"></i> Seleccionar archivo
                         </label>
-                        <span id="file-name" class="ml-3 text-gray-400 text-sm">Ningún archivo seleccionado</span>
+                        <span id="file-name" data-default="Ningún archivo seleccionado" aria-live="polite" class="ml-3 text-sm text-gray-400">
+                            Ningún archivo seleccionado
+                        </span>
+                        <input type="file" id="payment-proof" class="hidden" accept="image/*,.pdf" required>
                     </div>
                     <input type="file" id="payment-proof" class="hidden" accept="image/*,.pdf" required>
                     <p class="text-gray-500 text-xs mt-1">Formatos aceptados: JPG, PNG, PDF (máx. 5MB)</p>

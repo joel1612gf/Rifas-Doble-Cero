@@ -645,6 +645,16 @@ async function confirmarCompra() {
     alert('Hubo un problema al registrar tu compra. Intenta de nuevo.');
   }
 }
+
+const proofInput = document.getElementById('payment-proof');
+const labelSpan = document.getElementById('file-name');
+if (proofInput && labelSpan) {
+  proofInput.value = '';
+  labelSpan.textContent = labelSpan.dataset.default || 'Ningún archivo seleccionado';
+  labelSpan.classList.remove('text-green-400');
+  labelSpan.classList.add('text-gray-400');
+}
+
 function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda }) {
   // Relleno
   document.getElementById('exito-rifa').textContent = titulo || '-';
@@ -685,5 +695,27 @@ function cerrarModalExito() {
 }
 
 // ============ INICIALIZAR =====================
-window.addEventListener('DOMContentLoaded', cargarRifas);
+window.addEventListener('DOMContentLoaded', () => {
+  cargarRifas();
 
+  const input = document.getElementById('payment-proof');
+  const labelSpan = document.getElementById('file-name');
+  if (!input || !labelSpan) return;
+
+  const DEFAULT_TEXT = labelSpan.dataset.default || 'Ningún archivo seleccionado';
+
+  input.addEventListener('change', () => {
+    if (input.files && input.files.length) {
+      // Opción 2 por defecto: mostrar el nombre del archivo
+      const file = input.files[0];
+      labelSpan.textContent = file.name;
+      labelSpan.classList.remove('text-gray-400');
+      labelSpan.classList.add('text-green-400'); // verde cuando hay archivo
+    } else {
+      // Si el usuario cancela la selección
+      labelSpan.textContent = DEFAULT_TEXT;
+      labelSpan.classList.remove('text-green-400');
+      labelSpan.classList.add('text-gray-400');
+    }
+  });
+});
