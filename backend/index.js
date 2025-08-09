@@ -2,13 +2,34 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
+const fileUpload = require('express-fileupload');
+
 const Purchase = require('./Purchase');
 const Raffle = require('./Raffle');
 
 const app = express();
 app.use(cors());
+
+// Parseo estándar
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// === UPLOADS: carpeta y estáticos ===
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+// Activar manejo de archivos con express-fileupload (5MB máx)
+app.use(fileUpload({
+  limits: { fileSize: 5 * 1024 * 1024 },
+  abortOnLimit: true,
+  useTempFiles: false
+}));
+
+// Servir los archivos subidos
+app.use('/uploads', express.static(uploadDir));
+
 
 // Conexión a MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -76,33 +97,49 @@ app.delete('/api/raffles/:id', async (req, res) => {
 });
 
 // === RUTA NUEVA PARA REGISTRAR COMPRAS ===
+// === RUTA NUEVA PARA REGISTRAR COMPRAS (con archivo) ===
 app.post('/api/purchases', async (req, res) => {
-    try {
-        const body = req.body || {};
-        const { raffleId, numbers, firstName, lastName, phone, paymentMethod, paymentReference, paymentProof } = body;
+  try {
+    // En FormData, "numbers" llega como string JSON. Lo normalizamos.
+    let { raffleId, numbers, firstName, lastName, phone, paymentMethod, paymentReference } = req.body;
+    try { if (typeof numbers === 'string') numbers = JSON.parse(numbers); } catch { numbers = []; }
 
-        if (!raffleId || !Array.isArray(numbers) || numbers.length === 0) {
-            return res.status(400).json({ message: 'Datos incompletos en la compra.' });
-        }
+    // Tomamos el archivo del comprobante (campo "paymentProof")
+    const file = req.files && req.files.paymentProof ? req.files.paymentProof : null;
 
-        const purchase = new Purchase({
-            raffleId,
-            numbers,
-            firstName,
-            lastName,
-            phone,
-            paymentMethod,
-            paymentReference,
-            paymentProof
-        });
-
-        await purchase.save();
-        return res.status(201).json({ message: 'Compra registrada exitosamente', purchase });
-    } catch (error) {
-        console.error('Error en /api/purchases:', error);
-        return res.status(500).json({ message: 'Error registrando la compra', error: error.message });
+    if (!raffleId || !Array.isArray(numbers) || numbers.length === 0 || !file) {
+      return res.status(400).json({ message: 'Datos incompletos en la compra.' });
     }
+
+    // Guardar el archivo en /uploads con nombre único
+    const ext = path.extname(file.name).toLowerCase();
+    const safeName = Date.now() + '-' + Math.random().toString(36).slice(2) + ext;
+    const finalPath = path.join(uploadDir, safeName);
+
+    await file.mv(finalPath); // mover archivo
+
+    // URL pública para el admin
+    const proofUrl = `${req.protocol}://${req.get('host')}/uploads/${safeName}`;
+
+    const purchase = new Purchase({
+      raffleId,
+      numbers,
+      firstName,
+      lastName,
+      phone,
+      paymentMethod,
+      paymentReference,
+      paymentProof: proofUrl
+    });
+
+    await purchase.save();
+    return res.status(201).json({ message: 'Compra registrada exitosamente', purchase });
+  } catch (error) {
+    console.error('Error en /api/purchases:', error);
+    return res.status(500).json({ message: 'Error registrando la compra', error: error.message });
+  }
 });
+
 
 // Obtener todas las compras (para el admin)
 app.get('/api/purchases', async (req, res) => {

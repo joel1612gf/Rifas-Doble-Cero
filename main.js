@@ -6,6 +6,8 @@ let numerosSeleccionados = [];
 let paginaActual = 1;
 let numerosPorPagina = 100; // Ajusta este número para mostrar más o menos en el grid
 let searchValue = "";
+let exitoAbierto = false; // ← Candado para evitar cierres accidentales
+
 
 // ============ 1. CARGAR RIFAS DINÁMICAMENTE ===============
 async function cargarRifas() {
@@ -456,51 +458,7 @@ function renderResumenContent() {
 
 // Llama a renderResumenContent() cuando abras el modal de resumen
 
-// Envía el formulario
-function enviarCompra(e) {
-  e.preventDefault();
-  // Aquí tu lógica de envío, con todos los datos completos
-  alert('¡Compra enviada!');
-  cerrarModalResumen();
-}
 
-
-// ============ 4. ENVÍO AL BACKEND DE LA COMPRA ============
-async function enviarCompra(e) {
-    e.preventDefault();
-    const form = document.getElementById('form-compra');
-    const formData = new FormData(form);
-    // Agrega datos de la rifa y números seleccionados
-    formData.append('raffleId', rifaSeleccionada._id);
-    formData.append('numbers', JSON.stringify(numerosSeleccionados));
-    formData.append('priceBs', rifaSeleccionada.priceBs);
-
-    // Muestra loader o desactiva botón
-    const btn = form.querySelector('button[type="submit"]');
-    btn.disabled = true;
-    btn.textContent = "Enviando...";
-
-    try {
-        const res = await fetch('http://localhost:4000/api/purchases', {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(compraData)
-        });
-
-        if (!res.ok) throw new Error("No se pudo registrar la compra");
-        // Éxito
-        cerrarModalResumen();
-        setTimeout(() => {
-            alert("¡Compra registrada! Te contactaremos para confirmar tu participación. Gracias por confiar en Doble Cero.");
-        }, 300);
-        cargarRifas(); // refresca para actualizar números vendidos
-    } catch (err) {
-        alert("Error al registrar tu compra. Intenta de nuevo.");
-        btn.disabled = false;
-        btn.textContent = "Enviar compra";
-    }
-}
 // Alternar FAQ
 function toggleFAQ(id) {
     const content = document.getElementById(`faq-content-${id}`);
@@ -521,33 +479,39 @@ function toggleFAQ(id) {
             document.getElementById('mobile-menu').classList.remove('open');
         });
     });
-// Cerrar modales al hacer clic fuera del contenido
-    document.querySelectorAll('[id$="-modal"]').forEach(modal => {
+        // Cerrar modales al hacer clic fuera del contenido
+        document.querySelectorAll('[id$="-modal"]').forEach(modal => {
         modal.addEventListener('click', function(e) {
+            // Si el modal de éxito está abierto, no cierres otros modales por clic exterior
+            if (exitoAbierto) return;
+
             if (e.target === this) {
-                if (modal.id === 'modal-selector') closeModal();
-                if (modal.id === 'payment-modal') closePaymentModal();
-                if (modal.id === 'confirmation-modal') closeConfirmationModal();
-                if (modal.id === 'modal-resumen') {
-                    modal.classList.add('hidden');
+            if (modal.id === 'modal-selector' && typeof closeModal === 'function') closeModal();
+            if (modal.id === 'payment-modal' && typeof closePaymentModal === 'function') closePaymentModal();
+            if (modal.id === 'confirmation-modal' && typeof closeConfirmationModal === 'function') closeConfirmationModal();
+            if (modal.id === 'modal-resumen') {
+                modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
             }
-        }
-    });
-    })
-    // Cerrar modales con Escape
-    document.addEventListener('keydown', function(e) {
+            }
+        });
+        });
+        // Cerrar modales con Escape
+        document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            if (!document.getElementById('modal-selector').classList.contains('hidden')) closeModal();
-            if (!document.getElementById('payment-modal').classList.contains('hidden')) closePaymentModal();
-            if (!document.getElementById('confirmation-modal').classList.contains('hidden')) closeConfirmationModal();
+            // Si el modal de éxito está abierto, NO cierres nada
+            if (!document.getElementById('modal-exito').classList.contains('hidden')) return;
+
+            if (!document.getElementById('modal-selector').classList.contains('hidden') && typeof closeModal === 'function') closeModal();
+            if (!document.getElementById('payment-modal').classList.contains('hidden') && typeof closePaymentModal === 'function') closePaymentModal();
+            if (!document.getElementById('confirmation-modal').classList.contains('hidden') && typeof closeConfirmationModal === 'function') closeConfirmationModal();
             if (!document.getElementById('admin-login-modal').classList.contains('hidden')) {
-                document.getElementById('modal-resumen').classList.add('hidden');
-                document.body.style.overflow = 'auto';
+            document.getElementById('modal-resumen').classList.add('hidden');
+            document.body.style.overflow = 'auto';
             }
         }
-    });    
-// Cambia el rango visible de páginas (avanza o retrocede de 10 en 10, y actualiza la página activa)
+        });
+        // Cambia el rango visible de páginas (avanza o retrocede de 10 en 10, y actualiza la página activa)
 function cambiarBloquePaginas(direccion) {
     const rifa = rifaSeleccionada;
     const total = rifa.totalNumbers || 100;
@@ -616,44 +580,42 @@ function copyToClipboard(elementId) {
   }
 
 async function confirmarCompra() {
-    // IDs reales del HTML
-    const firstName        = document.getElementById('first-name').value.trim();
-    const lastName         = document.getElementById('last-name').value.trim();
-    const phone            = document.getElementById('phone').value.trim();
-    const paymentReference = document.getElementById('payment-reference').value.trim();
-    const proofInput       = document.getElementById('payment-proof');
-    const paymentProof     = proofInput.files[0] ? proofInput.files[0].name : '';
+  const firstName        = document.getElementById('first-name').value.trim();
+  const lastName         = document.getElementById('last-name').value.trim();
+  const phone            = document.getElementById('phone').value.trim();
+  const paymentReference = document.getElementById('payment-reference').value.trim();
+  const proofInput       = document.getElementById('payment-proof');
+  const file             = proofInput.files[0] || null;
 
-    // Tu método de pago actual se guarda aquí:
-    const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinli'
+  const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinli'
 
-    if (!firstName || !lastName || !phone || !paymentMethod || !paymentReference || !paymentProof) {
-        alert("Por favor, completa todos los campos y selecciona un método de pago.");
-        return;
+  if (!firstName || !lastName || !phone || !paymentMethod || !paymentReference || !file) {
+    alert("Por favor, completa todos los campos y selecciona un método de pago.");
+    return;
+  }
+
+  // 👇 FormData (NO pongas headers Content-Type)
+  const formData = new FormData();
+  formData.append('raffleId', rifaSeleccionada._id);
+  formData.append('numbers', JSON.stringify(numerosSeleccionados));
+  formData.append('firstName', firstName);
+  formData.append('lastName', lastName);
+  formData.append('phone', phone);
+  formData.append('paymentMethod', paymentMethod);
+  formData.append('paymentReference', paymentReference);
+  formData.append('paymentProof', file);
+
+  try {
+    const res = await fetch('http://localhost:4000/api/purchases', {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Error al registrar la compra: ${err}`);
     }
 
-    const compraData = {
-        raffleId: rifaSeleccionada._id,
-        numbers: numerosSeleccionados,
-        firstName,
-        lastName,
-        phone,
-        paymentMethod,
-        paymentReference,
-        paymentProof
-    };
-
-    try {
-    const res = await fetch('http://localhost:4000/api/purchases', {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(compraData)
-    });
-
-    if (!res.ok) throw new Error("Error al registrar la compra");
-
-    // Si todo bien: cerrar y mostrar éxito
+    // Éxito: lo que ya tienes
     cerrarModalResumen();
 
     const pagaEnUsd = (metodoPagoSeleccionado === 'binance' || metodoPagoSeleccionado === 'zinli');
@@ -663,48 +625,58 @@ async function confirmarCompra() {
     const price  = usarUsd ? (rifaSeleccionada.priceUsd || 0) : (rifaSeleccionada.priceBs || 0);
     const total  = price * (numerosSeleccionados?.length || 0);
     const moneda = usarUsd ? '$' : 'Bs';
-
-
     const metodoLegible =
-        metodoPagoSeleccionado === 'pagoMovil' ? 'Pago Móvil' :
-        metodoPagoSeleccionado === 'binance'   ? 'Binance'    :
-        metodoPagoSeleccionado === 'zinli'     ? 'Zinli'      : '-';
+      metodoPagoSeleccionado === 'pagoMovil' ? 'Pago Móvil' :
+      metodoPagoSeleccionado === 'binance'   ? 'Binance'    :
+      metodoPagoSeleccionado === 'zinli'     ? 'Zinli'      : '-';
 
     mostrarModalExito({
-        titulo: rifaSeleccionada?.title,
-        numeros: numerosSeleccionados,
-        metodo: metodoLegible,
-        referencia: paymentReference, // variable definida arriba en la función
-        total,
-        moneda
+      titulo: rifaSeleccionada?.title,
+      numeros: numerosSeleccionados,
+      metodo: metodoLegible,
+      referencia: paymentReference,
+      total,
+      moneda
     });
 
     cargarRifas();
-
-    } catch (error) {
+  } catch (error) {
     console.error('Error registrando la compra:', error);
     alert('Hubo un problema al registrar tu compra. Intenta de nuevo.');
-    }
-}    
-
-
+  }
+}
 function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda }) {
   // Relleno
   document.getElementById('exito-rifa').textContent = titulo || '-';
   document.getElementById('exito-numeros').textContent =
-  Array.isArray(numeros) && numeros.length ? numeros.join(', ') : '-';
+    Array.isArray(numeros) && numeros.length ? numeros.join(', ') : '-';
   document.getElementById('exito-metodo').textContent = metodo || '-';
   document.getElementById('exito-referencia').textContent = referencia || '-';
-  document.getElementById('exito-total').textContent = (typeof total !== 'undefined') ? `${moneda}${total}` : '-';
+  document.getElementById('exito-total').textContent =
+    (typeof total !== 'undefined') ? `${moneda}${total}` : '-';
 
-  // Mostrar + pequeña animación
+  // Mostrar + animación y CANDADO
   const overlay = document.getElementById('modal-exito');
   const card = document.getElementById('exito-card');
+
+  // Evitar que clics dentro de la tarjeta cierren algo por burbujeo
+  card.addEventListener('click', (e) => e.stopPropagation());
+
   overlay.classList.remove('hidden');
   overlay.classList.add('flex');
+  exitoAbierto = true;
+
   card.style.transform = 'scale(0.96)';
   setTimeout(() => { card.style.transform = 'scale(1)'; }, 0);
 }
+
+function cerrarModalExito() {
+  const overlay = document.getElementById('modal-exito');
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
+  exitoAbierto = false; // ← liberamos el candado
+}
+
 
 function cerrarModalExito() {
   const overlay = document.getElementById('modal-exito');
