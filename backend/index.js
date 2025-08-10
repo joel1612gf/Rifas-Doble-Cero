@@ -96,81 +96,164 @@ app.delete('/api/raffles/:id', async (req, res) => {
     }
 });
 
-// === RUTA NUEVA PARA REGISTRAR COMPRAS ===
-// === RUTA NUEVA PARA REGISTRAR COMPRAS (con archivo) ===
+// === REGISTRAR COMPRA (con archivo real) ===
+// === REGISTRAR COMPRA + RESERVAR NÚMEROS ===
 app.post('/api/purchases', async (req, res) => {
   try {
-    // En FormData, "numbers" llega como string JSON. Lo normalizamos.
-    let { raffleId, numbers, firstName, lastName, phone, paymentMethod, paymentReference } = req.body;
-    try { if (typeof numbers === 'string') numbers = JSON.parse(numbers); } catch { numbers = []; }
+    // Body puede venir como strings (FormData)
+    let { raffleId, numbers, firstName, lastName, phone, paymentMethod, paymentReference } = req.body || {};
+    if (typeof numbers === 'string') {
+      try { numbers = JSON.parse(numbers); } catch { numbers = []; }
+    }
 
-    // Tomamos el archivo del comprobante (campo "paymentProof")
-    const file = req.files && req.files.paymentProof ? req.files.paymentProof : null;
-
-    if (!raffleId || !Array.isArray(numbers) || numbers.length === 0 || !file) {
+    if (!raffleId || !Array.isArray(numbers) || numbers.length === 0) {
       return res.status(400).json({ message: 'Datos incompletos en la compra.' });
     }
 
-    // Guardar el archivo en /uploads con nombre único
-    const ext = path.extname(file.name).toLowerCase();
-    const safeName = Date.now() + '-' + Math.random().toString(36).slice(2) + ext;
-    const finalPath = path.join(uploadDir, safeName);
+    // 1) Intentar RESERVAR atómicamente: si alguno ya está vendido o reservado, falla
+    const reserved = await Raffle.findOneAndUpdate(
+      { _id: raffleId, numbersSold: { $nin: numbers }, numbersReserved: { $nin: numbers } },
+      { $addToSet: { numbersReserved: { $each: numbers } } },
+      { new: true }
+    );
 
-    await file.mv(finalPath); // mover archivo
+    if (!reserved) {
+      // Alguien se adelantó: devolvemos cuáles están ocupados
+      const r = await Raffle.findById(raffleId).lean();
+      const ocupados = numbers.filter(n =>
+        (r?.numbersSold || []).includes(n) || (r?.numbersReserved || []).includes(n)
+      );
+      return res.status(409).json({ message: 'Algunos números ya no están disponibles', ocupados });
+    }
 
-    // URL pública para el admin
-    const proofUrl = `${req.protocol}://${req.get('host')}/uploads/${safeName}`;
+    // (Opcional) calcular monto/moneda según método de pago y rifa
+    let amount = undefined, currency = undefined, raffleTitle = '';
+    const rifa = await Raffle.findById(raffleId).lean();
+    if (rifa) {
+    raffleTitle = rifa.title || rifa.name || '';
+    const pagaEnUsd = (paymentMethod === 'binance' || paymentMethod === 'zinli') && (rifa.priceUsd || 0) > 0;
+    const unitPrice  = pagaEnUsd ? (rifa.priceUsd || 0) : (rifa.priceBs || 0);
+    amount   = unitPrice * numbers.length;
+    currency = pagaEnUsd ? '$' : 'Bs';
+    }
 
-    const purchase = new Purchase({
-      raffleId,
-      numbers,
-      firstName,
-      lastName,
-      phone,
-      paymentMethod,
-      paymentReference,
-      paymentProof: proofUrl
-    });
 
-    await purchase.save();
-    return res.status(201).json({ message: 'Compra registrada exitosamente', purchase });
+    // 2) Guardar la compra en PENDIENTE (aquí ya tendrás tu paymentProof si usas express-fileupload)
+// 2) Tomar y guardar el comprobante (OBLIGATORIO)
+const file = req.files && req.files.paymentProof ? req.files.paymentProof : null;
+if (!file) {
+  return res.status(400).json({ message: 'Falta el comprobante (paymentProof).' });
+}
+
+// Nombre seguro y guardado físico
+const ext = path.extname(file.name).toLowerCase();
+const safeName = Date.now() + '-' + Math.random().toString(36).slice(2) + ext;
+const finalPath = path.join(uploadDir, safeName);
+await file.mv(finalPath);
+
+// URL pública para verlo en admin (tabla/visor)
+const proofUrl = `${req.protocol}://${req.get('host')}/uploads/${safeName}`;
+
+// 3) Guardar la compra en PENDIENTE con la URL del comprobante
+const purchase = new Purchase({
+  raffleId,
+  raffleTitle,
+  numbers,
+  firstName,
+  lastName,
+  phone,
+  paymentMethod,
+  paymentReference,
+  paymentProof: proofUrl,   // ← AHORA guardamos la URL real
+  amount,
+  currency
+});
+
+await purchase.save();
+return res.status(201).json({ message: 'Compra registrada y números reservados', purchase });
+
   } catch (error) {
     console.error('Error en /api/purchases:', error);
     return res.status(500).json({ message: 'Error registrando la compra', error: error.message });
   }
 });
 
-
 // Obtener todas las compras (para el admin)
 app.get('/api/purchases', async (req, res) => {
-    try {
-        const purchases = await Purchase.find().sort({ createdAt: -1 });
-        res.json(purchases);
-    } catch (error) {
-        res.status(500).json({ message: 'Error obteniendo compras', error: error.message });
-    }
+  try {
+    const { status } = req.query;
+    const filter = status ? { status } : {};
+    const purchases = await Purchase.find(filter).sort({ createdAt: -1 });
+    res.json(purchases);
+  } catch (error) {
+    res.status(500).json({ message: 'Error obteniendo compras', error: error.message });
+  }
 });
+
 
 // Aprobar compra
 app.put('/api/purchases/:id/approve', async (req, res) => {
-    try {
-        const purchase = await Purchase.findByIdAndUpdate(req.params.id, { status: "aprobada" }, { new: true });
-        res.json({ message: "Compra aprobada", purchase });
-    } catch (error) {
-        res.status(500).json({ message: 'Error aprobando compra', error: error.message });
-    }
+  try {
+    const purchase = await Purchase.findById(req.params.id);
+    if (!purchase) return res.status(404).json({ message: 'Compra no encontrada' });
+
+    // mover: reserved -> sold
+    await Raffle.updateOne(
+      { _id: purchase.raffleId },
+      {
+        $pullAll: { numbersReserved: purchase.numbers },
+        $addToSet: { numbersSold: { $each: purchase.numbers } }
+      }
+    );
+
+    const updated = await Purchase.findByIdAndUpdate(
+      req.params.id,
+      { status: "aprobada" },
+      { new: true }
+    );
+    res.json({ message: "Compra aprobada", purchase: updated });
+  } catch (error) {
+    res.status(500).json({ message: 'Error aprobando compra', error: error.message });
+  }
 });
 
 // Rechazar compra
 app.put('/api/purchases/:id/reject', async (req, res) => {
-    try {
-        const purchase = await Purchase.findByIdAndUpdate(req.params.id, { status: "rechazada" }, { new: true });
-        res.json({ message: "Compra rechazada", purchase });
-    } catch (error) {
-        res.status(500).json({ message: 'Error rechazando compra', error: error.message });
-    }
+  try {
+    const purchase = await Purchase.findById(req.params.id);
+    if (!purchase) return res.status(404).json({ message: 'Compra no encontrada' });
+
+    // liberar: quitar de reserved
+    await Raffle.updateOne(
+      { _id: purchase.raffleId },
+      { $pullAll: { numbersReserved: purchase.numbers } }
+    );
+
+    const updated = await Purchase.findByIdAndUpdate(
+      req.params.id,
+      { status: "rechazada" },
+      { new: true }
+    );
+    res.json({ message: "Compra rechazada", purchase: updated });
+  } catch (error) {
+    res.status(500).json({ message: 'Error rechazando compra', error: error.message });
+  }
 });
 
+
+// Poner compra en "espera"
+app.put('/api/purchases/:id/wait', async (req, res) => {
+  try {
+    const purchase = await Purchase.findByIdAndUpdate(
+      req.params.id,
+      { status: "espera" },
+      { new: true }
+    );
+    res.json({ message: "Compra en espera", purchase });
+  } catch (error) {
+    res.status(500).json({ message: 'Error poniendo compra en espera', error: error.message });
+  }
+});
 
 
 const PORT = 4000;

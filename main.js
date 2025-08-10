@@ -102,8 +102,10 @@ function renderSelectorContent() {
     }
 
     // CONFIGURACIÓN
+// CONFIGURACIÓN
     const total = rifa.totalNumbers || 100;
-    const vendidos = rifa.numbersSold || [];
+    const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
+    const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
     const numerosPorPagina = 100;
     const columnas = 10;
 
@@ -335,9 +337,10 @@ function limpiarNumeros() {
 
 // Botón número al azar (solo disponible, nunca repite)
 function numeroAlAzar() {
-    const rifa = rifaSeleccionada;
+    const rifa  = rifaSeleccionada;
     const total = rifa.totalNumbers || 100;
-    const vendidos = rifa.numbersSold || [];
+    const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
+    const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
     let disponibles = Array.from({ length: total }, (_, i) => i + 1)
         .filter(n => !vendidos.includes(n) && !numerosSeleccionados.includes(n));
     if (disponibles.length === 0) return;

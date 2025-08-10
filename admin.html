@@ -47,72 +47,164 @@
         <!-- (Las otras secciones las llenamos después) -->
     </div>
 
-    <script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
-    <script src="admin.js"></script>
+
 <!-- Formulario de Crear/Editar Rifa (oculto al inicio) -->
 <div id="raffle-form-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
     <div class="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg relative"
         style="max-height: 90vh; overflow-y: auto;">
         <button onclick="closeRaffleForm()" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-2xl">&times;</button>
         <h2 id="raffle-form-title" class="text-2xl font-bold text-green-400 mb-4">Crear Nueva Rifa</h2>
-        <form id="raffle-form" onsubmit="submitRaffleForm(event)">
+            <form id="raffle-form" onsubmit="submitRaffleForm(event)" 
+                class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <input type="hidden" id="raffle-id">
-            <div class="mb-4">
-                <label class="block font-bold mb-1">Nombre de la rifa</label>
+
+            <!-- Nombre -->
+            <div class="sm:col-span-2">
+                <label class="block font-bold mb-1 text-base">Nombre de la rifa</label>
                 <input type="text" id="raffle-title" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
             </div>
-            <div class="mb-4">
-                <label class="block font-bold mb-1">Descripción</label>
-                <textarea id="raffle-description" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required></textarea>
+
+            <!-- Descripción -->
+            <div class="sm:col-span-2">
+                <label class="block font-bold mb-1 text-base">Descripción</label>
+                <textarea id="raffle-description" class="w-full px-3 py-2 rounded bg-gray-700 text-white" rows="3" required></textarea>
             </div>
-            <div class="mb-4">
-                <label class="block font-bold mb-1">Imagen (URL)</label>
+
+            <!-- Imagen -->
+            <div class="sm:col-span-2">
+                <label class="block font-bold mb-1 text-base">Imagen (URL)</label>
                 <input type="url" id="raffle-image" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
             </div>
-            <div class="mb-4 flex space-x-4">
-                <div class="flex-1">
-                    <label class="block font-bold mb-1">Precio en Bs</label>
-                    <input type="number" id="raffle-priceBs" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
-                </div>
-                <div class="flex-1">
-                    <label class="block font-bold mb-1">Precio en USDT</label>
-                    <input type="number" id="raffle-priceUsd" min="0" step="0.01" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
-                </div>
+
+            <!-- Precios (dos columnas en ≥sm, apilado en móvil) -->
+            <div>
+                <label class="block font-bold mb-1 text-base">Precio en Bs</label>
+                <input type="number" id="raffle-priceBs" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
             </div>
-            <div class="flex-1">
-                <label class="block font-bold mb-1">Fecha del sorteo</label>
-                <input type="date" id="raffle-date" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+            <div>
+                <label class="block font-bold mb-1 text-base">Precio en USDT</label>
+                <input type="number" id="raffle-priceUsd" min="0" step="0.01" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
             </div>
-            <div class="mb-4">
-                <label class="block font-bold mb-1">Total de números</label>
-                <input type="number" id="raffle-totalNumbers" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+            <!-- Fecha -->
+            <div>
+            <label class="block font-bold mb-1 text-base">Fecha del sorteo</label>
+            <input type="date" id="raffle-date" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
             </div>
-            <div class="mb-4">
-                <label class="block font-bold mb-1">Premios</label>
-                <div id="prizes-list">
-                    <!-- Aquí se agregan los premios con JS -->
-                </div>
-                <button type="button" onclick="addPrizeField()" class="mt-2 bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm">+ Agregar premio</button>
+
+            <!-- Total de números -->
+            <div>
+            <label class="block font-bold mb-1 text-base">Total de números</label>
+            <input type="number" id="raffle-totalNumbers" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
             </div>
-            <div class="mb-4">
-                <label class="block font-bold mb-1">Estado</label>
-                <select id="raffle-status" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
-                    <option value="activa">Activa</option>
-                    <option value="inactiva">Inactiva</option>
-                </select>
+
+            <!-- Premios (ocupa 2 columnas en ≥sm) -->
+            <div class="sm:col-span-2">
+            <label class="block font-bold mb-1 text-base">Premios</label>
+            <div id="prizes-list"></div>
+            <button type="button" onclick="addPrizeField()" 
+                    class="mt-2 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm sm:text-base">
+                + Agregar premio
+            </button>
             </div>
-            <button type="submit" class="w-full bg-green-400 text-gray-900 py-3 rounded font-bold text-lg hover:bg-green-500 transition-all">Guardar</button>
+
+            <!-- Estado -->
+            <div class="sm:col-span-2 sm:max-w-xs">
+            <label class="block font-bold mb-1 text-base">Estado</label>
+            <select id="raffle-status" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
+                <option value="activa">Activa</option>
+                <option value="inactiva">Inactiva</option>
+            </select>
+            </div>
+
+            <!-- Guardar -->
+            <div class="sm:col-span-2">
+            <button type="submit" class="w-full bg-green-400 text-gray-900 py-3 rounded font-bold text-lg hover:bg-green-500 transition-all">
+                Guardar
+            </button>
+            </div>
+            </form>
         </form>
     </div>
 </div>
-<!-- Sección Verificar Pagos (inicialmente oculta) -->
-<section id="section-payments" class="p-6 max-w-4xl mx-auto hidden">
-    <div class="mb-6">
-        <h2 class="text-2xl font-bold text-green-400">Verificar Pagos</h2>
+<section id="section-payments" class="p-4 sm:p-6 max-w-6xl mx-auto hidden">
+  <div class="mb-3 sm:mb-4 flex items-center justify-between">
+    <h2 class="text-xl sm:text-2xl font-bold text-green-400">Verificar pagos</h2>
+    <div class="space-x-2">
+      <button id="btn-mode-table" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 font-bold text-sm">Tabla</button>
+      <button id="btn-mode-viewer" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 font-bold text-sm">Visor</button>
     </div>
-    <div id="payments-table-wrapper">
-        <!-- Aquí se cargará la tabla de pagos con JS -->
+  </div>
+
+  <!-- Header del visor -->
+  <div id="viewer-header" class="hidden flex items-center justify-center text-sm sm:text-base font-bold text-green-300 mb-3 sm:mb-4">
+    <button id="prev-payment" class="px-3 py-1 mr-3 rounded bg-gray-700 hover:bg-gray-600">&lt;</button>
+    <span id="viewer-counter">0/0</span>
+    <button id="next-payment" class="px-3 py-1 ml-3 rounded bg-gray-700 hover:bg-gray-600">&gt;</button>
+    <span id="viewer-pending" class="ml-4 sm:ml-6 text-xs sm:text-sm text-gray-400"></span>
+  </div>
+
+  <!-- Vista tabla -->
+  <div id="payments-table-wrapper"></div>
+
+  <!-- Vista visor -->
+  <div id="payments-viewer-wrapper" class="hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+      <!-- Comprobante -->
+      <div class="bg-gray-800 rounded-lg p-3 sm:p-4 shadow">
+        <!-- Altura en % de pantalla para móvil; más alta en pantallas grandes -->
+        <div id="proof-box" class="w-full h-[52vh] sm:h-[60vh] lg:h-[68vh] bg-gray-900 flex items-center justify-center rounded overflow-hidden">
+          <!-- aquí inyectamos <img> o <iframe> -->
+        </div>
+      </div>
+      <!-- Datos -->
+      <div class="bg-gray-800 rounded-lg p-4 sm:p-6 shadow">
+        <ul class="space-y-3 sm:space-y-4 text-base sm:text-lg lg:text-base leading-relaxed">
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Fecha:</span>
+                <span id="v-fecha" class="font-semibold text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Nombre:</span>
+                <span id="v-nombre" class="font-semibold text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Rifa:</span>
+                <span id="v-rifa" class="font-semibold text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Teléfono:</span>
+                <span id="v-telefono" class="font-semibold text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Números:</span>
+                <span id="v-numeros" class="font-semibold text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Método:</span>
+                <span id="v-metodo" class="font-semibold text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Referencia:</span>
+                <span id="v-ref" class="font-semibold text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Monto:</span>
+                <span id="v-monto" class="font-semibold text-gray-100"></span>
+            </li>
+            </ul>
+
+            <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <button id="btn-approve" class="w-full sm:flex-1 bg-green-600 hover:bg-green-500 py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">APROBAR</button>
+            <button id="btn-wait"    class="w-full sm:flex-1 bg-yellow-400 hover:bg-yellow-300 text-black py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">ESPERA</button>
+            <button id="btn-reject"  class="w-full sm:flex-1 bg-red-600 hover:bg-red-500 py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">RECHAZAR</button>
+            </div>
+      </div>
     </div>
+  </div>
 </section>
+
+
+<script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
+<script src="admin.js"></script>
 </body>
 </html>

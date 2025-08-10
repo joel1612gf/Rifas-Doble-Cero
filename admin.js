@@ -2,6 +2,12 @@
 const ADMIN_USER = 'a';
 const ADMIN_PASS = 'a';
 
+// === Verificador ===
+let paymentsMode = 'table';     // 'table' | 'viewer'
+let payments = [];              // todas las compras (según filtro)
+let paymentsPending = [];       // solo pendientes (para visor)
+let currentIdx = 0;
+
 // Login simple (solo frontend por ahora)
 function loginAdmin() {
     const user = document.getElementById('admin-username').value.trim();
@@ -25,9 +31,14 @@ function logoutAdmin() {
 // 1
 // Navegación
 function showSection(section) {
-    document.getElementById('section-raffles').style.display = (section === 'raffles') ? 'block' : 'none';
-    document.getElementById('section-payments').style.display = (section === 'payments') ? 'block' : 'none';
-    // (Las otras secciones se agregan luego)
+  const raffles = document.getElementById('section-raffles');
+  const payments = document.getElementById('section-payments');
+
+  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
+  payments.style.display = (section === 'payments') ? 'block' : 'none';
+
+  if (section === 'raffles')  loadRaffles();
+  if (section === 'payments') loadPayments('viewer'); // ← visor por defecto
 }
 
 // ======== Cargar Rifas desde Backend ========
@@ -120,14 +131,19 @@ function renderPrizesList() {
     prizesList.innerHTML = '';
     currentPrizes.forEach((prize, i) => {
         prizesList.innerHTML += `
-            <div class="flex space-x-2 items-center mb-2">
-                <span class="font-bold text-green-400">${prize.place}°</span>
-                <input type="text" placeholder="Descripción" value="${prize.description}" class="flex-1 px-2 py-1 rounded bg-gray-700 text-white" 
-                    onchange="currentPrizes[${i}].description = this.value">
-                <input type="url" placeholder="Imagen (opcional)" value="${prize.image || ''}" class="flex-1 px-2 py-1 rounded bg-gray-700 text-white" 
-                    onchange="currentPrizes[${i}].image = this.value">
-                <button type="button" onclick="removePrizeField(${i})" class="text-red-400 hover:text-red-600 font-bold text-xl">&times;</button>
-            </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 mb-2">
+            <span class="font-bold text-green-400 sm:w-10 sm:text-center">${prize.place}°</span>
+            <input type="text" placeholder="Descripción" value="${prize.description}"
+                class="w-full sm:flex-1 px-2 py-2 rounded bg-gray-700 text-white"
+                onchange="currentPrizes[${i}].description = this.value">
+            <input type="url" placeholder="Imagen (opcional)" value="${prize.image || ''}"
+                class="w-full sm:flex-1 px-2 py-2 rounded bg-gray-700 text-white"
+                onchange="currentPrizes[${i}].image = this.value">
+            <button type="button" onclick="removePrizeField(${i})"
+                    class="self-start sm:self-auto px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-red-300 hover:text-red-400 font-bold">
+            &times;
+            </button>
+        </div>
         `;
     });
 }
@@ -218,90 +234,238 @@ async function deleteRaffle(id) {
     }
 }
 
-// pagos
+// =================== PAGOS (Tabla | Visor) ===================
 
-// ====== Cargar Compras Pendientes ======
-async function loadPayments() {
-    const wrapper = document.getElementById('payments-table-wrapper');
-    wrapper.innerHTML = '<div class="text-center text-gray-400">Cargando pagos...</div>';
+async function loadPayments(mode = paymentsMode) {
+  paymentsMode = mode;
+
+  // Botones / contenedores
+  const btnTable = document.getElementById('btn-mode-table');
+  const btnViewer = document.getElementById('btn-mode-viewer');
+  const header = document.getElementById('viewer-header');
+  const tableWrapper = document.getElementById('payments-table-wrapper');
+  const viewerWrapper = document.getElementById('payments-viewer-wrapper');
+
+  // Toggle active
+  btnTable?.classList.toggle('bg-green-600', mode === 'table');
+  btnViewer?.classList.toggle('bg-green-600', mode === 'viewer');
+
+  if (mode === 'table') {
+    header.classList.add('hidden');
+    viewerWrapper.classList.add('hidden');
+    tableWrapper.classList.remove('hidden');
+
+    tableWrapper.innerHTML = '<div class="text-center text-gray-400">Cargando pagos...</div>';
     try {
-        const res = await fetch('http://localhost:4000/api/purchases');
-        let payments = await res.json();
-
-        // Solo pendientes
-        payments = payments.filter(p => p.status === "pendiente");
-
-        if (payments.length === 0) {
-            wrapper.innerHTML = '<div class="text-center text-gray-400">No hay pagos pendientes.</div>';
-            return;
-        }
-        let table = `
-            <div class="overflow-x-auto">
-            <table class="w-full text-left rounded-lg bg-gray-900 shadow-lg">
-                <thead>
-                    <tr class="bg-gray-800 text-green-400">
-                        <th class="py-2 px-4">Fecha</th>
-                        <th class="py-2 px-4">Nombre</th>
-                        <th class="py-2 px-4">Teléfono</th>
-                        <th class="py-2 px-4">Números</th>
-                        <th class="py-2 px-4">Pago</th>
-                        <th class="py-2 px-4">Referencia</th>
-                        <th class="py-2 px-4">Comprobante</th>
-                        <th class="py-2 px-4">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        payments.forEach(pago => {
-            table += `
-                <tr class="border-b border-gray-800 hover:bg-gray-800">
-                    <td class="py-2 px-4">${new Date(pago.createdAt).toLocaleString()}</td>
-                    <td class="py-2 px-4 font-bold">${pago.firstName} ${pago.lastName}</td>
-                    <td class="py-2 px-4">${pago.phone}</td>
-                    <td class="py-2 px-4">${(pago.numbers || []).join(', ')}</td>
-                    <td class="py-2 px-4">${pago.paymentMethod}</td>
-                    <td class="py-2 px-4">${pago.paymentReference}</td>
-                    <td class="py-2 px-4">
-                        ${pago.paymentProof ? `<a href="${pago.paymentProof}" target="_blank" class="underline text-blue-400">Ver</a>` : '-'}
-                    </td>
-                    <td class="py-2 px-4 space-x-2">
-                        <button class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-bold" onclick="approvePayment('${pago._id}')">Aprobar</button>
-                        <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-bold" onclick="rejectPayment('${pago._id}')">Rechazar</button>
-                    </td>
-                </tr>
-            `;
-        });
-        table += '</tbody></table></div>';
-        wrapper.innerHTML = table;
-    } catch (err) {
-        wrapper.innerHTML = '<div class="text-center text-red-400">Error cargando pagos.</div>';
+      const res = await fetch('http://localhost:4000/api/purchases?status=pendiente'); // todos
+      const pagos = await res.json();
+      payments = Array.isArray(pagos) ? pagos : [];
+      renderPaymentsTable(payments);
+    } catch (e) {
+      tableWrapper.innerHTML = '<div class="text-center text-red-400">Error cargando pagos.</div>';
     }
+  } else {
+    tableWrapper.classList.add('hidden');
+    viewerWrapper.classList.remove('hidden');
+    header.classList.remove('hidden');
+    const proofBox = document.getElementById('proof-box');
+    proofBox.innerHTML = '<div class="text-gray-400">Cargando...</div>';
+
+    try {
+      const res = await fetch('http://localhost:4000/api/purchases?status=pendiente'); // solo pendientes
+      const data = await res.json();
+      paymentsPending = Array.isArray(data) ? data : [];
+      currentIdx = 0;
+      document.getElementById('viewer-pending').textContent = `${paymentsPending.length} pendientes`;
+
+      if (!paymentsPending.length) {
+        proofBox.innerHTML = '<div class="text-gray-400">No hay pagos pendientes.</div>';
+        document.getElementById('viewer-counter').textContent = '0/0';
+        renderViewerDetails(null);
+        return;
+      }
+      renderViewer(currentIdx);
+    } catch (e) {
+      proofBox.innerHTML = '<div class="text-red-400">Error cargando pendientes.</div>';
+      document.getElementById('viewer-counter').textContent = '0/0';
+      renderViewerDetails(null);
+    }
+  }
 }
 
-// Llamar a esta función cuando entres a la sección
-document.querySelectorAll('.nav-link').forEach(btn => {
-    btn.addEventListener('click', e => {
-        if (e.target.textContent.includes('Verificar pagos')) loadPayments();
-    });
+// ----- Tabla -----
+function renderPaymentsTable(pagos) {
+  const wrapper = document.getElementById('payments-table-wrapper');
+  if (!pagos || !pagos.length) {
+    wrapper.innerHTML = '<div class="text-center text-gray-400 py-8">No hay pagos.</div>';
+    return;
+  }
+
+  let table = `
+    <div class="overflow-x-auto -mx-2 sm:mx-0">
+      <table class="min-w-[920px] w-full text-left rounded-lg bg-gray-900 shadow-lg text-xs sm:text-sm">
+        <thead>
+            <tr class="bg-gray-800 text-green-400">
+                <th class="py-2 px-4">Fecha</th>
+                <th class="py-2 px-4">Nombre</th>
+                <th class="py-2 px-4">Rifa</th>
+                <th class="py-2 px-4">Teléfono</th>
+                <th class="py-2 px-4">Números</th>
+                <th class="py-2 px-4">Pago</th>
+                <th class="py-2 px-4">Referencia</th>
+                <th class="py-2 px-4">Monto</th>
+                <th class="py-2 px-4">Comprobante</th>
+                <th class="py-2 px-4">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+  `;
+
+  pagos.forEach(pago => {
+    const monto = (pago && pago.amount != null && pago.currency)
+    ? `${pago.currency}${pago.amount}`
+    : '-';
+    const rifaNombre = (pago && pago.raffleTitle) ? pago.raffleTitle : '-';
+    const comp = (pago && pago.paymentProof)
+    ? `<a href="${pago.paymentProof}" target="_blank" class="underline text-blue-400">Ver</a>`
+    : '-';
+
+    table += `
+    <tr class="border-b border-gray-800 hover:bg-gray-800">
+        <td class="py-2 px-4">${pago?.createdAt ? new Date(pago.createdAt).toLocaleString() : '-'}</td>
+        <td class="py-2 px-4 font-bold">${(pago?.firstName || '')} ${(pago?.lastName || '')}</td>
+        <td class="py-2 px-4">${rifaNombre}</td>
+        <td class="py-2 px-4">${pago?.phone || '-'}</td>
+        <td class="py-2 px-4">${Array.isArray(pago?.numbers) ? pago.numbers.join(', ') : '-'}</td>
+        <td class="py-2 px-4">${pago?.paymentMethod || '-'}</td>
+        <td class="py-2 px-4">${pago?.paymentReference || '-'}</td>
+        <td class="py-2 px-4">${monto}</td>
+        <td class="py-2 px-4">${comp}</td>
+        <td class="py-2 px-4 space-x-2">
+        <button class="bg-green-500 hover:bg-green-400 px-3 py-1 rounded font-bold" onclick="approvePayment('${pago?._id}')">Aprobar</button>
+        <button class="bg-red-500 hover:bg-red-400 px-3 py-1 rounded font-bold" onclick="rejectPayment('${pago?._id}')">Rechazar</button>
+        </td>
+    </tr>
+    `;
+
+
+  });
+
+  table += '</tbody></table></div>';
+  wrapper.innerHTML = table;
+}
+
+
+// ----- Visor -----
+function renderViewer(idx) {
+  if (!paymentsPending.length) return;
+  if (idx < 0) idx = 0;
+  if (idx >= paymentsPending.length) idx = paymentsPending.length - 1;
+  currentIdx = idx;
+
+  const pago = paymentsPending[currentIdx];
+  document.getElementById('viewer-counter').textContent = `${currentIdx + 1}/${paymentsPending.length}`;
+
+  const box = document.getElementById('proof-box');
+  const url = pago.paymentProof || '';
+  if (/\.(pdf)(\?|$)/i.test(url)) {
+    box.innerHTML = `<iframe src="${url}" class="w-full h-full" frameborder="0"></iframe>`;
+  } else {
+    box.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain" alt="Comprobante">`;
+  }
+
+  renderViewerDetails(pago);
+}
+
+function renderViewerDetails(pago) {
+  const set = (id, val='-') => (document.getElementById(id).textContent = val);
+  if (!pago) {
+    ['v-fecha','v-nombre','v-rifa','v-telefono','v-numeros','v-metodo','v-ref','v-monto'].forEach(id => set(id, '-'));
+    return;
+  }
+  set('v-fecha', new Date(pago.createdAt).toLocaleString());
+  set('v-nombre', `${pago.firstName || ''} ${pago.lastName || ''}`.trim() || '-');
+  set('v-rifa', pago.raffleTitle || '-');
+  set('v-telefono', pago.phone || '-');
+  set('v-numeros', (pago.numbers || []).join(', ') || '-');
+  set('v-metodo', pago.paymentMethod || '-');
+  set('v-ref', pago.paymentReference || '-');
+  const monto = (pago.amount != null && pago.currency) ? `${pago.currency}${pago.amount}` : '-';
+  set('v-monto', monto);
+}
+
+
+// ----- Navegación / botones (espera a que exista el DOM) -----
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-mode-table')?.addEventListener('click', () => loadPayments('table'));
+  document.getElementById('btn-mode-viewer')?.addEventListener('click', () => loadPayments('viewer'));
+  document.getElementById('prev-payment')?.addEventListener('click', () => { if (paymentsPending.length) renderViewer(Math.max(0, currentIdx - 1)); });
+  document.getElementById('next-payment')?.addEventListener('click', () => { if (paymentsPending.length) renderViewer(Math.min(paymentsPending.length - 1, currentIdx + 1)); });
+  document.getElementById('btn-approve')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) approvePayment(p._id, 'viewer'); });
+  document.getElementById('btn-wait')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) waitPayment(p._id, 'viewer'); });
+  document.getElementById('btn-reject')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) rejectPayment(p._id, 'viewer'); });
 });
 
-// ====== Aprobar y Rechazar ======
+// ----- Acciones -----
 async function approvePayment(id) {
-    if (!confirm('¿Seguro que quieres aprobar este pago?')) return;
-    try {
-        await fetch(`http://localhost:4000/api/purchases/${id}/approve`, { method: 'PUT' });
-        loadPayments();
-        loadRaffles(); // Para refrescar números vendidos, si lo deseas
-    } catch (err) {
-        alert('Error aprobando pago');
-    }
+  try {
+    const res = await fetch(`http://localhost:4000/api/purchases/${id}/approve`, { method: 'PUT' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    await refreshAfterAction();
+  } catch (e) {
+    console.error('approvePayment error:', e);
+    alert('Error aprobando la compra');
+  }
 }
+
 async function rejectPayment(id) {
-    if (!confirm('¿Seguro que quieres rechazar este pago?')) return;
-    try {
-        await fetch(`http://localhost:4000/api/purchases/${id}/reject`, { method: 'PUT' });
-        loadPayments();
-    } catch (err) {
-        alert('Error rechazando pago');
+  try {
+    const res = await fetch(`http://localhost:4000/api/purchases/${id}/reject`, { method: 'PUT' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    await refreshAfterAction();
+  } catch (e) {
+    console.error('rejectPayment error:', e);
+    alert('Error rechazando la compra');
+  }
+}
+
+async function waitPayment(id) {
+  try {
+    const res = await fetch(`http://localhost:4000/api/purchases/${id}/wait`, { method: 'PUT' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    await refreshAfterAction();
+  } catch (e) {
+    console.error('waitPayment error:', e);
+    alert('Error moviendo a espera');
+  }
+}
+
+// === Helpers de vista ===
+function isViewerActive() {
+  const viewer = document.getElementById('payments-viewer-wrapper');
+  return viewer && !viewer.classList.contains('hidden');
+}
+
+async function refreshAfterAction() {
+  // Si tienes loadPayments(mode), úsalo; si no, solo loadPayments()
+  const mode = isViewerActive() ? 'viewer' : 'table';
+  await loadPayments(mode); // o: await loadPayments(mode);
+
+  if (mode === 'viewer') {
+    // Reposicionar índice y refrescar contador/detalles
+    if (window.paymentsPending && window.paymentsPending.length) {
+      window.currentIdx = Math.min(window.currentIdx || 0, window.paymentsPending.length - 1);
+      renderViewerDetails(window.paymentsPending[window.currentIdx]);
+      document.getElementById('viewer-counter').textContent =
+        `${(window.currentIdx || 0) + 1}/${window.paymentsPending.length}`;
+      document.getElementById('viewer-pending').textContent =
+        `${window.paymentsPending.length} pendientes`;
+    } else {
+      document.getElementById('viewer-counter').textContent = '0/0';
+      document.getElementById('viewer-pending').textContent = '0 pendientes';
+      const proofBox = document.getElementById('proof-box');
+      if (proofBox) proofBox.innerHTML = '<div class="text-center text-gray-400">No hay pagos pendientes.</div>';
+      renderViewerDetails(null);
     }
+  }
 }

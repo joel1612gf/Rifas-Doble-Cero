@@ -15,6 +15,7 @@ const raffleSchema = new mongoose.Schema({
     drawDate: Date,
     totalNumbers: { type: Number, required: true },
     numbersSold: [Number],
+    numbersReserved: [Number],   // ← NUEVO
     prizes: [prizeSchema],
     status: { type: String, default: 'activa' },
     createdAt: { type: Date, default: Date.now },
