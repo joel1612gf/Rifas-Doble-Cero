@@ -31,14 +31,17 @@ function logoutAdmin() {
 // 1
 // Navegación
 function showSection(section) {
-  const raffles = document.getElementById('section-raffles');
+  const raffles  = document.getElementById('section-raffles');
   const payments = document.getElementById('section-payments');
+  const winners  = document.getElementById('section-winners');
 
-  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
-  payments.style.display = (section === 'payments') ? 'block' : 'none';
+  if (raffles)  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
+  if (payments) payments.style.display = (section === 'payments') ? 'block' : 'none';
+  if (winners)  winners.style.display  = (section === 'winners')  ? 'block' : 'none';
 
   if (section === 'raffles')  loadRaffles();
-  if (section === 'payments') loadPayments('viewer'); // ← visor por defecto
+  if (section === 'payments') loadPayments('viewer');
+  if (section === 'winners')  loadWinnersInit();
 }
 
 // ======== Cargar Rifas desde Backend ========
@@ -467,5 +470,201 @@ async function refreshAfterAction() {
       if (proofBox) proofBox.innerHTML = '<div class="text-center text-gray-400">No hay pagos pendientes.</div>';
       renderViewerDetails(null);
     }
+  }
+}
+// ==================== WINNERS ====================
+let winnersState = {
+  raffles: [],
+  selectedRaffle: null,
+  lastLookup: null,   // respuesta de /lookup-winner
+};
+
+async function loadWinnersInit() {
+  try {
+    const res = await fetch('http://localhost:4000/api/raffles');
+    winnersState.raffles = await res.json();
+
+    // llenar select
+    const sel = document.getElementById('winners-raffle-select');
+    sel.innerHTML = winnersState.raffles.map(r => `<option value="${r._id}">${r.title}</option>`).join('');
+    sel.onchange = onChangeRaffleWinners;
+
+    // seleccionar primera rifa (si hay)
+    if (winnersState.raffles.length) {
+      sel.value = winnersState.raffles[0]._id;
+      await onChangeRaffleWinners();
+    }
+
+    // botones
+  document.getElementById('btn-winner-lookup').onclick = lookupWinner;
+  document.getElementById('btn-winner-save').onclick   = saveWinner;
+  document.getElementById('btn-winner-clear').onclick  = clearWinner;
+  document.getElementById('btn-toggle-phone').onclick  = togglePhoneVisibility;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function onChangeRaffleWinners() {
+  const id = document.getElementById('winners-raffle-select').value;
+  const r = winnersState.raffles.find(x => x._id === id);
+  winnersState.selectedRaffle = r || null;
+
+  // imagen y título
+  const img = document.getElementById('winners-image');
+  const ph  = document.getElementById('winners-image-ph');
+  if (r && r.image) {
+    img.src = r.image;
+    img.classList.remove('hidden');
+    ph.classList.add('hidden');
+  } else {
+    img.classList.add('hidden');
+    ph.classList.remove('hidden');
+  }
+  document.getElementById('winners-title').textContent = r ? r.title : '—';
+
+  // premios -> opciones (1..N)
+  const selPlace = document.getElementById('winners-place-select');
+  const n = (r && Array.isArray(r.prizes)) ? r.prizes.length : 1;
+  const labels = ['1er premio','2do premio','3er premio','4to premio','5to premio'];
+  selPlace.innerHTML = Array.from({length: n}, (_,i)=>`<option value="${i+1}">${labels[i] || (i+1+'° premio')}</option>`).join('');
+
+  // limpiar UI derecha
+  setWinnerDetails(null, r);
+}
+
+function setWinnerDetails(lookup, raffle) {
+  // lookup puede ser null (sin comprador) o un objeto del backend
+  const byPlace = () => {
+    if (!raffle) return null;
+    const place = Number(document.getElementById('winners-place-select').value || 1);
+    const w = Array.isArray(raffle.winners) ? raffle.winners.find(x => x.place === place) : null;
+    return w || null;
+  };
+
+  const src = lookup || byPlace();
+
+  const name = src ? `${src.firstName || ''} ${src.lastName || ''}`.trim() : '—';
+  const phone = src ? (src.phone || '') : '';
+  const masked = maskPhone(phone);
+
+  document.getElementById('winners-name').textContent   = name || '—';
+  document.getElementById('winners-phone').textContent  = masked || '—';
+  document.getElementById('winners-phone').dataset.full = phone || '';
+  document.getElementById('winners-status').textContent = (src && src.status) ? src.status.toUpperCase() : '—';
+  document.getElementById('winners-ticket').textContent = (src && src.ticket) ? String(src.ticket) : '—';
+
+  const dt = (src && (src.purchasedAt || src.createdAt)) ? formatDateVE(src.purchasedAt || src.createdAt) : '—';
+  document.getElementById('winners-date').textContent = dt;
+
+  const place = Number(document.getElementById('winners-place-select').value || 1);
+  const prize = (raffle && Array.isArray(raffle.prizes) && raffle.prizes[place-1])
+                ? raffle.prizes[place-1].description
+                : '';
+  document.getElementById('winners-prize').textContent = prize || '—';
+}
+
+function maskPhone(phone) {
+  if (!phone) return '';
+  const s = String(phone).replace(/\D/g,'');
+  if (s.length <= 4) return '*'.repeat(s.length);
+  const head = s.slice(0,4);
+  const tail = s.slice(-4);
+  return `${head}${'*'.repeat(Math.max(0, s.length-8))}${tail}`;
+}
+
+function togglePhoneVisibility() {
+  const span = document.getElementById('winners-phone');
+  const full = span.dataset.full || '';
+  if (!full) return;
+  if (span.dataset.visible === '1') {
+    span.textContent = maskPhone(full);
+    span.dataset.visible = '0';
+  } else {
+    span.textContent = full;
+    span.dataset.visible = '1';
+  }
+}
+
+function formatDateVE(date) {
+  try {
+    const d = new Date(date);
+    return d.toLocaleString('es-VE', { timeZone: 'America/Caracas', hour12: true });
+  } catch { return '—'; }
+}
+
+async function lookupWinner() {
+  const raffleId = document.getElementById('winners-raffle-select').value;
+  const number   = Number(document.getElementById('winners-number-input').value);
+  if (!raffleId || !number) { alert('Selecciona la rifa y escribe el número'); return; }
+  const res = await fetch(`http://localhost:4000/api/raffles/${raffleId}/lookup-winner?number=${number}`);
+  winnersState.lastLookup = await res.json(); // puede ser null
+  setWinnerDetails(winnersState.lastLookup, winnersState.selectedRaffle);
+}
+
+async function saveWinner() {
+  const raffleId = document.getElementById('winners-raffle-select').value;
+  const place    = Number(document.getElementById('winners-place-select').value);
+  const number   = Number(document.getElementById('winners-number-input').value);
+  if (!raffleId || !place || !number) { alert('Completa rifa, premio y número'); return; }
+
+  const res = await fetch(`http://localhost:4000/api/raffles/${raffleId}/winners`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ place, number })
+  });
+  const winners = await res.json();
+
+  // actualizar en memoria la rifa seleccionada
+  const idx = winnersState.raffles.findIndex(r => r._id === raffleId);
+  if (idx >= 0) winnersState.raffles[idx].winners = winners;
+  winnersState.selectedRaffle = winnersState.raffles[idx];
+
+  alert('Ganador guardado.');
+  setWinnerDetails(null, winnersState.selectedRaffle);
+}
+
+async function clearWinner() {
+  const raffleId = document.getElementById('winners-raffle-select').value;
+  const place    = Number(document.getElementById('winners-place-select').value);
+  if (!raffleId || !place) return;
+
+  if (!confirm('¿Seguro que deseas limpiar este premio?')) return;
+  const res = await fetch(`http://localhost:4000/api/raffles/${raffleId}/winners/${place}`, { method: 'DELETE' });
+  const { winners } = await res.json();
+
+  const idx = winnersState.raffles.findIndex(r => r._id === raffleId);
+  if (idx >= 0) winnersState.raffles[idx].winners = winners;
+  winnersState.selectedRaffle = winnersState.raffles[idx];
+
+  setWinnerDetails(null, winnersState.selectedRaffle);
+}
+function maskPhone(phone) {
+  if (!phone) return '';
+  const s = String(phone).replace(/\D/g, '');
+  if (s.length <= 4) return '*'.repeat(s.length);
+  const head = s.slice(0, 4);
+  const tail = s.slice(-4);
+  return `${head}${'*'.repeat(Math.max(0, s.length - 8))}${tail}`;
+}
+
+function togglePhoneVisibility() {
+  const span = document.getElementById('winners-phone');
+  const eyeOn = document.getElementById('icon-eye');
+  const eyeOff = document.getElementById('icon-eye-off');
+  const full = span?.dataset?.full || '';
+  if (!full) return;
+
+  const visible = span.dataset.visible === '1';
+  if (visible) {
+    span.textContent = maskPhone(full);
+    span.dataset.visible = '0';
+    eyeOn.classList.remove('hidden');
+    eyeOff.classList.add('hidden');
+  } else {
+    span.textContent = full;
+    span.dataset.visible = '1';
+    eyeOn.classList.add('hidden');
+    eyeOff.classList.remove('hidden');
   }
 }

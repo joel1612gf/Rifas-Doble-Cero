@@ -256,8 +256,125 @@ app.put('/api/purchases/:id/wait', async (req, res) => {
 });
 
 
+// ====== GANADORES (MANUAL) ======
+
+// 1) Lookup: trae datos del comprador APROBADO por número
+app.get('/api/raffles/:id/lookup-winner', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const number = Number(req.query.number);
+    if (!number && number !== 0) return res.status(400).json({ message: 'Falta number' });
+
+    const purchase = await Purchase.findOne({
+      raffleId: id,
+      status: 'aprobada',
+      numbers: number
+    }).sort({ createdAt: 1 });
+
+    if (!purchase) return res.json(null);
+
+    res.json({
+      purchaseId: purchase._id,
+      firstName: purchase.firstName,
+      lastName: purchase.lastName,
+      phone: purchase.phone,
+      ticket: number,
+      status: purchase.status,
+      createdAt: purchase.createdAt
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error buscando ganador', error: error.message });
+  }
+});
+
+// 2) Guardar/actualizar ganador de un lugar (place) con un número
+app.put('/api/raffles/:id/winners', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { place, number } = req.body;
+    if (!place || !number) return res.status(400).json({ message: 'place y number son requeridos' });
+
+    const raffle = await Raffle.findById(id);
+    if (!raffle) return res.status(404).json({ message: 'Rifa no encontrada' });
+
+    // buscar compra aprobada para ese número
+    const purchase = await Purchase.findOne({
+      raffleId: id,
+      status: 'aprobada',
+      numbers: Number(number)
+    }).sort({ createdAt: 1 });
+
+    let winnerData;
+    if (purchase) {
+      winnerData = {
+        place: Number(place),
+        number: Number(number),
+        purchaseId: purchase._id,
+        firstName: purchase.firstName,
+        lastName: purchase.lastName,
+        phone: purchase.phone,
+        ticket: Number(number),
+        status: 'aprobada',
+        purchasedAt: purchase.createdAt,
+        drawnAt: new Date()
+      };
+    } else {
+      // Permitir guardar SIN COMPRADOR para documentar que el número no tenía dueño
+      winnerData = {
+        place: Number(place),
+        number: Number(number),
+        purchaseId: null,
+        firstName: '',
+        lastName: '',
+        phone: '',
+        ticket: Number(number),
+        status: 'sin_comprador',
+        purchasedAt: null,
+        drawnAt: new Date()
+      };
+    }
+
+    // upsert por place
+    raffle.winners = (raffle.winners || []).filter(w => w.place !== Number(place));
+    raffle.winners.push(winnerData);
+    await raffle.save();
+
+    res.json(raffle.winners);
+  } catch (error) {
+    res.status(500).json({ message: 'Error guardando ganador', error: error.message });
+  }
+});
+
+// 3) Listar ganadores de una rifa
+app.get('/api/raffles/:id/winners', async (req, res) => {
+  try {
+    const raffle = await Raffle.findById(req.params.id);
+    if (!raffle) return res.status(404).json({ message: 'Rifa no encontrada' });
+    res.json(raffle.winners || []);
+  } catch (error) {
+    res.status(500).json({ message: 'Error listando ganadores', error: error.message });
+  }
+});
+
+// 4) Limpiar ganador de un lugar (eliminar un place)
+app.delete('/api/raffles/:id/winners/:place', async (req, res) => {
+  try {
+    const { id, place } = req.params;
+    const raffle = await Raffle.findById(id);
+    if (!raffle) return res.status(404).json({ message: 'Rifa no encontrada' });
+
+    const before = (raffle.winners || []).length;
+    raffle.winners = (raffle.winners || []).filter(w => w.place !== Number(place));
+    await raffle.save();
+
+    res.json({ removed: before - (raffle.winners || []).length, winners: raffle.winners || [] });
+  } catch (error) {
+    res.status(500).json({ message: 'Error limpiando ganador', error: error.message });
+  }
+});
+
 const PORT = 4000;
 app.listen(PORT, () => {
-    console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
+  console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
 });
 
