@@ -24,21 +24,24 @@ async function cargarRifas() {
             return;
         }
 
-        // Centrado pro para 1 o 2 rifas
-        if (rifas.length === 1) {
-            rifasContainer.className = "w-full flex justify-center";
-        } else if (rifas.length === 2) {
-            rifasContainer.className = "w-full flex justify-center gap-8";
-        } else {
-            rifasContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8";
-        }
+    // Layout responsive sólido (móvil 1 col; >=sm 2 col; >=lg 3 col)
+    if (rifas.length === 1) {
+        rifasContainer.className = "grid grid-cols-1 gap-8 place-items-center";
+    } else if (rifas.length === 2) {
+        rifasContainer.className = "grid grid-cols-1 sm:grid-cols-2 gap-8 place-items-center";
+    } else {
+        rifasContainer.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center";
+    }
+
 
         let html = '';
         rifas.forEach((rifa, idx) => {
             html += `
-                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition duration-300 mb-6 w-full max-w-2xl">
-                    <div class="h-56 bg-gray-700 flex items-center justify-center">
-                        <img src="${rifa.image || ''}" alt="${rifa.title}" class="h-full w-full object-cover">
+                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition duration-300 mb-6 w-[92%] sm:w-full max-w-md sm:max-w-2xl lg:max-w-none mx-auto">
+                    <div class="p-2 sm:p-3 lg:p-0 bg-gray-900/70 lg:bg-transparent rounded-xl lg:rounded-none">
+                    <div class="aspect-square sm:aspect-video lg:aspect-[16/8] w-full overflow-hidden rounded-lg lg:rounded-none">
+                        <img src="${rifa.image || ''}" alt="${rifa.title}" class="w-full h-full object-cover" loading="lazy">
+                    </div>
                     </div>
                     <div class="p-6">
                         <h3 class="text-2xl font-bold text-green-400 mb-2">${rifa.title}</h3>
@@ -76,12 +79,17 @@ async function abrirModalSelector(raffleId) {
     searchValue = "";
 
     document.getElementById('selector-content').innerHTML = renderSelectorContent();
-    document.getElementById('modal-selector').classList.remove('hidden');
+    const overlaySel = document.getElementById('modal-selector');
+    overlaySel.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
 }
 
 function cerrarModalSelector() {
-    document.getElementById('modal-selector').classList.add('hidden');
-    setTimeout(() => { document.getElementById('selector-content').innerHTML = ""; }, 300);
+  const overlay = document.getElementById('modal-selector');
+  overlay.classList.add('hidden');
+  document.body.style.overflow = 'auto';
+  setTimeout(() => { document.getElementById('selector-content').innerHTML = ""; }, 300);
 }
 
 function renderSelectorContent() {
@@ -351,15 +359,18 @@ function numeroAlAzar() {
 function continuarCompra() {
     cerrarModalSelector();
     setTimeout(() => {
-        //document.getElementById('resumen-content').innerHTML = renderResumenContent();
-        document.getElementById('modal-resumen').classList.remove('hidden');
+        const overlayRes = document.getElementById('modal-resumen');
+        overlayRes.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
         renderResumenContent();
-    }, 350);
+        }, 350);
 }
 
 function cerrarModalResumen() {
-    document.getElementById('modal-resumen').classList.add('hidden');
-    setTimeout(() => { document.getElementById('resumen-content').innerHTML = ""; }, 300);
+  const overlay = document.getElementById('modal-resumen');
+  overlay.classList.add('hidden');
+  document.body.style.overflow = 'auto';
+  setTimeout(() => { document.getElementById('resumen-content').innerHTML = ""; }, 300);
 }
 
 // ============ 3. MODAL RESUMEN + FORMULARIO DE COMPRA ===============
@@ -415,15 +426,63 @@ function calcularTotalCompra() {
 }
 
 // Valida todo el form (puedes hacer más validaciones si quieres)
-function validarFormularioCompra() {
-  const nombre     = document.getElementById('first-name').value.trim();
-  const apellido   = document.getElementById('last-name').value.trim();
-  const telefono   = document.getElementById('phone').value.trim();
-  const referencia = document.getElementById('payment-reference').value.trim();
-  const btn = document.getElementById('btn-confirmar-compra');
-  if (nombre && apellido && telefono && referencia && metodoPagoSeleccionado) btn.removeAttribute('disabled');
-  else btn.setAttribute('disabled', true);
+function isValidPhoneVE(raw) {
+  const s = String(raw).replace(/\s+/g, '');
+  // Acepta 0412..., 0424..., 0414..., 0416..., 0426... (10-11 dígitos) o +58 412...
+  const reLocal = /^(0)?(412|414|416|422|424|426)\d{7}$/;
+  const reIntl  = /^\+?58(412|414|416|422|424|426)\d{7}$/;
+  return reLocal.test(s) || reIntl.test(s);
 }
+function normalizePhoneVE(raw) {
+  let s = String(raw).replace(/\s+/g, '');
+  if (/^\+?58/.test(s)) s = '0' + s.replace(/^\+?58/, '');
+  return s;
+}
+function isValidName(x) {
+  return /^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]{2,40}$/.test(String(x).trim());
+}
+function isValidReference(x) {
+  // 4–20 caracteres alfanuméricos (algunas referencias incluyen letras)
+  return /^[A-Za-z0-9]{4,20}$/.test(String(x).trim());
+}
+
+function setInputState(el, ok) {
+  if (!el) return;
+  el.classList.toggle('ring-2', !ok);
+  el.classList.toggle('ring-red-500', !ok);
+}
+
+function validarFormularioCompra() {
+  const nombreEl   = document.getElementById('first-name');
+  const apellidoEl = document.getElementById('last-name');
+  const telefonoEl = document.getElementById('phone');
+  const refEl      = document.getElementById('payment-reference');
+
+  const nombreOk   = isValidName(nombreEl.value);
+  const apellidoOk = isValidName(apellidoEl.value);
+  const telOk      = isValidPhoneVE(telefonoEl.value);
+  const refOk      = isValidReference(refEl.value);
+
+  setInputState(nombreEl,   nombreOk);
+  setInputState(apellidoEl, apellidoOk);
+  setInputState(telefonoEl, telOk);
+  setInputState(refEl,      refOk);
+
+  const btn = document.getElementById('btn-confirmar-compra');
+  if (nombreOk && apellidoOk && telOk && refOk && metodoPagoSeleccionado) {
+    btn.removeAttribute('disabled');
+  } else {
+    btn.setAttribute('disabled', true);
+  }
+}
+
+// Listeners para validación en vivo
+['first-name','last-name','phone','payment-reference'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', validarFormularioCompra);
+});
+
 
 ['first-name','last-name','phone','payment-reference'].forEach(id => {
   const el = document.getElementById(id);
@@ -482,38 +541,41 @@ function toggleFAQ(id) {
             document.getElementById('mobile-menu').classList.remove('open');
         });
     });
-        // Cerrar modales al hacer clic fuera del contenido
-        document.querySelectorAll('[id$="-modal"]').forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            // Si el modal de éxito está abierto, no cierres otros modales por clic exterior
-            if (exitoAbierto) return;
+        // Cerrar modales al hacer clic FUERA del contenido (overlay)
+        ['modal-selector','modal-resumen','modal-exito'].forEach(id => {
+        const overlay = document.getElementById(id);
+        if (!overlay) return;
+        overlay.addEventListener('click', (e) => {
+            if (e.target !== overlay) return;            // Solo si hacen clic en el fondo
+            // Si el modal de éxito está abierto, priorizamos cerrarlo
+            if (id === 'modal-exito') { cerrarModalExito?.(); return; }
+            if (exitoAbierto && id !== 'modal-exito') return;
 
-            if (e.target === this) {
-            if (modal.id === 'modal-selector' && typeof closeModal === 'function') closeModal();
-            if (modal.id === 'payment-modal' && typeof closePaymentModal === 'function') closePaymentModal();
-            if (modal.id === 'confirmation-modal' && typeof closeConfirmationModal === 'function') closeConfirmationModal();
-            if (modal.id === 'modal-resumen') {
-                modal.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-            }
-            }
+            if (id === 'modal-selector') cerrarModalSelector?.();
+            if (id === 'modal-resumen')  cerrarModalResumen?.();
         });
         });
-        // Cerrar modales con Escape
-        document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            // Si el modal de éxito está abierto, NO cierres nada
-            if (!document.getElementById('modal-exito').classList.contains('hidden')) return;
 
-            if (!document.getElementById('modal-selector').classList.contains('hidden') && typeof closeModal === 'function') closeModal();
-            if (!document.getElementById('payment-modal').classList.contains('hidden') && typeof closePaymentModal === 'function') closePaymentModal();
-            if (!document.getElementById('confirmation-modal').classList.contains('hidden') && typeof closeConfirmationModal === 'function') closeConfirmationModal();
-            if (!document.getElementById('admin-login-modal').classList.contains('hidden')) {
-            document.getElementById('modal-resumen').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            }
+        // Cerrar modales con tecla Escape
+        document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+
+        // Si el modal de Éxito está abierto, ciérralo primero
+        if (!document.getElementById('modal-exito')?.classList.contains('hidden')) {
+            cerrarModalExito?.(); 
+            return;
+        }
+        // Luego resumen y, si no, selector
+        if (!document.getElementById('modal-resumen')?.classList.contains('hidden')) {
+            cerrarModalResumen?.(); 
+            return;
+        }
+        if (!document.getElementById('modal-selector')?.classList.contains('hidden')) {
+            cerrarModalSelector?.(); 
+            return;
         }
         });
+
         // Cambia el rango visible de páginas (avanza o retrocede de 10 en 10, y actualiza la página activa)
 function cambiarBloquePaginas(direccion) {
     const rifa = rifaSeleccionada;
@@ -590,12 +652,34 @@ async function confirmarCompra() {
   const proofInput       = document.getElementById('payment-proof');
   const file             = proofInput.files[0] || null;
 
-  const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinli'
+// Validar archivo
+let fileOk = file;
+if (!file) {
+  alert("Adjunta el comprobante de pago.");
+  return;
+}
+// Solo imágenes o PDF
+const okTypes = ["image/jpeg","image/png","image/webp","application/pdf"];
+if (!okTypes.includes(file.type)) {
+  alert("Formato no permitido. Sube JPG, PNG, WEBP o PDF.");
+  return;
+}
+// Si es imagen y pasa de 1.2MB, comprimimos a ~0.8 calidad y máx 1600px
+if (file.type.startsWith("image/") && file.size > 1.2 * 1024 * 1024) {
+  fileOk = await compressImageFile(file, {maxW:1600, maxH:1600, quality:0.8});
+}
 
-  if (!firstName || !lastName || !phone || !paymentMethod || !paymentReference || !file) {
-    alert("Por favor, completa todos los campos y selecciona un método de pago.");
+// Normalizar teléfono (0412...)
+document.getElementById('phone').value = normalizePhoneVE(document.getElementById('phone').value);
+
+const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinli'
+
+    // Validación estricta
+    if (!isValidName(firstName) || !isValidName(lastName) || !isValidPhoneVE(phone) || !isValidReference(paymentReference) || !file) {
+    validarFormularioCompra(); // pinta los errores
+    alert("Revisa los datos: nombre/apellido (solo letras), teléfono VE y referencia (6–20).");
     return;
-  }
+    }
 
   // 👇 FormData (NO pongas headers Content-Type)
   const formData = new FormData();
@@ -606,7 +690,7 @@ async function confirmarCompra() {
   formData.append('phone', phone);
   formData.append('paymentMethod', paymentMethod);
   formData.append('paymentReference', paymentReference);
-  formData.append('paymentProof', file);
+  formData.append('paymentProof', fileOk);
 
   try {
     const res = await fetch('http://localhost:4000/api/purchases', {
@@ -722,3 +806,112 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// Envolver el click para mostrar el mini-modal de aceptación
+(function wireConfirmarCompra() {
+  const btn = document.getElementById('btn-confirmar-compra');
+  if (!btn) return;
+
+  // Guardamos el handler original (si existía)
+  const originalHandler = btn.onclick ? btn.onclick.bind(btn) : (typeof confirmarCompra === 'function' ? confirmarCompra : null);
+
+  btn.onclick = (e) => {
+    e.preventDefault();
+    abrirModalAceptar(() => {
+      // Cuando aceptan, ejecutamos la acción original
+      if (originalHandler) originalHandler();
+    });
+  };
+})();
+
+
+// ======= MINI-MODAL ACEPTACIÓN T&C =======
+let _onAcceptContinue = null;
+
+function abrirModalAceptar(cb) {
+  _onAcceptContinue = cb || null;
+  const overlay = document.getElementById('modal-aceptar');
+  if (!overlay) return;
+
+  // Resetear estado
+  const chk = document.getElementById('aceptar-checkbox');
+  const btnOK = document.getElementById('btn-aceptar-confirmar');
+  if (chk) chk.checked = false;
+  if (btnOK) btnOK.disabled = true;
+
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  // Eventos del modal
+  document.getElementById('btn-aceptar-cancelar').onclick = cerrarModalAceptar;
+  document.getElementById('aceptar-checkbox').onchange = function() {
+    document.getElementById('btn-aceptar-confirmar').disabled = !this.checked;
+  };
+  document.getElementById('btn-aceptar-confirmar').onclick = () => {
+    cerrarModalAceptar();
+    if (_onAcceptContinue) _onAcceptContinue();
+  };
+}
+
+function cerrarModalAceptar() {
+  const overlay = document.getElementById('modal-aceptar');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+  // OJO: mantenemos overflow hidden porque probablemente sigue abierto el modal-resumen
+  // El overflow se libera cuando cierres el modal-resumen o el selector.
+}
+
+// Click fuera del modal → cerrar
+['modal-aceptar'].forEach(id => {
+  const ov = document.getElementById(id);
+  if (!ov) return;
+  ov.addEventListener('click', (e) => {
+    if (e.target !== ov) return;
+    cerrarModalAceptar();
+  });
+});
+
+// Escape cierra el mini-modal (prioridad alta)
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const ov = document.getElementById('modal-aceptar');
+  if (ov && !ov.classList.contains('hidden')) {
+    cerrarModalAceptar();
+  }
+});
+
+// ===== Utilidad: comprimir imagen (canvas) =====
+function loadImageAsBitmap(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = fr.result;
+    };
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+async function compressImageFile(file, {maxW=1600, maxH=1600, quality=0.8}={}) {
+  const img = await loadImageAsBitmap(file);
+  // calcular tamaño destino manteniendo aspecto
+  let {width:w, height:h} = img;
+  const ratio = Math.min(maxW / w, maxH / h, 1);
+  const dw = Math.round(w * ratio);
+  const dh = Math.round(h * ratio);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = dw; canvas.height = dh;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, dw, dh);
+
+  const mime = 'image/jpeg'; // salida jpeg
+  const dataUrl = canvas.toDataURL(mime, quality);
+  const bin = atob(dataUrl.split(',')[1]);
+  const buf = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  const blob = new Blob([buf], {type:mime});
+  return new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {type:mime, lastModified: Date.now()});
+}

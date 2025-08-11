@@ -18,8 +18,7 @@
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
-                <h1 class="text-2xl font-extrabold
-                 text-green-400 hidden sm:block">Doble Cero</h1>
+                <h1 class="text-lg sm:text-2xl font-extrabold text-green-400">Doble Cero</h1>
             </div>
             
             <!-- Menú desktop -->
@@ -67,16 +66,18 @@
     </section>
 
     <!-- Modal Selector de Números -->
-    <div id="modal-selector" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-4xl max-w-4xl w-full relative flex flex-col overflow-y-auto" style="max-height:96vh;">
-            <button onclick="cerrarModalSelector()" class="absolute top-3 right-5 text-white hover:text-red-400 text-2xl font-bold z-10">&times;</button>
-            <div id="selector-content" class="p-0 w-full"></div>           
-        </div>
+    <!-- Modal Selector de Números -->
+    <div id="modal-selector" class="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 sm:p-6 overflow-y-auto hidden">
+    <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[380px] sm:max-w-[520px] md:max-w-[760px] lg:max-w-[900px] relative flex flex-col overflow-hidden mt-4 mb-6">
+        <button onclick="cerrarModalSelector()" class="absolute top-3 right-4 text-white/80 hover:text-white text-2xl font-bold z-10" aria-label="Cerrar">&times;</button>
+        <div id="selector-content" class="p-0 w-full"></div>
+    </div>
     </div>
 
 <!-- MODAL DE CONFIRMAR COMPRA (REEMPLAZA TU MODAL ACTUAL) -->
-<div id="modal-resumen" class="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4 hidden">
-  <div class="bg-gray-800 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+<!-- Modal Confirmar compra -->
+<div id="modal-resumen" class="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-4 pt-8 sm:pt-12 pb-6 overflow-y-auto hidden">
+  <div class="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[85vh] overflow-y-auto">
     <div class="sticky top-0 bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
         <h3 class="text-2xl font-bold text-green-400">Confirmar compra</h3>
         <button onclick="cerrarModalResumen()" class="text-gray-400 hover:text-white" aria-label="Cerrar">
@@ -140,20 +141,24 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label for="first-name" class="block text-gray-300 mb-2">Nombre</label>
-                        <input type="text" id="first-name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        <input type="text" id="first-name" maxlength="40" autocomplete="given-name"
+                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
                     </div>
                     <div>
                         <label for="last-name" class="block text-gray-300 mb-2">Apellido</label>
-                        <input type="text" id="last-name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        <input type="text" id="last-name" maxlength="40" autocomplete="family-name"
+                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
                     </div>
                 </div>
                 <div class="mb-4">
                     <label for="phone" class="block text-gray-300 mb-2">Número de teléfono</label>
-                    <input type="tel" id="phone" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                    <input type="tel" id="phone" inputmode="tel" placeholder="Ej: 04121234567 o +58 4121234567" maxlength="16"
+                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
                 </div>
                 <div class="mb-4">
                     <label for="payment-reference" class="block text-gray-300 mb-2">Referencia de pago</label>
-                    <input type="text" id="payment-reference" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Ej: 123456789" required>
+                    <input type="text" id="payment-reference" inputmode="text" maxlength="20" placeholder="Ej: 12345678 (4–20 caracteres)"
+                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
                 </div>
                 <div class="mb-4">
                     <label for="payment-proof" class="block text-gray-300 mb-2">Captura del pago</label>
@@ -424,6 +429,38 @@
   </div>
 </div>
 
+    <div id="toast"
+        class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-black/80 text-green-300 font-bold px-4 py-2 rounded-lg shadow-lg border border-white/10"
+        style="display:none;">
+    ¡Copiado!
+    </div>
+
+    <!-- Modal Aceptar T&C -->
+<div id="modal-aceptar" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+  <div class="bg-gray-800 rounded-2xl w-full max-w-md p-6 text-center shadow-xl relative">
+    <button onclick="cerrarModalAceptar()" class="absolute top-3 right-4 text-white/80 hover:text-white text-2xl font-bold" aria-label="Cerrar">&times;</button>
+
+    <h3 class="text-2xl font-extrabold text-green-400 mb-2">Aceptar términos y condiciones</h3>
+    <p class="text-gray-200 mb-4">
+      Al confirmar la compra aceptas nuestros
+      <a href="terminos.html" class="underline text-green-300" target="_blank" rel="noopener">Términos y condiciones</a>
+      y nuestra
+      <a href="privacidad.html" class="underline text-green-300" target="_blank" rel="noopener">Política de privacidad</a>.
+    </p>
+
+    <label class="flex items-center justify-center gap-2 mb-4 select-none">
+      <input id="aceptar-checkbox" type="checkbox" class="h-4 w-4">
+      <span class="text-green-300 font-bold">Acepto Términos y Privacidad</span>
+    </label>
+
+    <div class="flex gap-3 justify-center">
+      <button id="btn-aceptar-cancelar" class="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600">Cancelar</button>
+      <button id="btn-aceptar-confirmar" class="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-black font-bold disabled:opacity-50" disabled>
+        Confirmar compra ✓
+      </button>
+    </div>
+  </div>
+</div>
     <script src="main.js"></script>
 </body>
 </html>
