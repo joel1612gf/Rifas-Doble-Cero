@@ -73,7 +73,8 @@ async function fetchWithAuth(url, options = {}) {
 // === Verificador ===
 let paymentsMode = 'table';     // 'table' | 'viewer'
 let payments = [];              // todas las compras (según filtro)
-let paymentsPending = [];       // solo pendientes (para visor)
+let paymentsPending = [];       // ...
+let payFilters = { method: '', from: null, to: null, ref: '' }; // NUEVO
 let currentIdx = 0;
 
 // === AUTH ===
@@ -153,20 +154,23 @@ async function fetchWithAuth(url, options = {}) {
 // 1
 // Navegación
 function showSection(section) {
-  const raffles  = document.getElementById('section-raffles');
-  const payments = document.getElementById('section-payments');
-  const winners  = document.getElementById('section-winners');
+  const raffles   = document.getElementById('section-raffles');
+  const payments  = document.getElementById('section-payments');
+  const winners   = document.getElementById('section-winners');
+  const contacts  = document.getElementById('section-contacts'); // NUEVO
 
   // Mostrar/Ocultar secciones
   if (raffles)  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
   if (payments) payments.style.display = (section === 'payments') ? 'block' : 'none';
   if (winners)  winners.style.display  = (section === 'winners')  ? 'block' : 'none';
+  if (contacts) contacts.style.display = (section === 'contacts') ? 'block' : 'none'; // NUEVO
 
   // Marcar activo en navbar
   const links = {
-    raffles:  document.getElementById('nav-raffles'),
-    payments: document.getElementById('nav-payments'),
-    winners:  document.getElementById('nav-winners'),
+    raffles:   document.getElementById('nav-raffles'),
+    payments:  document.getElementById('nav-payments'),
+    winners:   document.getElementById('nav-winners'),
+    contacts:  document.getElementById('nav-contacts'), // NUEVO
   };
   Object.entries(links).forEach(([key, el]) => {
     if (!el) return;
@@ -184,6 +188,8 @@ function showSection(section) {
   if (section === 'raffles')  loadRaffles();
   if (section === 'payments') loadPayments('viewer');
   if (section === 'winners')  loadWinnersInit();
+  if (section === 'contacts') loadContacts(); // NUEVO
+
 }
 
 // ======== Cargar Rifas desde Backend ========
@@ -402,13 +408,17 @@ async function loadPayments(mode = paymentsMode) {
 
     tableWrapper.innerHTML = '<div class="text-center text-gray-400">Cargando pagos...</div>';
     try {
-      const res = await fetch('http://localhost:4000/api/purchases?status=pendiente'); // todos
+      const res = await fetchWithAuth(`${API}/api/purchases?status=pendiente`); // unificado con auth
       const pagos = await res.json();
       payments = Array.isArray(pagos) ? pagos : [];
-      renderPaymentsTable(payments);
+
+      populatePaymentMethodOptions(payments);       // NUEVO
+      setupPaymentFilters();                        // NUEVO
+      renderPaymentsTable(applyPaymentsFilters(payments)); // NUEVO
     } catch (e) {
       tableWrapper.innerHTML = '<div class="text-center text-red-400">Error cargando pagos.</div>';
     }
+
   } else {
     tableWrapper.classList.add('hidden');
     viewerWrapper.classList.remove('hidden');
@@ -417,7 +427,7 @@ async function loadPayments(mode = paymentsMode) {
     proofBox.innerHTML = '<div class="text-gray-400">Cargando...</div>';
 
     try {
-      const res = await fetchWithAuth('http://localhost:4000/api/purchases?status=pendiente'); // solo pendientes
+      const res = await fetchWithAuth(`${API}/api/purchases?status=pendiente`); // solo pendientes
       const data = await res.json();
       paymentsPending = Array.isArray(data) ? data : [];
       currentIdx = 0;
@@ -498,6 +508,86 @@ function renderPaymentsTable(pagos) {
 
   table += '</tbody></table></div>';
   wrapper.innerHTML = table;
+}
+
+// === Filtros de Verificar pagos (Tabla) ===
+function debounce(fn, wait = 200) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait); };
+}
+
+function populatePaymentMethodOptions(list) {
+  const sel = document.getElementById('pay-filter-method');
+  if (!sel) return;
+  const map = new Map();
+  list.forEach(p => {
+    const raw = (p?.paymentMethod || '').toString().trim();
+    if (!raw) return;
+    const key = raw.toLowerCase();
+    if (!map.has(key)) map.set(key, raw); // key = valor normalizado, raw = etiqueta original
+  });
+  const current = sel.value;
+  sel.innerHTML = `<option value="">Todos</option>` +
+    Array.from(map.entries())
+      .sort((a,b) => a[1].localeCompare(b[1]))
+      .map(([k, label]) => `<option value="${k}">${label}</option>`)
+      .join('');
+  if (map.has(current)) sel.value = current;
+}
+
+function setupPaymentFilters() {
+  const box = document.getElementById('payments-filters');
+  if (!box || box.dataset.ready) return; // evitar listeners duplicados
+  box.dataset.ready = '1';
+
+  const sel  = document.getElementById('pay-filter-method');
+  const ref  = document.getElementById('pay-filter-ref');
+  const from = document.getElementById('pay-filter-from');
+  const to   = document.getElementById('pay-filter-to');
+
+  const trigger = () => {
+    payFilters.method = (sel?.value || '').toLowerCase();
+    payFilters.ref    = (ref?.value || '').trim().toLowerCase();
+    payFilters.from   = from?.value ? new Date(from.value + 'T00:00:00') : null;
+    payFilters.to     = to?.value ? new Date(to.value + 'T23:59:59') : null;
+    renderPaymentsTable(applyPaymentsFilters(payments));
+  };
+
+  sel?.addEventListener('change', trigger);
+  from?.addEventListener('change', trigger);
+  to?.addEventListener('change', trigger);
+  ref?.addEventListener('input', debounce(trigger, 200));
+
+  document.getElementById('pay-filter-clear')?.addEventListener('click', () => {
+    if (sel)  sel.value  = '';
+    if (ref)  ref.value  = '';
+    if (from) from.value = '';
+    if (to)   to.value   = '';
+    payFilters = { method: '', from: null, to: null, ref: '' };
+    renderPaymentsTable(payments);
+  });
+}
+
+function applyPaymentsFilters(list) {
+  let out = Array.isArray(list) ? list.slice() : [];
+  // método
+  if (payFilters.method) {
+    out = out.filter(p => (p?.paymentMethod || '').toString().trim().toLowerCase() === payFilters.method);
+  }
+  // referencia (contiene)
+  if (payFilters.ref) {
+    out = out.filter(p => (p?.reference || '').toString().toLowerCase().includes(payFilters.ref));
+  }
+  // rango de fecha (usamos createdAt; si no, updatedAt)
+  if (payFilters.from || payFilters.to) {
+    out = out.filter(p => {
+      const d = new Date(p?.createdAt || p?.updatedAt || 0);
+      if (Number.isNaN(d.getTime())) return false;
+      if (payFilters.from && d < payFilters.from) return false;
+      if (payFilters.to && d > payFilters.to) return false;
+      return true;
+    });
+  }
+  return out;
 }
 
 
@@ -1148,7 +1238,7 @@ function loadImageSafe(src, isBlob = false) {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#9CA3AF';
   ctx.font = 'bold 28px Montserrat, Arial, sans-serif';
-  ctx.fillText('rifasdoble0.com', W/2, H - 48);
+  ctx.fillText('doblecerove.com', W/2, H - 48);
 
   return canvas;
 }
@@ -1203,8 +1293,119 @@ function loadImageSafe(src, isBlob = false) {
   });
 }
 
+// === Atajos de teclado para el Visor ===
+// A: aprobar, R: rechazar, W: mover a espera, ←/→: navegar
+document.addEventListener('keydown', (e) => {
+  if (!isViewerActive?.() || !window.paymentsPending?.length) return;
+
+  // Evitar interferir cuando se escribe en inputs
+  const tag = (e.target && e.target.tagName) || '';
+  if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
+
+  const p = window.paymentsPending[window.currentIdx || 0];
+  if (!p) return;
+
+  if (e.key === 'ArrowRight') { e.preventDefault(); return renderViewer((window.currentIdx || 0) + 1); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); return renderViewer((window.currentIdx || 0) - 1); }
+
+  const k = e.key.toLowerCase();
+  if (k === 'a') { e.preventDefault(); approvePayment(p._id); }
+  if (k === 'r') { e.preventDefault(); rejectPayment(p._id); }
+  if (k === 'w') { e.preventDefault(); waitPayment(p._id); }
+});
+
 // Listeners (solo si los botones existen en esta vista)
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-export-winner')?.addEventListener('click', exportWinnerImage);
   document.getElementById('btn-share-whatsapp')?.addEventListener('click', shareWinnerWhatsApp);
 });
+
+function toWhatsAppInternational(phoneVE) {
+  // 04XXXXXXXXX -> 58 4XXXXXXXXX (sin '+', sin espacios para wa.me)
+  const s = String(phoneVE || '').replace(/\D/g,'');
+  if (!s) return '';
+  if (s.startsWith('0')) return '58' + s.slice(1);
+  if (s.startsWith('58')) return s;
+  return s;
+}
+
+async function loadContacts() {
+  const box = document.getElementById('contacts-table-wrapper');
+  if (!box) return;
+  box.innerHTML = '<div class="text-center text-gray-400 py-6">Cargando contactos...</div>';
+
+  try {
+    const res = await fetchWithAuth(`${API}/api/contacts`);
+    const list = await res.json();
+
+    if (!Array.isArray(list) || !list.length) {
+      box.innerHTML = '<div class="text-center text-gray-400 py-6">No hay contactos consentidos todavía.</div>';
+      return;
+    }
+
+    document.getElementById('btn-contacts-export')?.addEventListener('click', async () => {
+      try {
+        const res = await fetchWithAuth(`${API}/api/contacts/export`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `contacts_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      } catch (e) {
+        console.error(e);
+        alert('No se pudo exportar el CSV.');
+      }
+    });
+
+
+    // Tabla
+    let html = `
+      <table class="min-w-[820px] w-full text-left rounded-lg bg-gray-900 shadow-lg text-sm">
+        <thead>
+          <tr class="bg-gray-800 text-green-400">
+            <th class="py-2 px-4">Nombre</th>
+            <th class="py-2 px-4">Teléfono</th>
+            <th class="py-2 px-4">Consentimiento</th>
+            <th class="py-2 px-4">Fecha consentimiento</th>
+            <th class="py-2 px-4">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    list.forEach(c => {
+      const fullName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || '—';
+      const tel = c.phone || '—';
+      const ok  = c.consent ? 'Sí' : 'No';
+      const dt  = c.consentAt ? new Date(c.consentAt).toLocaleString('es-VE') : '—';
+      const wa  = toWhatsAppInternational(tel);
+      const msg = encodeURIComponent(document.getElementById('contacts-msg')?.value || '');
+
+      html += `
+        <tr class="border-b border-gray-800 hover:bg-gray-800">
+          <td class="py-2 px-4 font-bold">${fullName}</td>
+          <td class="py-2 px-4">${tel}</td>
+          <td class="py-2 px-4">${ok}</td>
+          <td class="py-2 px-4">${dt}</td>
+          <td class="py-2 px-4">
+            <a href="https://wa.me/${wa}?text=${msg}" target="_blank"
+               class="inline-block bg-green-600 hover:bg-green-500 text-black px-3 py-1 rounded font-bold">
+              WhatsApp
+            </a>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table>';
+    box.innerHTML = html;
+  } catch (e) {
+    console.error(e);
+    box.innerHTML = '<div class="text-center text-red-400 py-6">Error cargando contactos.</div>';
+  }
+}

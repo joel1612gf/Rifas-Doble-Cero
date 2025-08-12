@@ -17,7 +17,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'da72d1531c24df76a5ce4fa60070b25cec
 process.env.MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE_URL;
 
 const Purchase = require('./Purchase');
-const Raffle = require('./Raffle');
+const Raffle   = require('./Raffle');
+const Contact  = require('./Contact'); // NUEVO
 
 const app = express();
 app.use(cors());
@@ -126,6 +127,16 @@ app.get('/api/tickets/by-phone', phoneLookupLimiter, async (req, res) => {
     res.status(500).json({ message: 'Error buscando números', error: e.message });
   }
 });
+
+// Normaliza a formato VE local tipo 04XXXXXXXXX
+function normalizePhoneVE(input) {
+  const s = String(input || '').replace(/\D/g, '');
+  if (!s) return '';
+  if (s.startsWith('58') && s.length >= 12) return '0' + s.slice(2);
+  if (s.startsWith('0')) return s;
+  if (s.length === 10) return '0' + s;
+  return s;
+}
 
 // Conexión a MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -319,7 +330,31 @@ const purchase = new Purchase({
 });
 
 await purchase.save();
+
+// NUEVO: si hay consentimiento, guardamos/actualizamos el contacto (sin duplicar)
+try {
+  const consentRaw = (req.body && req.body.contactConsent);
+  const contactConsent = String(consentRaw).toLowerCase() === 'true';
+  if (contactConsent) {
+    const phoneNorm = normalizePhoneVE(phone);
+    await Contact.findOneAndUpdate(
+      { phone: phoneNorm },
+      {
+        $set: { firstName, lastName },
+        $setOnInsert: { createdAt: new Date() },
+        consent: true,
+        consentAt: new Date(),
+        source: 'purchase'
+      },
+      { upsert: true, new: true }
+    );
+  }
+} catch (e) {
+  console.error('Error upserting contact:', e);
+}
+
 return res.status(201).json({ message: 'Compra registrada y números reservados', purchase });
+
 
   } catch (error) {
     console.error('Error en /api/purchases:', error);
@@ -404,6 +439,46 @@ app.put('/api/purchases/:id/wait', async (req, res) => {
   }
 });
 
+// === CONTACTOS (Admin) ===
+
+// Listar contactos (JSON)
+app.get('/api/contacts', requireAdmin, async (req, res) => {
+  try {
+    const contacts = await Contact.find({}).sort({ createdAt: -1 }).lean();
+    res.json(contacts);
+  } catch (e) {
+    res.status(500).json({ message: 'Error listando contactos' });
+  }
+});
+
+// Exportar CSV
+app.get('/api/contacts/export', requireAdmin, async (req, res) => {
+  try {
+    const contacts = await Contact.find({}).sort({ createdAt: -1 }).lean();
+    const rows = [
+      ['phone','firstName','lastName','consent','consentAt','source','createdAt','updatedAt'],
+      ...contacts.map(c => [
+        c.phone || '',
+        c.firstName || '',
+        c.lastName || '',
+        c.consent ? 'true' : 'false',
+        c.consentAt ? new Date(c.consentAt).toISOString() : '',
+        c.source || '',
+        c.createdAt ? new Date(c.createdAt).toISOString() : '',
+        c.updatedAt ? new Date(c.updatedAt).toISOString() : ''
+      ])
+    ];
+    const csv = rows.map(r =>
+      r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(',')
+    ).join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="contacts.csv"');
+    res.send(csv);
+  } catch (e) {
+    res.status(500).json({ message: 'Error exportando CSV' });
+  }
+});
 
 // ====== GANADORES (MANUAL) ======
 

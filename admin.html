@@ -45,10 +45,11 @@
                 <h1 class="text-lg sm:text-2xl font-extrabold text-green-400">Doble Cero Admin</h1>
             </div>
             <div class="space-x-4 flex">
-                <button id="nav-raffles"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('raffles')">Rifas</button>
-                <button id="nav-payments" class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('payments')">Verificar pagos</button>
-                <button id="nav-winners"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('winners')">Ganadores</button>
-                <button class="nav-link font-bold text-red-400" onclick="logoutAdmin()">Cerrar sesión</button>
+              <button id="nav-raffles"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('raffles')">Rifas</button>
+              <button id="nav-payments"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('payments')">Verificar pagos</button>
+              <button id="nav-winners"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('winners')">Ganadores</button>
+              <button id="nav-contacts"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('contacts')">Contactos</button>
+              <button class="nav-link font-bold text-red-400" onclick="logoutAdmin()">Cerrar sesión</button>
             </div>
         </nav>
         <!-- Sección Rifas (por defecto visible) -->
@@ -144,13 +145,47 @@
     </div>
 </div>
 <section id="section-payments" class="p-4 sm:p-6 max-w-6xl mx-auto hidden">
+
+  <!-- Header: título + modos -->
   <div class="mb-3 sm:mb-4 flex items-center justify-between">
     <h2 class="text-xl sm:text-2xl font-bold text-green-400">Verificar pagos</h2>
     <div class="space-x-2">
-      <button id="btn-mode-table" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 font-bold text-sm">Tabla</button>
+      <button id="btn-mode-table"  class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 font-bold text-sm">Tabla</button>
       <button id="btn-mode-viewer" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 font-bold text-sm">Visor</button>
     </div>
   </div>
+
+  <!-- Filtros -->
+  <div id="payments-filters" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+    <div>
+      <label class="block text-xs text-gray-400 mb-1">Método de pago</label>
+      <select id="pay-filter-method" class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2">
+        <option value="">Todos</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-400 mb-1">Desde</label>
+      <input type="date" id="pay-filter-from" class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2" />
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-400 mb-1">Hasta</label>
+      <input type="date" id="pay-filter-to" class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2" />
+    </div>
+
+    <div class="flex md:flex-col items-end gap-2">
+      <div class="flex-1 w-full">
+        <label class="block text-xs text-gray-400 mb-1">Referencia</label>
+        <input type="text" id="pay-filter-ref" placeholder="Ej: 1234"
+               class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2" />
+      </div>
+      <button id="pay-filter-clear" class="bg-gray-700 hover:bg-gray-600 rounded px-3 py-2 text-sm font-bold">
+        Limpiar
+      </button>
+    </div>
+  </div>
+
 
   <!-- Header del visor -->
   <div id="viewer-header" class="hidden flex items-center justify-center text-sm sm:text-base font-bold text-green-300 mb-3 sm:mb-4">
@@ -158,6 +193,9 @@
     <span id="viewer-counter">0/0</span>
     <button id="next-payment" class="px-3 py-1 ml-3 rounded bg-gray-700 hover:bg-gray-600">&gt;</button>
     <span id="viewer-pending" class="ml-4 sm:ml-6 text-xs sm:text-sm text-gray-400"></span>
+    <span id="viewer-hint" class="hidden sm:inline ml-auto text-xs text-gray-500">
+      Atajos: <b>A</b> aprobar · <b>R</b> rechazar · <b>W</b> esperar · <b>←/→</b> navegar
+    </span>
   </div>
 
   <!-- Vista tabla -->
@@ -304,6 +342,22 @@
       </div>
     </div>
   </div>
+</section>
+
+<section id="section-contacts" class="hidden p-6 max-w-6xl mx-auto">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-2xl font-bold text-green-400">Contactos (consentidos)</h2>
+    <div class="flex gap-2">
+      <input id="contacts-msg" type="text" class="bg-gray-800 border border-white/10 rounded px-3 py-2 w-72"
+             placeholder="Mensaje para WhatsApp (opcional)">
+      <button id="btn-contacts-export" class="bg-gray-700 hover:bg-gray-600 rounded px-3 py-2 font-bold">Exportar CSV</button>
+    </div>
+  </div>
+
+  <div id="contacts-table-wrapper" class="overflow-x-auto"></div>
+  <p class="text-xs text-gray-400 mt-3">
+    Tip: el botón WhatsApp abre el chat con el número en formato internacional.
+  </p>
 </section>
 
 <script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>

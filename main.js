@@ -695,6 +695,7 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
   formData.append('paymentMethod', paymentMethod);
   formData.append('paymentReference', paymentReference);
   formData.append('paymentProof', fileOk);
+  formData.append('contactConsent', window._consentWhatsApp ? 'true' : 'false'); // NUEVO
 
   try {
     const res = await fetch('http://localhost:4000/api/purchases', {
@@ -837,10 +838,13 @@ function abrirModalAceptar(cb) {
   const overlay = document.getElementById('modal-aceptar');
   if (!overlay) return;
 
-  // Resetear estado
+    // Resetear estado
   const chk = document.getElementById('aceptar-checkbox');
+  const chkConsent = document.getElementById('consent-checkbox');   // NUEVO
   const btnOK = document.getElementById('btn-aceptar-confirmar');
+
   if (chk) chk.checked = false;
+  if (chkConsent) chkConsent.checked = false;                        // NUEVO
   if (btnOK) btnOK.disabled = true;
 
   overlay.classList.remove('hidden');
@@ -852,9 +856,12 @@ function abrirModalAceptar(cb) {
     document.getElementById('btn-aceptar-confirmar').disabled = !this.checked;
   };
   document.getElementById('btn-aceptar-confirmar').onclick = () => {
+    // NUEVO: persistimos el consentimiento para usarlo en confirmarCompra()
+    window._consentWhatsApp = !!document.getElementById('consent-checkbox')?.checked;
     cerrarModalAceptar();
     if (_onAcceptContinue) _onAcceptContinue();
   };
+
 }
 
 function cerrarModalAceptar() {

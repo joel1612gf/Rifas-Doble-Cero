@@ -485,9 +485,21 @@
       <a href="privacidad.html" class="underline text-green-300" target="_blank" rel="noopener">Política de privacidad</a>.
     </p>
 
-    <label class="flex items-center justify-center gap-2 mb-4 select-none">
-      <input id="aceptar-checkbox" type="checkbox" class="h-4 w-4">
-      <span class="text-green-300 font-bold">Acepto Términos y Privacidad</span>
+    <label class="flex items-center justify-start gap-3 mb-3 select-none text-left">
+    <input id="aceptar-checkbox" type="checkbox"
+            class="h-5 w-5 rounded-sm accent-emerald-500 cursor-pointer
+                    transform origin-left scale-[1.35] sm:scale-100">
+    <span class="text-green-300 font-bold">Acepto Términos y Privacidad</span>
+    </label>
+
+        <!-- NUEVO: consentimiento de WhatsApp (opcional, desmarcado por defecto) -->
+    <label class="flex items-center justify-start gap-3 mb-1 select-none text-left">
+    <input id="consent-checkbox" type="checkbox"
+            class="h-5 w-5 rounded-sm accent-emerald-500 cursor-pointer
+                    transform origin-left scale-[1.35] sm:scale-100">
+    <span class="text-green-300">
+        Acepto recibir novedades y resultados por WhatsApp.
+    </span>
     </label>
 
     <div class="flex gap-3 justify-center">
