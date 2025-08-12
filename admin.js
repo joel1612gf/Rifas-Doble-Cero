@@ -1,6 +1,74 @@
-// Credenciales básicas (puedes mejorarlo con backend más adelante)
-const ADMIN_USER = 'a';
-const ADMIN_PASS = 'a';
+// === AUTH REAL (JWT) ===
+const API = 'http://localhost:4000'; // ajusta si tu backend está en otro dominio
+
+function showLogin() {
+  const login = document.getElementById('admin-login');
+  const panel = document.getElementById('admin-panel');
+  if (login) {
+    login.classList.remove('hidden');          // mostramos usando Tailwind
+    login.style.removeProperty('display');     // limpiamos inline por si quedó
+  }
+  if (panel) panel.classList.add('hidden');
+}
+
+function showApp() {
+  const login = document.getElementById('admin-login');
+  const panel = document.getElementById('admin-panel');
+  if (login) {
+    login.classList.add('hidden');             // ocultamos con Tailwind
+    login.style.removeProperty('display');     // aseguramos quitar inline
+  }
+  if (panel) panel.classList.remove('hidden');
+  if (typeof showSection === 'function') showSection('raffles');
+}
+
+function isLoggedIn() {
+  return !!localStorage.getItem('adminToken');
+}
+
+async function loginAdmin() {
+  const username = document.getElementById('admin-username').value.trim();
+  const password = document.getElementById('admin-password').value;
+  const errorDiv = document.getElementById('login-error');
+  if (errorDiv) errorDiv.classList.add('hidden');
+
+  try {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    if (!r.ok) { if (errorDiv) errorDiv.classList.remove('hidden'); return; }
+    const data = await r.json();
+    localStorage.setItem('adminToken', data.token);
+    showApp(); // mostrar panel SIN F5
+  } catch (e) {
+    if (errorDiv) { errorDiv.textContent = 'Error de conexión'; errorDiv.classList.remove('hidden'); }
+  }
+}
+
+function logoutAdmin() {
+  localStorage.removeItem('adminToken');
+  showLogin();
+}
+
+// Enter para enviar
+window.addEventListener('DOMContentLoaded', () => {
+  if (isLoggedIn()) showApp(); else showLogin();
+  const u = document.getElementById('admin-username');
+  const p = document.getElementById('admin-password');
+  [u,p].forEach(el => el && el.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); }));
+});
+
+// Helper para peticiones protegidas
+async function fetchWithAuth(url, options = {}) {
+  const token = localStorage.getItem('adminToken');
+  options.headers = options.headers || {};
+  if (token) options.headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, options);
+  if (res.status === 401) { logoutAdmin(); throw new Error('No autorizado'); }
+  return res;
+}
 
 // === Verificador ===
 let paymentsMode = 'table';     // 'table' | 'viewer'
@@ -8,26 +76,80 @@ let payments = [];              // todas las compras (según filtro)
 let paymentsPending = [];       // solo pendientes (para visor)
 let currentIdx = 0;
 
-// Login simple (solo frontend por ahora)
-function loginAdmin() {
-    const user = document.getElementById('admin-username').value.trim();
-    const pass = document.getElementById('admin-password').value.trim();
-    const errorDiv = document.getElementById('login-error');
-    if (user === ADMIN_USER && pass === ADMIN_PASS) {
-        document.getElementById('admin-login').classList.add('hidden');
-        document.getElementById('admin-panel').classList.remove('hidden');
-        loadRaffles();
-    } else {
-        errorDiv.classList.remove('hidden');
-    }
+// === AUTH ===
+
+function showLogin() {
+  const login = document.getElementById('admin-login');
+  const panel = document.getElementById('admin-panel');
+  if (login) {
+    login.classList.remove('hidden');
+    login.style.removeProperty('display');
+  }
+  if (panel) panel.classList.add('hidden');
 }
-function logoutAdmin() {
-    document.getElementById('admin-panel').classList.add('hidden');
-    document.getElementById('admin-login').classList.remove('hidden');
-    document.getElementById('admin-username').value = '';
-    document.getElementById('admin-password').value = '';
-    document.getElementById('login-error').classList.add('hidden');
+function showApp() {
+  const login = document.getElementById('admin-login');
+  const panel = document.getElementById('admin-panel');
+  if (login) {
+    login.classList.add('hidden');
+    login.style.removeProperty('display');
+  }
+  if (panel) panel.classList.remove('hidden');
+  if (typeof showSection === 'function') showSection('raffles');
 }
+
+
+function isLoggedIn() {
+  return !!localStorage.getItem('adminToken');
+}
+
+async function loginAdmin() {
+  const username = document.getElementById('admin-username').value.trim();
+  const password = document.getElementById('admin-password').value;
+  const errorDiv = document.getElementById('login-error');
+  if (errorDiv) errorDiv.classList.add('hidden');
+
+  try {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    if (!r.ok) { if (errorDiv) errorDiv.classList.remove('hidden'); return; }
+    const data = await r.json();
+    localStorage.setItem('adminToken', data.token);
+
+    // Mostrar panel sin F5
+    showApp();
+  } catch (e) {
+    if (errorDiv) { errorDiv.textContent = 'Error de conexión'; errorDiv.classList.remove('hidden'); }
+  }
+}
+
+// Enviar con Enter
+window.addEventListener('DOMContentLoaded', () => {
+  if (isLoggedIn()) showApp(); else showLogin();
+  const u = document.getElementById('admin-username');
+  const p = document.getElementById('admin-password');
+  [u,p].forEach(el => el && el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') loginAdmin();
+  }));
+});
+
+// Helper para peticiones protegidas
+async function fetchWithAuth(url, options = {}) {
+  const token = localStorage.getItem('adminToken');
+  options.headers = options.headers || {};
+  if (token) options.headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    logoutAdmin();
+    throw new Error('No autorizado');
+  }
+  return res;
+}
+
+
 // 1
 // Navegación
 function showSection(section) {
@@ -35,10 +157,30 @@ function showSection(section) {
   const payments = document.getElementById('section-payments');
   const winners  = document.getElementById('section-winners');
 
+  // Mostrar/Ocultar secciones
   if (raffles)  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
   if (payments) payments.style.display = (section === 'payments') ? 'block' : 'none';
   if (winners)  winners.style.display  = (section === 'winners')  ? 'block' : 'none';
 
+  // Marcar activo en navbar
+  const links = {
+    raffles:  document.getElementById('nav-raffles'),
+    payments: document.getElementById('nav-payments'),
+    winners:  document.getElementById('nav-winners'),
+  };
+  Object.entries(links).forEach(([key, el]) => {
+    if (!el) return;
+    // reset
+    el.classList.remove('text-green-400','border-green-400');
+    el.classList.add('text-gray-300','border-transparent');
+    // activo
+    if (key === section) {
+      el.classList.remove('text-gray-300','border-transparent');
+      el.classList.add('text-green-400','border-green-400');
+    }
+  });
+
+  // Cargas de datos
   if (section === 'raffles')  loadRaffles();
   if (section === 'payments') loadPayments('viewer');
   if (section === 'winners')  loadWinnersInit();
@@ -176,14 +318,14 @@ async function submitRaffleForm(e) {
     try {
         if (id) {
             // Editar rifa existente
-            await fetch(`http://localhost:4000/api/raffles/${id}`, {
+            await fetchWithAuth(`${API}/api/raffles/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
         } else {
             // Crear nueva rifa
-            await fetch('http://localhost:4000/api/raffles', {
+            await fetchWithAuth(`${API}/api/raffles`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -200,7 +342,7 @@ async function submitRaffleForm(e) {
 
 async function editRaffle(id) {
     try {
-        const res = await fetch(`http://localhost:4000/api/raffles/${id}`);
+        const res = await fetchWithAuth(`${API}/api/raffles/${id}`);
         const raffle = await res.json();
         editingRaffleId = id;
         document.getElementById('raffle-form-title').textContent = 'Editar Rifa';
@@ -228,7 +370,7 @@ async function editRaffle(id) {
 async function deleteRaffle(id) {
     if (!confirm('¿Seguro que deseas eliminar esta rifa?')) return;
     try {
-        await fetch(`http://localhost:4000/api/raffles/${id}`, {
+        await fetchWithAuth(`${API}/api/raffles/${id}`, {
             method: 'DELETE'
         });
         loadRaffles();
@@ -275,7 +417,7 @@ async function loadPayments(mode = paymentsMode) {
     proofBox.innerHTML = '<div class="text-gray-400">Cargando...</div>';
 
     try {
-      const res = await fetch('http://localhost:4000/api/purchases?status=pendiente'); // solo pendientes
+      const res = await fetchWithAuth('http://localhost:4000/api/purchases?status=pendiente'); // solo pendientes
       const data = await res.json();
       paymentsPending = Array.isArray(data) ? data : [];
       currentIdx = 0;
@@ -412,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ----- Acciones -----
 async function approvePayment(id) {
   try {
-    const res = await fetch(`http://localhost:4000/api/purchases/${id}/approve`, { method: 'PUT' });
+    const res = await fetchWithAuth(`${API}/api/purchases/${id}/approve`, { method:'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -423,7 +565,7 @@ async function approvePayment(id) {
 
 async function rejectPayment(id) {
   try {
-    const res = await fetch(`http://localhost:4000/api/purchases/${id}/reject`, { method: 'PUT' });
+    const res = await fetchWithAuth(`${API}/api/purchases/${id}/reject`,  { method:'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -434,7 +576,7 @@ async function rejectPayment(id) {
 
 async function waitPayment(id) {
   try {
-    const res = await fetch(`http://localhost:4000/api/purchases/${id}/wait`, { method: 'PUT' });
+    const res = await fetchWithAuth(`${API}/api/purchases/${id}/wait`, { method: 'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -510,10 +652,10 @@ async function onChangeRaffleWinners() {
   const r = winnersState.raffles.find(x => x._id === id);
   winnersState.selectedRaffle = r || null;
 
-  // imagen y título
+  // Imagen y título
   const img = document.getElementById('winners-image');
   const ph  = document.getElementById('winners-image-ph');
-  if (r && r.image) {
+  if (r?.image) {
     img.src = r.image;
     img.classList.remove('hidden');
     ph.classList.add('hidden');
@@ -523,17 +665,59 @@ async function onChangeRaffleWinners() {
   }
   document.getElementById('winners-title').textContent = r ? r.title : '—';
 
-  // premios -> opciones (1..N)
-  const selPlace = document.getElementById('winners-place-select');
-  const n = (r && Array.isArray(r.prizes)) ? r.prizes.length : 1;
-  const labels = ['1er premio','2do premio','3er premio','4to premio','5to premio'];
-  selPlace.innerHTML = Array.from({length: n}, (_,i)=>`<option value="${i+1}">${labels[i] || (i+1+'° premio')}</option>`).join('');
+  // ---- Select de PREMIO según cantidad de premios
+  const selPlace  = document.getElementById('winners-place-select');
+  const prizesLen = (r && Array.isArray(r.prizes) && r.prizes.length) ? r.prizes.length : 1;
 
-  // limpiar UI derecha
-  setWinnerDetails(null, r);
+  if (prizesLen === 1) {
+    // Un solo premio -> mostrar TÍTULO de la rifa y deshabilitar
+    selPlace.innerHTML = `<option value="1">${r?.title || 'Premio único'}</option>`;
+    selPlace.disabled = true;
+  } else {
+    // Varios premios -> 1er/2do/3er...
+    const labels = ['1er premio','2do premio','3er premio','4to premio','5to premio'];
+    selPlace.innerHTML = Array.from({ length: prizesLen }, (_, i) =>
+      `<option value="${i + 1}">${labels[i] || `${i + 1}° premio`}</option>`
+    ).join('');
+    selPlace.disabled = false;
+  }
+
+  // Al cambiar el lugar refrescamos la ficha derecha
+  selPlace.onchange = () => setWinnerDetails(null, winnersState.selectedRaffle);
+
+  // Pintar ficha derecha con el estado inicial
+  setWinnerDetails(null, winnersState.selectedRaffle);
 }
 
+
 function setWinnerDetails(lookup, raffle) {
+  // Caso especial: se buscó un número y NO hay ganador (no fue vendido)
+  if (lookup && lookup._noWinner) {
+    // Mostrar mensaje claro en la ficha derecha
+    document.getElementById('winners-name').textContent = 'NO HAY GANADOR';
+    const phoneEl = document.getElementById('winners-phone');
+    phoneEl.textContent = '—';
+    phoneEl.dataset.full = '';
+    document.getElementById('winners-status').textContent = '—';
+    // Mostramos el número consultado como ticket para referencia
+    const num = (typeof lookup.ticket !== 'undefined' && lookup.ticket !== null)
+      ? String(lookup.ticket)
+      : String(document.getElementById('winners-number-input').value || '—');
+    document.getElementById('winners-ticket').textContent = num;
+    document.getElementById('winners-date').textContent = '—';
+
+    // El texto del premio se mantiene según la rifa/posición seleccionada
+    const place = Number(document.getElementById('winners-place-select')?.value || 1);
+    const prizesLen = (raffle && Array.isArray(raffle.prizes) && raffle.prizes.length)
+      ? raffle.prizes.length
+      : 1;
+    const prizeText = (prizesLen === 1)
+      ? (raffle?.title || '—')
+      : (raffle?.prizes?.[place - 1]?.description || `${place}° premio`);
+    document.getElementById('winners-prize').textContent = prizeText;
+    return;
+  }
+
   // lookup puede ser null (sin comprador) o un objeto del backend
   const byPlace = () => {
     if (!raffle) return null;
@@ -557,12 +741,19 @@ function setWinnerDetails(lookup, raffle) {
   const dt = (src && (src.purchasedAt || src.createdAt)) ? formatDateVE(src.purchasedAt || src.createdAt) : '—';
   document.getElementById('winners-date').textContent = dt;
 
-  const place = Number(document.getElementById('winners-place-select').value || 1);
-  const prize = (raffle && Array.isArray(raffle.prizes) && raffle.prizes[place-1])
-                ? raffle.prizes[place-1].description
-                : '';
-  document.getElementById('winners-prize').textContent = prize || '—';
+  const place = Number(document.getElementById('winners-place-select')?.value || 1);
+  // IMPORTANTE: tratar array vacío como “1 premio” (mismo criterio que onChangeRaffleWinners)
+  const prizesLen = (raffle && Array.isArray(raffle.prizes) && raffle.prizes.length)
+    ? raffle.prizes.length
+    : 1;
+
+  const prizeText = (prizesLen === 1)
+    ? (raffle?.title || '—')                               // Un solo premio -> título de la rifa
+    : (raffle?.prizes?.[place - 1]?.description || `${place}° premio`);
+
+  document.getElementById('winners-prize').textContent = prizeText;
 }
+
 
 function maskPhone(phone) {
   if (!phone) return '';
@@ -597,8 +788,13 @@ async function lookupWinner() {
   const raffleId = document.getElementById('winners-raffle-select').value;
   const number   = Number(document.getElementById('winners-number-input').value);
   if (!raffleId || !number) { alert('Selecciona la rifa y escribe el número'); return; }
-  const res = await fetch(`http://localhost:4000/api/raffles/${raffleId}/lookup-winner?number=${number}`);
-  winnersState.lastLookup = await res.json(); // puede ser null
+
+  const res  = await fetch(`${API}/api/raffles/${raffleId}/lookup-winner?number=${number}`);
+  const data = await res.json(); // puede ser null
+
+  // Si el número no fue vendido (no hay compra aprobada), marcamos "no hay ganador"
+  winnersState.lastLookup = (data === null) ? { _noWinner: true, ticket: number } : data;
+
   setWinnerDetails(winnersState.lastLookup, winnersState.selectedRaffle);
 }
 
@@ -608,7 +804,7 @@ async function saveWinner() {
   const number   = Number(document.getElementById('winners-number-input').value);
   if (!raffleId || !place || !number) { alert('Completa rifa, premio y número'); return; }
 
-  const res = await fetch(`http://localhost:4000/api/raffles/${raffleId}/winners`, {
+  const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ place, number })
@@ -630,7 +826,7 @@ async function clearWinner() {
   if (!raffleId || !place) return;
 
   if (!confirm('¿Seguro que deseas limpiar este premio?')) return;
-  const res = await fetch(`http://localhost:4000/api/raffles/${raffleId}/winners/${place}`, { method: 'DELETE' });
+  const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners/${place}`, { method: 'DELETE' });
   const { winners } = await res.json();
 
   const idx = winnersState.raffles.findIndex(r => r._id === raffleId);
@@ -668,3 +864,347 @@ function togglePhoneVisibility() {
     eyeOff.classList.remove('hidden');
   }
 }
+// ===== Exportar/Compartir ganador (formato vertical 1080x1920) =====
+async function exportWinnerImage() {
+  try {
+    const canvas = await generateWinnerCanvasVertical();
+    const dataUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    a.href = dataUrl;
+    a.download = `ganador_${date}.png`;
+    a.click();
+  } catch (e) {
+    alert('No se pudo exportar la imagen.');
+    console.error(e);
+  }
+}
+
+async function shareWinnerWhatsApp() {
+  try {
+    const canvas = await generateWinnerCanvasVertical(); // mismo formato vertical
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    if (!blob) {
+      window.open('https://wa.me/?text=' + encodeURIComponent('Ganador Rifas Doble Cero 🎉'), '_blank');
+      return;
+    }
+    const file = new File([blob], 'ganador.png', { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Ganador Rifas Doble Cero', text: 'Ganador Rifas Doble Cero 🎉' });
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent('Ganador Rifas Doble Cero 🎉'), '_blank');
+    }
+  } catch (e) {
+    alert('No se pudo compartir.');
+    console.error(e);
+  }
+}
+
+// === NUEVO: generador de imagen vertical para ganadores (1080x1920) ===
+async function generateWinnerCanvasVertical() {
+  const W = 1080, H = 1920;
+  const PAD = 60;
+
+  // Recoger datos de la UI
+  const title  = (document.getElementById('winners-title')?.textContent || '').trim();
+  const prize  = (document.getElementById('winners-prize')?.textContent || '').trim() || title || '—';
+
+  const name   = (document.getElementById('winners-name')?.textContent || '—').trim();
+  const phoneEl = document.getElementById('winners-phone');
+  const phoneFull = phoneEl?.dataset?.full || phoneEl?.textContent || '';
+  const phoneMasked = (typeof maskPhone === 'function') ? maskPhone(phoneFull) : (phoneFull || '—');
+
+  const status = (document.getElementById('winners-status')?.textContent || '—').trim();
+  const ticket = (document.getElementById('winners-ticket')?.textContent || '—').trim();
+  const purchaseDate = (document.getElementById('winners-date')?.textContent || '—').trim();
+
+
+// NUEVO
+const logoSrc = (document.querySelector('img[src*="logopngcolorweb2"]')?.src) || 'img/logopngcolorweb2.png';
+
+// Normaliza enlaces comunes de “vista previa” a archivo directo
+function normalizeImageURL(raw) {
+  try {
+    if (!raw) return '';
+    // Google Drive: /file/d/ID/view  -> uc?export=view&id=ID
+    const m1 = raw.match(/drive\.google\.com\/file\/d\/([^/]+)\//i);
+    if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+    // Google Drive: open?id=ID  o uc?id=ID
+    const m2 = raw.match(/[?&](?:id|fileId)=([^&]+)/i);
+    if (m2 && /drive\.google\.com/i.test(raw)) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+    // Dropbox: dl=0 -> dl=1
+    if (/dropbox\.com/i.test(raw)) return raw.replace('dl=0', 'dl=1');
+    // GitHub blob -> raw.githubusercontent.com
+    if (/github\.com\/.+\/blob\//i.test(raw)) {
+      return raw.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/');
+    }
+    return raw;
+  } catch { return raw; }
+}
+
+async function getRaffleImageSrcRaw() {
+  const el = document.getElementById('winners-image');
+  if (el && el.src) {
+    if (!el.complete) await new Promise(res => el.addEventListener('load', res, { once: true }));
+    return el.src;
+  }
+  if (window.winnersState?.selectedRaffle?.image) return winnersState.selectedRaffle.image;
+  return '';
+}
+
+// Descarga vía backend y devuelve un objectURL blob:
+async function getRaffleImageObjectURL() {
+  const raw = normalizeImageURL(await getRaffleImageSrcRaw());
+  if (!raw) return '';
+  if (/^(data:|blob:)/i.test(raw)) return raw; // ya sirve
+
+  try {
+    const res = await fetch(`${API}/api/proxy-image?url=${encodeURIComponent(raw)}`);
+    if (!res.ok) throw new Error('proxy error');
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    return '';
+  }
+}
+
+const [logoImg, raffleImg] = await Promise.all([
+  loadImageSafe(logoSrc),
+  loadImageSafe(await getRaffleImageObjectURL(), /*isBlob=*/true)
+]);
+
+function loadImageSafe(src, isBlob = false) {
+  return new Promise(resolve => {
+    if (!src) return resolve(null);
+    const img = new Image();
+    if (!isBlob) { // para blob: no hace falta CORS
+      img.crossOrigin = 'anonymous';
+      img.referrerPolicy = 'no-referrer';
+    }
+    img.onload = () => {
+      // liberar memoria si viene de blob:
+      if (isBlob && /^blob:/.test(src)) {
+        setTimeout(() => { try { URL.revokeObjectURL(src); } catch {} }, 0);
+      }
+      resolve(img);
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+
+  // Canvas base
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Colores
+  const BG = '#0b1220';
+  const PANEL = '#1f2937';
+  const ACCENT = '#34d399'; // emerald-400
+  const TEXT = '#E5E7EB';   // gray-200
+
+  // Fondo
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // Header: logo + marca
+  const logoSize = 130;
+  if (logoImg) {
+    ctx.save();
+    drawRoundedRect(ctx, PAD, PAD, logoSize, logoSize, 24);
+    ctx.clip();
+    ctx.drawImage(logoImg, PAD, PAD, logoSize, logoSize);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = TEXT;
+  ctx.font = 'bold 64px Montserrat, Arial, sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText('DOBLE CERO', PAD + logoSize + 24, PAD + 24);
+
+  // "GANADOR:" + fecha (momento del click)
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const dateLabel = `${dd}/${mm}/${yyyy}`;
+
+  ctx.fillStyle = ACCENT;
+  ctx.font = 'bold 72px Montserrat, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('GANADOR:', PAD, PAD + logoSize + 40);
+
+  // Fecha a la DERECHA
+  ctx.fillStyle = TEXT;
+  ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(dateLabel, W - PAD, PAD + logoSize + 48);
+  ctx.textAlign = 'left'; // restaurar por si acaso
+
+
+  // Imagen principal de la rifa (16:9 en marco redondeado)
+  const imgW = W - PAD*2;                 // 960
+  const imgH = Math.round(imgW * 9 / 16); // 540
+  const imgX = PAD;
+  const imgY = PAD + logoSize + 140;
+
+  ctx.save();
+  drawRoundedRect(ctx, imgX, imgY, imgW, imgH, 28);
+  ctx.clip();
+  if (raffleImg) {
+    drawImageCover(ctx, raffleImg, imgX, imgY, imgW, imgH);
+  } else {
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(imgX, imgY, imgW, imgH);
+    ctx.fillStyle = ACCENT;
+    ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('IMAGEN DE LA RIFA', imgX + imgW/2, imgY + imgH/2 - 24);
+    ctx.textAlign = 'left';
+  }
+  ctx.restore();
+
+  // Título / premio centrado debajo de la imagen
+  ctx.fillStyle = TEXT;
+  ctx.font = 'bold 44px Montserrat, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(prize || title || '—', W/2, imgY + imgH + 32);
+  ctx.textAlign = 'left';
+
+  // === Panel de detalles (alineación vertical perfecta) ===
+
+  // Filas (primero definimos para calcular alto dinámico)
+  const rows = [
+    ['NOMBRE:', name || '—'],
+    ['TELÉFONO:', phoneMasked || '—'],
+    ['ESTATUS:', (status || '—').toUpperCase()],
+    ['TICKET:', ticket || '—'],
+    ['FECHA DE COMPRA:', purchaseDate || '—'],
+    ['PREMIO:', prize || '—']
+  ];
+
+  // Geometría del panel
+  const panelX = PAD;
+  const panelW = W - PAD*2;
+  const panelY = imgY + imgH + 160;
+  const ROW_LH = 96;         // alto de cada fila
+  const PANEL_PAD_Y = 36;    // padding superior/inferior
+  const panelH = PANEL_PAD_Y * 2 + ROW_LH * rows.length;
+
+  ctx.fillStyle = PANEL;
+  drawRoundedRect(ctx, panelX, panelY, panelW, panelH, 28);
+  ctx.fill();
+
+  const labelColor = ACCENT;
+  const valueColor = TEXT;
+  const leftX  = panelX + 28;
+  const rightX = panelX + panelW - 28;
+
+  // Centrado vertical por fila
+  ctx.textBaseline = 'middle';
+  let y = panelY + PANEL_PAD_Y + ROW_LH / 2;
+
+  for (const [label, valueRaw] of rows) {
+    const value = valueRaw ?? '—';
+
+    // Label
+    ctx.fillStyle = labelColor;
+    ctx.font = 'bold 40px Montserrat, Arial, sans-serif';
+    const labelWidth = ctx.measureText(label).width;
+    ctx.textAlign = 'left';
+    ctx.fillText(label, leftX, y);
+
+    // Value (alineado a la derecha y centrado verticalmente)
+    ctx.fillStyle = valueColor;
+    ctx.textAlign = 'right';
+    const maxWidth = panelW - 56 - labelWidth - 20;
+
+    if (label.startsWith('FECHA DE COMPRA')) {
+      // Auto-ajuste más agresivo para fecha larga
+      let size = 40;
+      while (size > 24) {
+        ctx.font = `bold ${size}px Montserrat, Arial, sans-serif`;
+        if (ctx.measureText(value).width <= maxWidth) break;
+        size -= 2;
+      }
+      const finalText = (ctx.measureText(value).width <= maxWidth)
+        ? value
+        : clipText(ctx, value, maxWidth);
+      ctx.fillText(finalText, rightX, y);
+    } else {
+      ctx.font = 'bold 40px Montserrat, Arial, sans-serif';
+      const clipped = clipText(ctx, value, maxWidth);
+      ctx.fillText(clipped, rightX, y);
+    }
+
+    y += ROW_LH;
+  }
+
+  // Footer (opcional)
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9CA3AF';
+  ctx.font = 'bold 28px Montserrat, Arial, sans-serif';
+  ctx.fillText('rifasdoble0.com', W/2, H - 48);
+
+  return canvas;
+}
+
+// Helpers
+function drawRoundedRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function drawImageCover(ctx, img, dx, dy, dWidth, dHeight) {
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  const ir = iw / ih;
+  const dr = dWidth / dHeight;
+
+  let sx, sy, sw, sh;
+  if (ir > dr) { // más ancha -> recortar lados
+    sh = ih; sw = sh * dr; sy = 0; sx = (iw - sw) / 2;
+  } else {      // más alta -> recortar arriba/abajo
+    sw = iw; sh = sw / dr; sx = 0; sy = (ih - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dWidth, dHeight);
+}
+
+function clipText(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let out = text;
+  while (out.length > 0 && ctx.measureText(out + '…').width > maxWidth) {
+    out = out.slice(0, -1);
+  }
+  return out + '…';
+}
+
+function loadImageSafe(src, isBlob = false) {
+  return new Promise(resolve => {
+    if (!src) return resolve(null);
+    const img = new Image();
+    if (!isBlob) {                 // Para blob: no hace falta (y algunos navegadores lo ignoran)
+      img.crossOrigin = 'anonymous';
+      img.referrerPolicy = 'no-referrer';
+    }
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+// Listeners (solo si los botones existen en esta vista)
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-export-winner')?.addEventListener('click', exportWinnerImage);
+  document.getElementById('btn-share-whatsapp')?.addEventListener('click', shareWinnerWhatsApp);
+});

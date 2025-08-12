@@ -8,30 +8,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen font-[Montserrat]">
-    <!-- Contenedor general -->
-    <div id="admin-login" class="flex items-center justify-center min-h-screen">
-        <!-- Aquí va tu login actual, igual al que mostraste -->
-        <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
-            <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-17 w-17 rounded-md">
-            <h2 class="text-2xl font-bold text-green-400 text-center mb-6">Panel de Administración</h2>
-            <input type="text" id="admin-username" placeholder="Usuario" class="w-full mb-4 px-4 py-2 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-400">
-            <input type="password" id="admin-password" placeholder="Contraseña" class="w-full mb-6 px-4 py-2 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-400">
-            <button onclick="loginAdmin()" class="w-full bg-green-400 text-gray-900 py-3 rounded font-bold text-lg hover:bg-green-500 transition-all">
-                Iniciar sesión <i class="fas fa-sign-in-alt"></i>
-            </button>
-            <div id="login-error" class="text-red-400 mt-4 text-center hidden">Usuario o contraseña incorrectos</div>
-        </div>
+
+<!-- Login Admin -->
+<div id="admin-login" class="flex items-center justify-center min-h-screen">
+  <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
+    <div class="flex items-center gap-3 mb-6">
+      <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-9 w-9 rounded-md">
+      <h2 class="text-2xl font-extrabold text-green-400">Panel de Administración</h2>
     </div>
+
+    <label class="block text-sm text-gray-300 mb-1">Usuario</label>
+    <input id="admin-username" type="text" placeholder="Usuario"
+           class="w-full mb-4 px-4 py-2 rounded-lg bg-gray-700/70 border border-white/10 text-white
+                  focus:outline-none focus:ring-2 focus:ring-green-400">
+
+    <label class="block text-sm text-gray-300 mb-1">Contraseña</label>
+    <input id="admin-password" type="password" placeholder="Contraseña"
+           class="w-full mb-6 px-4 py-2 rounded-lg bg-gray-700/70 border border-white/10 text-white
+                  focus:outline-none focus:ring-2 focus:ring-green-400">
+
+    <button onclick="loginAdmin()"
+            class="w-full bg-green-400 text-gray-900 py-3 rounded-lg font-bold text-lg hover:bg-green-500 transition-all">
+      Iniciar sesión
+    </button>
+
+    <div id="login-error" class="text-red-400 mt-4 text-center hidden">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
 
     <!-- Panel principal admin (oculto al inicio) -->
     <div id="admin-panel" class="hidden">
         <!-- Navbar -->
-        <nav class="bg-gray-800 px-4 py-3 flex flex-wrap items-center justify-between shadow-lg">
-            <div class="text-green-400 text-xl font-extrabold">00 Admin</div>
+        <nav class="bg-black px-4 py-3 flex flex-wrap items-center justify-between shadow-lg">
+              <div class="flex items-center space-x-2">
+                <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
+                <h1 class="text-lg sm:text-2xl font-extrabold text-green-400">Doble Cero Admin</h1>
+            </div>
             <div class="space-x-4 flex">
-                <button class="nav-link font-bold" onclick="showSection('raffles')">Rifas</button>
-                <button class="nav-link font-bold" onclick="showSection('payments')">Verificar pagos</button>
-                <button class="nav-link font-bold" onclick="showSection('winners')">Ganadores</button>
+                <button id="nav-raffles"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('raffles')">Rifas</button>
+                <button id="nav-payments" class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('payments')">Verificar pagos</button>
+                <button id="nav-winners"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('winners')">Ganadores</button>
                 <button class="nav-link font-bold text-red-400" onclick="logoutAdmin()">Cerrar sesión</button>
             </div>
         </nav>
@@ -235,6 +251,9 @@
         <button id="btn-winner-lookup" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-black font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Buscar</button>
         <button id="btn-winner-save"   class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Guardar ganador</button>
         <button id="btn-winner-clear"  class="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Limpiar lugar</button>
+        <!-- NUEVOS -->
+        <button id="btn-export-winner"  class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500">Exportar imagen</button>
+        <button id="btn-share-whatsapp" class="px-4 py-2 rounded bg-green-500 hover:bg-green-400">Compartir WhatsApp</button>
       </div>
     </div>
 
@@ -279,7 +298,7 @@
         </div>
 
         <div class="flex items-center justify-between gap-4">
-          <div class="text-green-400 font-extrabold text-sm sm:text-base">GANADOR:</div>
+          <div class="text-green-400 font-extrabold text-sm sm:text-base">PREMIO:</div>
           <div id="winners-prize" class="text-right font-extrabold text-sm sm:text-base break-words">—</div>
         </div>
       </div>
@@ -288,6 +307,9 @@
 </section>
 
 <script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
+<!-- Librería para exportar a imagen -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="admin.js"></script>
+
 </body>
 </html>

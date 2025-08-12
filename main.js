@@ -669,8 +669,12 @@ if (file.type.startsWith("image/") && file.size > 1.2 * 1024 * 1024) {
   fileOk = await compressImageFile(file, {maxW:1600, maxH:1600, quality:0.8});
 }
 
-// Normalizar teléfono (0412...)
-document.getElementById('phone').value = normalizePhoneVE(document.getElementById('phone').value);
+
+// Normalizar teléfono (0412...) y guardarlo para "Ver mis números"
+const phoneNorm = normalizePhoneVE(document.getElementById('phone').value);
+document.getElementById('phone').value = phoneNorm;
+window.lastPurchasePhone = phoneNorm; // <-- lo usaremos al abrir "Mis números"
+
 
 const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinli'
 
@@ -687,7 +691,7 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
   formData.append('numbers', JSON.stringify(numerosSeleccionados));
   formData.append('firstName', firstName);
   formData.append('lastName', lastName);
-  formData.append('phone', phone);
+  formData.append('phone', window.lastPurchasePhone || phone);
   formData.append('paymentMethod', paymentMethod);
   formData.append('paymentReference', paymentReference);
   formData.append('paymentProof', fileOk);
@@ -915,3 +919,161 @@ async function compressImageFile(file, {maxW=1600, maxH=1600, quality=0.8}={}) {
   const blob = new Blob([buf], {type:mime});
   return new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {type:mime, lastModified: Date.now()});
 }
+
+// === Mis números (frontend) ===
+const API_BASE = 'http://localhost:4000'; // usar el mismo host que el resto del front
+
+function openMisNumeros() {
+  document.getElementById('misnumeros-modal')?.classList.remove('hidden');
+  setTimeout(() => document.getElementById('mn-phone')?.focus(), 0);
+}
+function closeMisNumeros() {
+  document.getElementById('misnumeros-modal')?.classList.add('hidden');
+}
+
+function formatVEPhoneForView(raw = '') {
+  // muestra 04xx***xxxx si lo quieres enmascarar; por ahora, lo dejamos tal cual en la cabecera
+  return (raw + '').trim();
+}
+
+async function buscarMisNumeros() {
+  const phone = (document.getElementById('mn-phone')?.value || '').trim();
+  const includePending = document.getElementById('mn-include')?.checked ? '1' : '0';
+  const resultsEl = document.getElementById('mn-results');
+
+  if (!phone) {
+    resultsEl.innerHTML = `<div class="text-red-400">Escribe tu número de teléfono.</div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = `<div class="text-gray-400">Buscando...</div>`;
+  try {
+    const url = `${API_BASE}/api/tickets/by-phone?phone=${encodeURIComponent(phone)}&includePending=${includePending}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Error de servidor');
+    const data = await res.json();
+
+    if (!data.results || data.results.length === 0) {
+      resultsEl.innerHTML = `
+        <div class="bg-gray-700/50 rounded-lg p-4">
+          <div class="text-sm text-gray-400 mb-2">número de teléfono: <span class="text-white font-mono">${formatVEPhoneForView(phone)}</span></div>
+          <div class="text-gray-300">No encontramos tickets asociados en rifas activas.</div>
+        </div>`;
+      return;
+    }
+
+    // Render
+    let html = `
+      <div class="text-sm text-gray-400 mb-2">número de teléfono: <span class="text-white font-mono">${formatVEPhoneForView(phone)}</span></div>
+    `;
+    for (const r of data.results) {
+      html += `
+        <div class="bg-gray-700/50 rounded-xl p-4">
+          <div class="text-green-400 font-bold text-lg mb-2">rifa: <span class="text-white">${r.raffleTitle || 'Rifa'}</span></div>
+          <div class="text-gray-300">números:</div>
+          <ul class="mt-2 space-y-1">
+            ${
+              (r.numbers || []).map(n =>
+                `<li class="flex justify-between border-b border-gray-700/60 py-1">
+                   <span class="font-mono">#${n.number}</span>
+                   <span class="${n.status === 'Aprobado' ? 'text-green-400' : 'text-yellow-300'} font-semibold">${n.status}</span>
+                 </li>`
+              ).join('')
+            }
+          </ul>
+        </div>
+      `;
+    }
+    resultsEl.innerHTML = html;
+
+  } catch (e) {
+    console.error(e);
+    resultsEl.innerHTML = `<div class="text-red-400">No se pudo realizar la búsqueda. Intenta de nuevo.</div>`;
+  }
+}
+
+// Enganches
+document.getElementById('link-mis-numeros')?.addEventListener('click', (e) => { e.preventDefault(); openMisNumeros(); });
+document.getElementById('link-mis-numeros-mobile')?.addEventListener('click', (e) => { e.preventDefault(); openMisNumeros(); });
+document.getElementById('mn-close')?.addEventListener('click', closeMisNumeros);
+document.getElementById('mn-search')?.addEventListener('click', buscarMisNumeros);
+document.getElementById('mn-phone')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); buscarMisNumeros(); }
+});
+
+// Cerrar al hacer click fuera del cuadro
+const mnModal = document.getElementById('misnumeros-modal');
+mnModal?.addEventListener('mousedown', (e) => {
+  // si se hace click en el overlay (no dentro de la tarjeta)
+  if (e.target === mnModal) closeMisNumeros();
+});
+
+// Cerrar con la tecla Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && mnModal && !mnModal.classList.contains('hidden')) {
+    closeMisNumeros();
+  }
+});
+// === Contacto por WhatsApp (sin backend) ===
+// Cambia este número si hace falta: en formato internacional SIN "+"
+const CONTACT_WA = '584129974035';
+
+function contactToWhatsApp() {
+  const nameEl = document.getElementById('name');
+  const emailEl = document.getElementById('email');
+  const msgEl = document.getElementById('message');
+
+  const name = (nameEl?.value || '').trim() || '(sin nombre)';
+  const email = (emailEl?.value || '').trim() || '(sin email)';
+  const msg = (msgEl?.value || '').trim();
+
+  // Validación mínima
+  if (!msg) {
+    alert('Escribe tu mensaje antes de enviarlo por WhatsApp.');
+    msgEl?.focus();
+    return;
+  }
+
+  const text =
+    `Hola Doble Cero 👋\n\n` +
+    `Mi nombre: ${name}\n` +
+    `Correo: ${email}\n\n` +
+    `Mensaje:\n${msg}`;
+
+  const url = `https://wa.me/${CONTACT_WA}?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+
+// Listeners
+document.getElementById('btn-contact-wa')?.addEventListener('click', contactToWhatsApp);
+// Si alguien presiona Enter en el form, que también abra WhatsApp
+document.getElementById('contact-form')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  contactToWhatsApp();
+});
+
+// Botón del modal de éxito: "Ver mis números"
+document.getElementById('btn-exito-misnumeros')?.addEventListener('click', () => {
+  try { cerrarModalExito(); } catch {}
+  // Rellena el input del modal "Mis números" con el teléfono usado en la compra
+  const input = document.getElementById('mn-phone');
+  if (input && window.lastPurchasePhone) {
+    input.value = window.lastPurchasePhone;
+  }
+  // Abre el modal (usa tu función existente)
+  if (typeof openMisNumeros === 'function') {
+    openMisNumeros();
+  } else {
+    // fallback mínimo si no tienes helper
+    document.getElementById('modal-misnumeros')?.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+  // Dispara la búsqueda automáticamente (usa tu función si existe)
+  if (typeof buscarMisNumeros === 'function') {
+    // pequeño delay para asegurar render
+    setTimeout(() => buscarMisNumeros(), 50);
+  } else {
+    // fallback con click si tienes un botón de buscar
+    setTimeout(() => document.getElementById('btn-mn-buscar')?.click(), 50);
+  }
+});

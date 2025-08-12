@@ -1,10 +1,20 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
 const path = require('path');
-const fs = require('fs');
-const fileUpload = require('express-fileupload');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+const express   = require('express');
+const cors      = require('cors');
+const mongoose  = require('mongoose');
+const fs        = require('fs');
+const fileUpload= require('express-fileupload');
+const jwt       = require('jsonwebtoken');
+const bcrypt    = require('bcrypt');
+const rateLimit = require('express-rate-limit');
+
+process.env.MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE_URL;
+const JWT_SECRET = process.env.JWT_SECRET || 'da72d1531c24df76a5ce4fa60070b25cec6bce3db41558040b2fc0e3a12fcd593768f0ada05e3062881403267d456ab7';
+
+// Normaliza nombre de la variable de conexión si cambia
+process.env.MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE_URL;
 
 const Purchase = require('./Purchase');
 const Raffle = require('./Raffle');
@@ -30,6 +40,92 @@ app.use(fileUpload({
 // Servir los archivos subidos
 app.use('/uploads', express.static(uploadDir));
 
+// === BÚSQUEDA DE NÚMEROS POR TELÉFONO (solo rifas ACTIVAS) ===
+const phoneLookupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 60,                   // hasta 60 consultas/hora por IP
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+function normalizePhoneVE(raw = '') {
+  const digits = (raw + '').replace(/\D+/g, '');
+  // Canon: 0 + 10 dígitos (ej: 04241234567)
+  if (digits.length === 11 && digits.startsWith('0')) return digits;
+  if (digits.length === 12 && digits.startsWith('58')) return '0' + digits.slice(-10);
+  if (digits.length === 10) return '0' + digits;
+  // si viene +58..., quitamos + y normalizamos
+  if (raw.startsWith('+58') && digits.length >= 12) return '0' + digits.slice(-10);
+  return digits; // fallback
+}
+function variantsForPhone(raw = '') {
+  const canon = normalizePhoneVE(raw); // 0xxxxxxxxxx
+  if (!/^0\d{10}$/.test(canon)) return [raw.trim()];
+  const intl = '+58' + canon.slice(1); // +58xxxxxxxxxx
+  const intl2 = '58' + canon.slice(1); // 58xxxxxxxxxx
+  return Array.from(new Set([canon, intl, intl2]));
+}
+
+app.get('/api/tickets/by-phone', phoneLookupLimiter, async (req, res) => {
+  try {
+    const { phone = '', includePending = '1' } = req.query;
+    const variants = variantsForPhone(phone);
+    if (!variants.length) return res.json({ phone, results: [] });
+
+    const statuses = includePending === '1' ? ['aprobada', 'pendiente'] : ['aprobada'];
+
+    // Compras por teléfono (aprobadas o con pendiente opcional)
+    const purchases = await Purchase.find({
+      phone: { $in: variants },
+      status: { $in: statuses }
+    }).lean();
+
+    if (!purchases.length) return res.json({ phone, results: [] });
+
+    // Filtrar por rifas ACTIVAS
+    const raffleIds = Array.from(new Set(purchases.map(p => p.raffleId).filter(Boolean)));
+    const activeRaffles = await Raffle.find({ _id: { $in: raffleIds }, status: 'activa' })
+      .select('_id title status')
+      .lean();
+    const activeSet = new Set(activeRaffles.map(r => String(r._id)));
+    const titleById = Object.fromEntries(activeRaffles.map(r => [String(r._id), r.title || 'Rifa']));
+
+    // Agrupar por rifa
+    const byRaffle = new Map();
+    for (const p of purchases) {
+      if (!activeSet.has(String(p.raffleId))) continue; // solo activas
+      const key = String(p.raffleId);
+      if (!byRaffle.has(key)) byRaffle.set(key, []);
+      // Expandir números con su estatus
+      const arr = byRaffle.get(key);
+      for (const n of (p.numbers || [])) {
+        arr.push({
+          number: n,
+          status: (p.status === 'aprobada') ? 'Aprobado' : (p.status === 'pendiente' ? 'En revisión' : p.status),
+          createdAt: p.createdAt
+        });
+      }
+    }
+
+    // Armar respuesta final ordenada
+    const results = [];
+    for (const [raffleId, entries] of byRaffle.entries()) {
+      entries.sort((a, b) => a.number - b.number);
+      results.push({
+        raffleId,
+        raffleTitle: titleById[raffleId] || '',
+        numbers: entries
+      });
+    }
+    // ordenar por título de rifa
+    results.sort((a, b) => (a.raffleTitle || '').localeCompare(b.raffleTitle || ''));
+
+    res.json({ phone, includePending: includePending === '1', results });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Error buscando números', error: e.message });
+  }
+});
 
 // Conexión a MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -42,7 +138,60 @@ mongoose.connect(process.env.MONGODB_URI, {
 app.get('/', (req, res) => {
     res.send('¡Hola, mundo desde el backend!');
 });
+function requireAdmin(req, res, next) {
+  try {
+    const h = req.headers.authorization || '';
+    const token = h.startsWith('Bearer ') ? h.slice(7) : null;
+    if (!token) return res.status(401).json({ message: 'No autorizado' });
 
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (!payload || payload.role !== 'admin') return res.status(401).json({ message: 'No autorizado' });
+
+    req.admin = { user: payload.user };
+    next();
+  } catch {
+    return res.status(401).json({ message: 'No autorizado' });
+  }
+}
+// Proxy simple para imágenes externas (evita CORS en canvas)
+app.get('/api/proxy-image', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).send('Missing url');
+
+    const r = await fetch(url, {
+      headers: {
+        // Algunos hosts requieren un UA “real”
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'image/*,*/*'
+      }
+    });
+
+    if (!r.ok) return res.status(r.status).send('Fetch failed');
+
+    const ct = r.headers.get('content-type') || 'image/jpeg';
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Content-Type', ct);
+
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.send(buf);
+  } catch (e) {
+    res.status(500).send('proxy error');
+  }
+});
+
+// Protección global para métodos sensibles en /api, excepto compra pública
+app.use((req, res, next) => {
+  const isApi = req.path.startsWith('/api/');
+  const isSensitive = ['POST','PUT','PATCH','DELETE'].includes(req.method);
+  const isPublicPurchase = req.method === 'POST' && req.path === '/api/purchases';
+  const isLogin = req.method === 'POST' && req.path === '/api/auth/login';
+
+  if (isApi && isSensitive && !isPublicPurchase && !isLogin) {
+    return requireAdmin(req, res, next);
+  }
+  next();
+});
 // CREAR una nueva rifa
 app.post('/api/raffles', async (req, res) => {
     try {
@@ -372,7 +521,59 @@ app.delete('/api/raffles/:id/winners/:place', async (req, res) => {
     res.status(500).json({ message: 'Error limpiando ganador', error: error.message });
   }
 });
+// ====== AUTH (LOGIN ADMIN) ======
+const ADMIN_USER       = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS_HASH  = process.env.ADMIN_PASS_HASH || '';
+const ADMIN_PASS_PLAIN = process.env.ADMIN_PASS || '';
 
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) return res.status(400).json({ message: 'Faltan credenciales' });
+    if (username !== ADMIN_USER) return res.status(401).json({ message: 'Credenciales inválidas' });
+
+    let ok = false;
+    if (ADMIN_PASS_HASH && ADMIN_PASS_HASH.startsWith('$2')) {
+      ok = await bcrypt.compare(password, ADMIN_PASS_HASH);
+    } else if (ADMIN_PASS_PLAIN) {
+      ok = password === ADMIN_PASS_PLAIN; // fallback temporal
+    }
+    if (!ok) return res.status(401).json({ message: 'Credenciales inválidas' });
+
+    const token = jwt.sign({ sub: 'admin-001', user: ADMIN_USER, role: 'admin' }, JWT_SECRET, { expiresIn: '12h' });
+    res.json({ token, user: ADMIN_USER, expiresIn: 12 * 60 * 60 });
+  } catch (err) {
+    res.status(500).json({ message: 'Error en login', error: err.message });
+  }
+});
+
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) return res.status(400).json({ message: 'Faltan credenciales' });
+
+    if (username !== ADMIN_USER) {
+      // Mensaje genérico (no decimos si falló user o pass)
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+
+    let ok = false;
+    if (ADMIN_PASS_HASH && ADMIN_PASS_HASH.startsWith('$2')) {
+      ok = await bcrypt.compare(password, ADMIN_PASS_HASH);
+    } else if (ADMIN_PASS_PLAIN) {
+      ok = password === ADMIN_PASS_PLAIN; // ⚠️ Fallback temporal
+    }
+
+    if (!ok) return res.status(401).json({ message: 'Credenciales inválidas' });
+
+    const token = jwt.sign({ sub: 'admin-001', user: ADMIN_USER, role: 'admin' }, JWT_SECRET, { expiresIn: '12h' });
+    res.json({ token, user: ADMIN_USER, expiresIn: 12 * 60 * 60 });
+  } catch (err) {
+    res.status(500).json({ message: 'Error en login', error: err.message });
+  }
+});
 const PORT = 4000;
 app.listen(PORT, () => {
   console.log(`Servidor backend escuchando en http://localhost:${PORT}`);

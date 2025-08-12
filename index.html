@@ -26,6 +26,7 @@
                 <a href="#" class="text-green-400 hover:text-green-300 font-medium">Inicio</a>
                 <a href="#como-funciona" class="text-gray-300 hover:text-green-300 font-medium">¿Cómo funciona?</a>
                 <a href="#contacto" class="text-gray-300 hover:text-green-300 font-medium">Contacto</a>
+                <a href="#" id="link-mis-numeros" class="text-gray-300 hover:text-green-300 font-medium">Mis números</a>
             </nav>
             
             <!-- Botón menú móvil -->
@@ -40,6 +41,7 @@
                 <a href="#" class="text-green-400 hover:text-green-300 font-medium">Inicio</a>
                 <a href="#como-funciona" class="text-gray-300 hover:text-green-300 font-medium">¿Cómo funciona?</a>
                 <a href="#contacto" class="text-gray-300 hover:text-green-300 font-medium">Contacto</a>
+                <a href="#" id="link-mis-numeros-mobile" class="text-gray-300 hover:text-green-300 font-medium">Mis números</a>
             </div>
         </div>
     </header>
@@ -273,6 +275,19 @@
                             Normalmente verificamos los pagos en un plazo de 1 a 3 horas. Si hay algún problema con tu pago, nos comunicaremos contigo al número que nos proporcionaste.
                         </div>
                     </div>
+                    <!-- Pregunta 5 -->
+                    <div class="border-b border-gray-700 pb-4">
+                    <button class="flex justify-between items-center w-full text-left" onclick="toggleFAQ(5)">
+                        <span class="text-lg font-medium text-gray-300">Olvidé mis números, ¿cómo puedo verlos?</span>
+                        <i class="fas fa-chevron-down text-green-400 transition-transform duration-300" id="faq-icon-5"></i>
+                    </button>
+                    <div id="faq-content-5" class="hidden mt-2 text-gray-400">
+                        Ve al menú superior y haz clic en
+                        <a href="#" class="text-green-400 hover:underline" onclick="openMisNumeros();return false;">Mis números</a>.
+                        Ingresa tu teléfono y te mostraremos, por cada rifa activa, tus tickets y su estado (<span class="text-green-400 font-semibold">Aprobado</span> /
+                        <span class="text-yellow-300 font-semibold">En revisión</span>).
+                    </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -331,7 +346,7 @@
                 
                 <div class="bg-gray-800 p-6 rounded-lg">
                     <h3 class="text-xl font-bold text-green-400 mb-4">Envíanos un mensaje</h3>
-                    <form>
+                    <form id="contact-form">
                         <div class="mb-4">
                             <label for="name" class="block text-gray-300 mb-2">Nombre</label>
                             <input type="text" id="name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -344,8 +359,9 @@
                             <label for="message" class="block text-gray-300 mb-2">Mensaje</label>
                             <textarea id="message" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
                         </div>
-                        <button type="submit" class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded-lg transition duration-300">
-                            Enviar mensaje <i class="fas fa-paper-plane ml-2"></i>
+                        <button id="btn-contact-wa" type="button"
+                                class="bg-green-500 hover:bg-green-400 text-black font-bold py-2 px-6 rounded-lg transition duration-300">
+                        Enviar por WhatsApp <i class="fab fa-whatsapp ml-2"></i>
                         </button>
                     </form>
                 </div>
@@ -410,7 +426,7 @@
     </div>
 
     <!-- Texto informativo -->
-    <div class="px-6 mt-4 text-sm text-gray-300">
+    <div class="px-6 mt-4 text-center text-gray-300">
       <p>Tu pago será verificado por nuestro equipo en las próximas horas. 
       Si hay algún problema con la verificación, nos comunicaremos al teléfono proporcionado.</p>
 
@@ -421,10 +437,31 @@
 
     <!-- CTA -->
     <div class="px-6 py-6">
-      <button id="btn-exito-volver" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-2.5 rounded-lg transition"
-              onclick="cerrarModalExito(); document.getElementById('rifas').scrollIntoView({behavior:'smooth'});">
+        <a id="exito-join-wa"
+        href="https://whatsapp.com/channel/XXXXXXXXXXXX" target="_blank" rel="noopener"
+        class="flex mx-auto w-max items-center justify-center gap-2
+                bg-green-500 hover:bg-green-400 text-black font-bold
+                py-2.5 px-6 rounded-full whitespace-nowrap
+                text-sm md:text-base transition shadow-md
+                focus:outline-none focus:ring-2 focus:ring-green-400
+                focus:ring-offset-2 focus:ring-offset-[#202833]">
+        <i class="fab fa-whatsapp text-lg"></i>
+        Unirte al canal de WhatsApp
+        </a>
+    <br>
+  <!-- Texto recomendado -->
+  <p class="text-center text-sm text-gray-300">
+    Te recomendamos unirte al canal para enterarte al instante si eres ganador,
+    además de recibir novedades y próximas rifas.
+  </p>
+  <br>
+    <button id="btn-exito-volver" class="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-2.5 rounded-lg transition"
+            onclick="cerrarModalExito(); document.getElementById('rifas').scrollIntoView({behavior:'smooth'});">
         Volver a las rifas
-      </button>
+    </button>
+    <button id="btn-exito-misnumeros" class="w-full mx-auto border-2 border-green-500 text-green-400 font-bold py-2.5 rounded-lg hover:bg-green-500/10 transition mt-2">
+        Ver mis números
+    </button>
     </div>
   </div>
 </div>
@@ -458,6 +495,38 @@
       <button id="btn-aceptar-confirmar" class="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-black font-bold disabled:opacity-50" disabled>
         Confirmar compra ✓
       </button>
+    </div>
+  </div>
+</div>
+<!-- Modal: Mis números -->
+<!-- Modal: Mis números -->
+<div id="misnumeros-modal" class="fixed inset-0 bg-black/60 z-50 hidden
+                                 flex items-start justify-center p-3 md:p-8 overflow-y-auto">
+  <div class="w-full max-w-2xl bg-gray-800 rounded-2xl p-6 mt-14 md:mt-16 shadow-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-2xl font-bold text-green-400">Buscar mis números</h3>
+      <button id="mn-close" class="text-gray-300 hover:text-white text-xl">&times;</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      <div class="md:col-span-2">
+        <label for="mn-phone" class="block text-sm text-gray-300 mb-1">Número de teléfono</label>
+        <input id="mn-phone" type="tel" placeholder="Ej: 04241234567"
+               class="w-full bg-gray-700 text-gray-100 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none" />
+      </div>
+      <div class="flex items-center gap-3">
+        <label class="inline-flex items-center gap-2 text-gray-300">
+          <input id="mn-include" type="checkbox" class="accent-green-500" checked>
+          <span>Incluir pendientes</span>
+        </label>
+        <button id="mn-search" class="ml-auto bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 rounded-lg">
+          Buscar
+        </button>
+      </div>
+    </div>
+
+    <div id="mn-results" class="mt-6 space-y-6 text-gray-200">
+      <div class="text-gray-400">Escribe tu teléfono y pulsa <b>Buscar</b>.</div>
     </div>
   </div>
 </div>
