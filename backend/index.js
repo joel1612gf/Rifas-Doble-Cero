@@ -665,4 +665,13 @@ app.listen(PORT, () => {
   console.log(`Servidor backend escuchando en puerto ${PORT}`);
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'unknown'
+  });
+});
+
+
 

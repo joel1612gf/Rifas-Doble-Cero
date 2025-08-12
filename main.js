@@ -14,7 +14,7 @@ async function cargarRifas() {
     const rifasContainer = document.getElementById('rifas-container');
     rifasContainer.innerHTML = `<div class="text-center text-gray-400">Cargando rifas...</div>`;
     try {
-        const res = await fetch(`${API}/api/raffles`);
+        const res = await fetch(`${API_BASE}/api/raffles`);
         let rifas = await res.json();
         rifas = rifas.filter(r => r.status === 'activa');
         rifasGlobal = rifas;
@@ -698,7 +698,7 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
   formData.append('contactConsent', window._consentWhatsApp ? 'true' : 'false'); // NUEVO
 
   try {
-    const res = await fetch(`${API}/api/purchases`, {
+    const res = await fetch(`${API_BASE}/api/purchases`, {
       method: 'POST',
       body: formData
     });
@@ -928,7 +928,10 @@ async function compressImageFile(file, {maxW=1600, maxH=1600, quality=0.8}={}) {
 }
 
 // === Mis números (frontend) ===
-const API_BASE = API; // usar el mismo host que el resto del front
+const API_BASE = location.hostname.includes('localhost')
+  ? 'http://localhost:4000'
+  : 'https://doble-cero.onrender.com/'; // pega aquí tu URL de Render
+
 
 function openMisNumeros() {
   document.getElementById('misnumeros-modal')?.classList.remove('hidden');
