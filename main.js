@@ -8,6 +8,11 @@ let numerosPorPagina = 100; // Ajusta este número para mostrar más o menos en 
 let searchValue = "";
 let exitoAbierto = false; // ← Candado para evitar cierres accidentales
 
+// Base de API automática: local (desarrollo) vs producción (Render)
+const API_BASE =
+  (location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1'))
+    ? 'http://localhost:4000'
+    : 'https://doble-cero.onrender.com';
 
 // ============ 1. CARGAR RIFAS DINÁMICAMENTE ===============
 async function cargarRifas() {
@@ -926,12 +931,6 @@ async function compressImageFile(file, {maxW=1600, maxH=1600, quality=0.8}={}) {
   const blob = new Blob([buf], {type:mime});
   return new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {type:mime, lastModified: Date.now()});
 }
-
-// === Mis números (frontend) ===
-const API_BASE = location.hostname.includes('localhost')
-  ? 'http://localhost:4000'
-  : 'https://doble-cero.onrender.com/'; // pega aquí tu URL de Render
-
 
 function openMisNumeros() {
   document.getElementById('misnumeros-modal')?.classList.remove('hidden');

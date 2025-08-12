@@ -1,5 +1,8 @@
-// === AUTH REAL (JWT) ===
-const API_BASE = API;
+
+const API_BASE =
+  (location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1'))
+    ? 'http://localhost:4000'
+    : 'https://doble-cero.onrender.com';
 
 function showLogin() {
   const login = document.getElementById('admin-login');
