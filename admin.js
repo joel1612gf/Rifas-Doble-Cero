@@ -1,5 +1,5 @@
 // === AUTH REAL (JWT) ===
-const API = 'http://localhost:4000'; // ajusta si tu backend está en otro dominio
+const API = window.API_BASE || 'http://localhost:4000';
 
 function showLogin() {
   const login = document.getElementById('admin-login');

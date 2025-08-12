@@ -14,7 +14,7 @@ async function cargarRifas() {
     const rifasContainer = document.getElementById('rifas-container');
     rifasContainer.innerHTML = `<div class="text-center text-gray-400">Cargando rifas...</div>`;
     try {
-        const res = await fetch('http://localhost:4000/api/raffles');
+        const res = await fetch(`${API}/api/raffles`);
         let rifas = await res.json();
         rifas = rifas.filter(r => r.status === 'activa');
         rifasGlobal = rifas;
@@ -698,7 +698,7 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
   formData.append('contactConsent', window._consentWhatsApp ? 'true' : 'false'); // NUEVO
 
   try {
-    const res = await fetch('http://localhost:4000/api/purchases', {
+    const res = await fetch(`${API}/api/purchases`, {
       method: 'POST',
       body: formData
     });

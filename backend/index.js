@@ -21,7 +21,18 @@ const Raffle   = require('./Raffle');
 const Contact  = require('./Contact'); // NUEVO
 
 const app = express();
-app.use(cors());
+const whitelist = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin) return cb(null, true); // permitir curl/postman
+    if (!whitelist.length || whitelist.includes(origin)) return cb(null, true);
+    cb(new Error('CORS bloqueado'));
+  }
+}));
 
 // Parseo estándar
 app.use(express.json());
@@ -649,8 +660,9 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     res.status(500).json({ message: 'Error en login', error: err.message });
   }
 });
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
+  console.log(`Servidor backend escuchando en puerto ${PORT}`);
 });
+
 
