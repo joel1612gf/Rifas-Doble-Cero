@@ -928,7 +928,7 @@ async function compressImageFile(file, {maxW=1600, maxH=1600, quality=0.8}={}) {
 }
 
 // === Mis números (frontend) ===
-const API_BASE = '${API}'; // usar el mismo host que el resto del front
+const API_BASE = API; // usar el mismo host que el resto del front
 
 function openMisNumeros() {
   document.getElementById('misnumeros-modal')?.classList.remove('hidden');

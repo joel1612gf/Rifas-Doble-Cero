@@ -1,5 +1,5 @@
 // === AUTH REAL (JWT) ===
-const API = window.API_BASE || '${API}';
+const API_BASE = API;
 
 function showLogin() {
   const login = document.getElementById('admin-login');
