@@ -1,5 +1,5 @@
 // === AUTH REAL (JWT) ===
-const API = window.API_BASE || 'http://localhost:4000';
+const API = window.API_BASE || '${API}';
 
 function showLogin() {
   const login = document.getElementById('admin-login');
@@ -197,7 +197,7 @@ async function loadRaffles() {
     const wrapper = document.getElementById('raffles-table-wrapper');
     wrapper.innerHTML = '<div class="text-center text-gray-400">Cargando rifas...</div>';
     try {
-        const res = await fetch('http://localhost:4000/api/raffles');
+        const res = await fetch(`${API}/api/raffles`);
         const raffles = await res.json();
         if (raffles.length === 0) {
             wrapper.innerHTML = '<div class="text-center text-gray-400">No hay rifas registradas.</div>';
@@ -713,7 +713,7 @@ let winnersState = {
 
 async function loadWinnersInit() {
   try {
-    const res = await fetch('http://localhost:4000/api/raffles');
+    const res = await fetch(`${API}/api/raffles`);
     winnersState.raffles = await res.json();
 
     // llenar select
