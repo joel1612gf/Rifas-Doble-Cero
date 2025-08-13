@@ -36,7 +36,7 @@ async function loginAdmin() {
   if (errorDiv) errorDiv.classList.add('hidden');
 
   try {
-    const r = await fetch(`${API}/api/auth/login`, {
+    const r = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -114,7 +114,7 @@ async function loginAdmin() {
   if (errorDiv) errorDiv.classList.add('hidden');
 
   try {
-    const r = await fetch(`${API}/api/auth/login`, {
+    const r = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -200,7 +200,7 @@ async function loadRaffles() {
     const wrapper = document.getElementById('raffles-table-wrapper');
     wrapper.innerHTML = '<div class="text-center text-gray-400">Cargando rifas...</div>';
     try {
-        const res = await fetch(`${API}/api/raffles`);
+        const res = await fetch(`${API_BASE}/api/raffles`);
         const raffles = await res.json();
         if (raffles.length === 0) {
             wrapper.innerHTML = '<div class="text-center text-gray-400">No hay rifas registradas.</div>';
@@ -327,14 +327,14 @@ async function submitRaffleForm(e) {
     try {
         if (id) {
             // Editar rifa existente
-            await fetchWithAuth(`${API}/api/raffles/${id}`, {
+            await fetchWithAuth(`${API_BASE}/api/raffles/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
         } else {
             // Crear nueva rifa
-            await fetchWithAuth(`${API}/api/raffles`, {
+            await fetchWithAuth(`${API_BASE}/api/raffles`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -351,7 +351,7 @@ async function submitRaffleForm(e) {
 
 async function editRaffle(id) {
     try {
-        const res = await fetchWithAuth(`${API}/api/raffles/${id}`);
+        const res = await fetchWithAuth(`${API_BASE}/api/raffles/${id}`);
         const raffle = await res.json();
         editingRaffleId = id;
         document.getElementById('raffle-form-title').textContent = 'Editar Rifa';
@@ -379,7 +379,7 @@ async function editRaffle(id) {
 async function deleteRaffle(id) {
     if (!confirm('¿Seguro que deseas eliminar esta rifa?')) return;
     try {
-        await fetchWithAuth(`${API}/api/raffles/${id}`, {
+        await fetchWithAuth(`${API_BASE}/api/raffles/${id}`, {
             method: 'DELETE'
         });
         loadRaffles();
@@ -411,7 +411,7 @@ async function loadPayments(mode = paymentsMode) {
 
     tableWrapper.innerHTML = '<div class="text-center text-gray-400">Cargando pagos...</div>';
     try {
-      const res = await fetchWithAuth(`${API}/api/purchases?status=pendiente`); // unificado con auth
+      const res = await fetchWithAuth(`${API_BASE}/api/purchases?status=pendiente`); // unificado con auth
       const pagos = await res.json();
       payments = Array.isArray(pagos) ? pagos : [];
 
@@ -430,7 +430,7 @@ async function loadPayments(mode = paymentsMode) {
     proofBox.innerHTML = '<div class="text-gray-400">Cargando...</div>';
 
     try {
-      const res = await fetchWithAuth(`${API}/api/purchases?status=pendiente`); // solo pendientes
+      const res = await fetchWithAuth(`${API_BASE}/api/purchases?status=pendiente`); // solo pendientes
       const data = await res.json();
       paymentsPending = Array.isArray(data) ? data : [];
       currentIdx = 0;
@@ -647,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ----- Acciones -----
 async function approvePayment(id) {
   try {
-    const res = await fetchWithAuth(`${API}/api/purchases/${id}/approve`, { method:'PUT' });
+    const res = await fetchWithAuth(`${API_BASE}/api/purchases/${id}/approve`, { method:'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -658,7 +658,7 @@ async function approvePayment(id) {
 
 async function rejectPayment(id) {
   try {
-    const res = await fetchWithAuth(`${API}/api/purchases/${id}/reject`,  { method:'PUT' });
+    const res = await fetchWithAuth(`${API_BASE}/api/purchases/${id}/reject`,  { method:'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -669,7 +669,7 @@ async function rejectPayment(id) {
 
 async function waitPayment(id) {
   try {
-    const res = await fetchWithAuth(`${API}/api/purchases/${id}/wait`, { method: 'PUT' });
+    const res = await fetchWithAuth(`${API_BASE}/api/purchases/${id}/wait`, { method: 'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -716,7 +716,7 @@ let winnersState = {
 
 async function loadWinnersInit() {
   try {
-    const res = await fetch(`${API}/api/raffles`);
+    const res = await fetch(`${API_BASE}/api/raffles`);
     winnersState.raffles = await res.json();
 
     // llenar select
@@ -882,7 +882,7 @@ async function lookupWinner() {
   const number   = Number(document.getElementById('winners-number-input').value);
   if (!raffleId || !number) { alert('Selecciona la rifa y escribe el número'); return; }
 
-  const res  = await fetch(`${API}/api/raffles/${raffleId}/lookup-winner?number=${number}`);
+  const res  = await fetch(`${API_BASE}/api/raffles/${raffleId}/lookup-winner?number=${number}`);
   const data = await res.json(); // puede ser null
 
   // Si el número no fue vendido (no hay compra aprobada), marcamos "no hay ganador"
@@ -897,7 +897,7 @@ async function saveWinner() {
   const number   = Number(document.getElementById('winners-number-input').value);
   if (!raffleId || !place || !number) { alert('Completa rifa, premio y número'); return; }
 
-  const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
+  const res = await fetchWithAuth(`${API_BASE}/api/raffles/${raffleId}/winners`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ place, number })
@@ -919,7 +919,7 @@ async function clearWinner() {
   if (!raffleId || !place) return;
 
   if (!confirm('¿Seguro que deseas limpiar este premio?')) return;
-  const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners/${place}`, { method: 'DELETE' });
+  const res = await fetchWithAuth(`${API_BASE}/api/raffles/${raffleId}/winners/${place}`, { method: 'DELETE' });
   const { winners } = await res.json();
 
   const idx = winnersState.raffles.findIndex(r => r._id === raffleId);
@@ -1053,7 +1053,7 @@ async function getRaffleImageObjectURL() {
   if (/^(data:|blob:)/i.test(raw)) return raw; // ya sirve
 
   try {
-    const res = await fetch(`${API}/api/proxy-image?url=${encodeURIComponent(raw)}`);
+    const res = await fetch(`${API_BASE}/api/proxy-image?url=${encodeURIComponent(raw)}`);
     if (!res.ok) throw new Error('proxy error');
     const blob = await res.blob();
     return URL.createObjectURL(blob);
@@ -1338,7 +1338,7 @@ async function loadContacts() {
   box.innerHTML = '<div class="text-center text-gray-400 py-6">Cargando contactos...</div>';
 
   try {
-    const res = await fetchWithAuth(`${API}/api/contacts`);
+    const res = await fetchWithAuth(`${API_BASE}/api/contacts`);
     const list = await res.json();
 
     if (!Array.isArray(list) || !list.length) {
@@ -1348,7 +1348,7 @@ async function loadContacts() {
 
     document.getElementById('btn-contacts-export')?.addEventListener('click', async () => {
       try {
-        const res = await fetchWithAuth(`${API}/api/contacts/export`);
+        const res = await fetchWithAuth(`${API_BASE}/api/contacts/export`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
