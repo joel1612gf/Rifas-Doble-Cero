@@ -762,49 +762,81 @@ function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda 
   document.getElementById('exito-total').textContent =
     (typeof total !== 'undefined') ? `${moneda}${total}` : '-';
 
-  // Mostrar + animación y CANDADO
+  // Elementos
   const overlay = document.getElementById('modal-exito');
   const card = document.getElementById('exito-card');
 
-  // Evitar que clics dentro de la tarjeta cierren algo por burbujeo
+  // Evitar que clics dentro de la tarjeta cierren el modal
   card.addEventListener('click', (e) => e.stopPropagation());
 
+  // Mostrar overlay
   overlay.classList.remove('hidden');
   overlay.classList.add('flex');
 
-  // 🔒 BLOQUEAR SCROLL DEL FONDO (móvil/desktop)
+  // 🔒 Bloquear scroll del fondo
   document.body.style.overflow = 'hidden';
 
-  // 🛑 Fix iOS: bloquear “rubber band” del overlay
+  // ✅ Permitir scroll dentro de la tarjeta (móvil/desktop)
+  card.style.overflowY = 'auto';
+  card.style.webkitOverflowScrolling = 'touch'; // iOS suave
+
+  // Altura máxima dinámica = alto de viewport - padding del overlay (p-4 → 32px)
+  const updateMaxH = () => {
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    card.style.maxHeight = Math.max(320, vh - 32) + 'px';
+  };
+  updateMaxH();
+
+  // Guardamos para limpiar al cerrar
+  overlay._onResize = updateMaxH;
+  window.addEventListener('resize', overlay._onResize);
+  window.addEventListener('orientationchange', overlay._onResize);
+
+  // 🛡️ iOS: evitar “rubber-band” SOLO cuando el gesto es en el overlay (fuera del card)
   if (!overlay._touchBlock) {
-    overlay._touchBlock = (e) => e.preventDefault();
+    overlay._touchBlock = (e) => {
+      if (e.target === overlay) e.preventDefault(); // dentro del card: se permite scroll
+    };
     overlay.addEventListener('touchmove', overlay._touchBlock, { passive: false });
   }
 
-  // Candado de prioridad de cierre (ya lo usas en listeners globales)
+  // Estado
   exitoAbierto = true;
 
-  // Animación
+  // Animación de entrada
   card.style.transform = 'scale(0.96)';
   setTimeout(() => { card.style.transform = 'scale(1)'; }, 0);
 }
 
 function cerrarModalExito() {
   const overlay = document.getElementById('modal-exito');
+  const card = document.getElementById('exito-card');
 
+  // Ocultar overlay
   overlay.classList.add('hidden');
   overlay.classList.remove('flex');
 
-  // 🔓 Liberar candado y scroll
+  // 🔓 Liberar candado y limpiar estilos/handlers
   exitoAbierto = false;
   document.body.style.overflow = 'auto';
 
-  // Quitar fix táctil si estaba activo
+  // Quitar listeners dinámicos
   if (overlay._touchBlock) {
     overlay.removeEventListener('touchmove', overlay._touchBlock);
     delete overlay._touchBlock;
   }
+  if (overlay._onResize) {
+    window.removeEventListener('resize', overlay._onResize);
+    window.removeEventListener('orientationchange', overlay._onResize);
+    delete overlay._onResize;
+  }
+
+  // Reset estilos del card por si acaso
+  card.style.overflowY = '';
+  card.style.maxHeight = '';
+  card.style.webkitOverflowScrolling = '';
 }
+
 
 // ============ INICIALIZAR =====================
 window.addEventListener('DOMContentLoaded', () => {

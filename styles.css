@@ -38,3 +38,22 @@
             max-height: 500px;
         }
               
+        /* === Modal de Éxito: scroll interno y safe areas === */
+#modal-exito {
+  /* el overlay no scrollea; lo hace la tarjeta */
+  overflow: hidden;
+}
+
+#exito-card {
+  /* baseline por CSS; JS lo recalcula con viewport real */
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; /* iOS suave */
+  padding-bottom: env(safe-area-inset-bottom); /* notch */
+}
+
+/* Fallback si el navegador no soporta dvh */
+@supports not (height: 1dvh) {
+  #exito-card { max-height: calc(100vh - 32px); }
+}
