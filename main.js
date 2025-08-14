@@ -771,24 +771,39 @@ function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda 
 
   overlay.classList.remove('hidden');
   overlay.classList.add('flex');
+
+  // 🔒 BLOQUEAR SCROLL DEL FONDO (móvil/desktop)
+  document.body.style.overflow = 'hidden';
+
+  // 🛑 Fix iOS: bloquear “rubber band” del overlay
+  if (!overlay._touchBlock) {
+    overlay._touchBlock = (e) => e.preventDefault();
+    overlay.addEventListener('touchmove', overlay._touchBlock, { passive: false });
+  }
+
+  // Candado de prioridad de cierre (ya lo usas en listeners globales)
   exitoAbierto = true;
 
+  // Animación
   card.style.transform = 'scale(0.96)';
   setTimeout(() => { card.style.transform = 'scale(1)'; }, 0);
 }
 
 function cerrarModalExito() {
   const overlay = document.getElementById('modal-exito');
+
   overlay.classList.add('hidden');
   overlay.classList.remove('flex');
-  exitoAbierto = false; // ← liberamos el candado
-}
 
+  // 🔓 Liberar candado y scroll
+  exitoAbierto = false;
+  document.body.style.overflow = 'auto';
 
-function cerrarModalExito() {
-  const overlay = document.getElementById('modal-exito');
-  overlay.classList.add('hidden');
-  overlay.classList.remove('flex');
+  // Quitar fix táctil si estaba activo
+  if (overlay._touchBlock) {
+    overlay.removeEventListener('touchmove', overlay._touchBlock);
+    delete overlay._touchBlock;
+  }
 }
 
 // ============ INICIALIZAR =====================
