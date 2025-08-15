@@ -52,6 +52,56 @@ app.use(fileUpload({
 // Servir los archivos subidos
 app.use('/uploads', express.static(uploadDir));
 
+// === Meta Conversions API: Purchase ===
+app.post('/api/meta/track', async (req, res) => {
+  try {
+    const PIXEL_ID     = process.env.META_PIXEL_ID || '';
+    const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || '';
+    const TEST_CODE    = process.env.META_TEST_EVENT_CODE || '';
+    if (!PIXEL_ID || !ACCESS_TOKEN) {
+      return res.status(400).json({ ok: false, message: 'Meta Pixel/AccessToken no configurados' });
+    }
+
+    const { event_name, event_id, value, currency, event_source_url } = req.body || {};
+    if (event_name !== 'Purchase') {
+      return res.status(400).json({ ok: false, message: 'Solo se acepta Purchase en este endpoint' });
+    }
+
+    const payload = {
+      data: [{
+        event_name: 'Purchase',
+        event_time: Math.floor(Date.now() / 1000),
+        event_id,
+        action_source: 'website',
+        event_source_url: event_source_url || '',
+        user_data: {
+          client_ip_address: (req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket.remoteAddress || '',
+          client_user_agent: req.headers['user-agent'] || ''
+        },
+        custom_data: { value: Number(value) || 0, currency: currency || 'USD' }
+      }]
+    };
+
+    // En local/staging puedes mandar test_event_code (si lo configuras)
+    if (!/doblecerove\.com$/i.test(req.hostname) && TEST_CODE) {
+      payload.test_event_code = TEST_CODE;
+    }
+
+    const url = `https://graph.facebook.com/v18.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const out = await resp.json();
+    return res.json({ ok: true, graph: out });
+  } catch (err) {
+    console.error('CAPI error:', err);
+    return res.status(500).json({ ok: false, message: 'Error enviando a CAPI', error: err?.message });
+  }
+});
+
+
 // === BÚSQUEDA DE NÚMEROS POR TELÉFONO (solo rifas ACTIVAS) ===
 const phoneLookupLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora

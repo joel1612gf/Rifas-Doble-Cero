@@ -14,6 +14,50 @@ const API_BASE =
     ? 'http://localhost:4000'
     : 'https://doble-cero.onrender.com';
 
+    // === Meta helpers (seguros si no hay Pixel) ===
+function metaTrack(event, params = {}, options = {}) {
+  try {
+    if (window.fbq) {
+      // Para eventos estándar: track; para custom: trackCustom
+      const standard = ['PageView','ViewContent','InitiateCheckout','AddPaymentInfo','Purchase','Contact','Subscribe'];
+      const fn = standard.includes(event) ? 'track' : 'trackCustom';
+      if (options.eventId) {
+        fbq(fn, event, params, { eventID: options.eventId });
+      } else {
+        fbq(fn, event, params);
+      }
+    }
+  } catch(_) {}
+}
+
+function genEventId() {
+  return 'dc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+}
+
+// Enviar a CAPI (servidor) SOLO para Purchase (deduplicación con event_id)
+async function sendPurchaseToCapi({ value, currency, eventId }) {
+  try {
+    await fetch(`${API_BASE}/api/meta/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_name: 'Purchase',
+        event_id: eventId,
+        value,
+        currency,
+        event_source_url: location.href
+      })
+    });
+  } catch (e) {
+    console.warn('CAPI falló (no es grave):', e?.message);
+  }
+}
+
+// Helper para $/Bs → USD/VES
+function currencyCodeFrom(monedaSimbolo) {
+  return (monedaSimbolo === '$') ? 'USD' : 'VES';
+}
+
 // ============ 1. CARGAR RIFAS DINÁMICAMENTE ===============
 async function cargarRifas() {
     const rifasContainer = document.getElementById('rifas-container');
@@ -362,14 +406,27 @@ function numeroAlAzar() {
 }
 // Botón continuar → muestra modal de resumen/compra
 function continuarCompra() {
-    cerrarModalSelector();
-    setTimeout(() => {
-        const overlayRes = document.getElementById('modal-resumen');
-        overlayRes.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        renderResumenContent();
-        }, 350);
+  // Mostrar modal resumen
+  cerrarModalSelector();
+  setTimeout(() => {
+    const overlayRes = document.getElementById('modal-resumen');
+    overlayRes.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    renderResumenContent();
+  }, 350);
+
+  // META: InitiateCheckout (con valor estimado)
+  try {
+    const pagaEnUsd = (metodoPagoSeleccionado === 'binance' || metodoPagoSeleccionado === 'zinli');
+    const tieneUsd  = (rifaSeleccionada?.priceUsd || 0) > 0;
+    const usarUsd   = pagaEnUsd && tieneUsd;
+    const price     = usarUsd ? (rifaSeleccionada?.priceUsd || 0) : (rifaSeleccionada?.priceBs || 0);
+    const total     = price * (numerosSeleccionados?.length || 0);
+    const moneda    = usarUsd ? '$' : 'Bs';
+    metaTrack('InitiateCheckout', { value: total, currency: currencyCodeFrom(moneda) });
+  } catch (_) {}
 }
+
 
 function cerrarModalResumen() {
   const overlay = document.getElementById('modal-resumen');
@@ -650,6 +707,8 @@ function copyToClipboard(elementId) {
   }
 
 async function confirmarCompra() {
+    // META: el usuario ya está introduciendo/confirmando datos de pago
+  metaTrack('AddPaymentInfo');
   const firstName        = document.getElementById('first-name').value.trim();
   const lastName         = document.getElementById('last-name').value.trim();
   const phone            = document.getElementById('phone').value.trim();
@@ -766,7 +825,7 @@ function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda 
   const overlay = document.getElementById('modal-exito');
   const card = document.getElementById('exito-card');
 
-  // Evitar que clics dentro de la tarjeta cierren el modal
+  // Evitar cierre por burbujeo
   card.addEventListener('click', (e) => e.stopPropagation());
 
   // Mostrar overlay
@@ -776,36 +835,38 @@ function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda 
   // 🔒 Bloquear scroll del fondo
   document.body.style.overflow = 'hidden';
 
-  // ✅ Permitir scroll dentro de la tarjeta (móvil/desktop)
+  // ✅ Scroll interno del card (móvil/desktop)
   card.style.overflowY = 'auto';
-  card.style.webkitOverflowScrolling = 'touch'; // iOS suave
-
-  // Altura máxima dinámica = alto de viewport - padding del overlay (p-4 → 32px)
+  card.style.webkitOverflowScrolling = 'touch';
   const updateMaxH = () => {
     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     card.style.maxHeight = Math.max(320, vh - 32) + 'px';
   };
   updateMaxH();
-
-  // Guardamos para limpiar al cerrar
   overlay._onResize = updateMaxH;
   window.addEventListener('resize', overlay._onResize);
   window.addEventListener('orientationchange', overlay._onResize);
 
-  // 🛡️ iOS: evitar “rubber-band” SOLO cuando el gesto es en el overlay (fuera del card)
+  // iOS: bloquear "rubber band" solo fuera del card
   if (!overlay._touchBlock) {
-    overlay._touchBlock = (e) => {
-      if (e.target === overlay) e.preventDefault(); // dentro del card: se permite scroll
-    };
+    overlay._touchBlock = (e) => { if (e.target === overlay) e.preventDefault(); };
     overlay.addEventListener('touchmove', overlay._touchBlock, { passive: false });
   }
 
   // Estado
   exitoAbierto = true;
 
-  // Animación de entrada
+  // Animación
   card.style.transform = 'scale(0.96)';
   setTimeout(() => { card.style.transform = 'scale(1)'; }, 0);
+
+  // === META: Purchase (cliente + CAPI con deduplicación) ===
+  try {
+    const eventId  = genEventId();
+    const currency = currencyCodeFrom(moneda);
+    metaTrack('Purchase', { value: total, currency }, { eventId });
+    sendPurchaseToCapi({ value: total, currency, eventId });
+  } catch(_) {}
 }
 
 function cerrarModalExito() {
@@ -816,11 +877,10 @@ function cerrarModalExito() {
   overlay.classList.add('hidden');
   overlay.classList.remove('flex');
 
-  // 🔓 Liberar candado y limpiar estilos/handlers
+  // 🔓 Liberar y limpiar
   exitoAbierto = false;
   document.body.style.overflow = 'auto';
 
-  // Quitar listeners dinámicos
   if (overlay._touchBlock) {
     overlay.removeEventListener('touchmove', overlay._touchBlock);
     delete overlay._touchBlock;
@@ -831,7 +891,7 @@ function cerrarModalExito() {
     delete overlay._onResize;
   }
 
-  // Reset estilos del card por si acaso
+  // Reset estilos
   card.style.overflowY = '';
   card.style.maxHeight = '';
   card.style.webkitOverflowScrolling = '';
@@ -842,27 +902,37 @@ function cerrarModalExito() {
 window.addEventListener('DOMContentLoaded', () => {
   cargarRifas();
 
+  // META: PageView
+  metaTrack('PageView');
+
+  // META: Contact al click del botón de WhatsApp en el modal de éxito
+  const waBtn = document.getElementById('exito-join-wa');
+  if (waBtn) {
+    waBtn.addEventListener('click', () => {
+      metaTrack('Contact', { content_name: 'join_whatsapp' });
+    });
+  }
+
+  // --- lo que ya tenías ---
   const input = document.getElementById('payment-proof');
   const labelSpan = document.getElementById('file-name');
   if (!input || !labelSpan) return;
 
   const DEFAULT_TEXT = labelSpan.dataset.default || 'Ningún archivo seleccionado';
-
   input.addEventListener('change', () => {
     if (input.files && input.files.length) {
-      // Opción 2 por defecto: mostrar el nombre del archivo
       const file = input.files[0];
       labelSpan.textContent = file.name;
       labelSpan.classList.remove('text-gray-400');
-      labelSpan.classList.add('text-green-400'); // verde cuando hay archivo
+      labelSpan.classList.add('text-green-400');
     } else {
-      // Si el usuario cancela la selección
       labelSpan.textContent = DEFAULT_TEXT;
       labelSpan.classList.remove('text-green-400');
       labelSpan.classList.add('text-gray-400');
     }
   });
 });
+
 
 // Envolver el click para mostrar el mini-modal de aceptación
 (function wireConfirmarCompra() {

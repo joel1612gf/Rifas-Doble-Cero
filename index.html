@@ -542,8 +542,30 @@
     </div>
   </div>
 </div>
+
     <script src="config.js"></script>
+
+    <!-- Loader seguro del Meta Pixel (no rompe si no hay PIXEL_ID) -->
+    <script>
+    (function() {
+    var PIXEL_ID = '3648115792156539'; // ← cuando lo tengas, colócalo aquí
+    if (!PIXEL_ID) return; // si está vacío, no cargamos nada
+
+    !function(f,b,e,v,n,t,s){
+        if(f.fbq) return; n=f.fbq=function(){ n.callMethod ?
+        n.callMethod.apply(n,arguments) : n.queue.push(arguments) };
+        if(!f._fbq) f._fbq=n; n.push=n; n.loaded=!0; n.version='2.0';
+        n.queue=[]; t=b.createElement(e); t.async=!0; t.src=v;
+        s=b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t,s);
+    }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+    fbq('init', PIXEL_ID);
+    window.__PIXEL_ID__ = PIXEL_ID; // por si lo quieres leer desde main.js
+    })();
+    </script>
+
     <script src="main.js"></script>
+
 </body>
 </html>
 
