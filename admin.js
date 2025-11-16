@@ -1,10 +1,33 @@
 
-// UNA SOLA definición
-const API =
-  (location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1'))
-    ? 'http://localhost:4000'
-    : 'https://doble-cero.onrender.com';
+// --- Lógica de Entornos (Staging y Producción) ---
 
+// 1. Define tus URLs
+// (Asegúrate de que estos dominios coincidan con tus URLs reales)
+const PROD_HOST = 'doblecerove.com';
+const STAGING_HOST = 'staging.rifas-doble-cero.pages.dev'; // <-- CAMBIA ESTO por tu URL de Cloudflare Pages
+
+const PROD_API = 'https://doble-cero.onrender.com';
+const STAGING_API = 'https://doble-cero-staging.onrender.com'; // <-- CAMBIA ESTO por tu URL de Render Staging
+const LOCAL_API = 'http://localhost:4000';
+
+let API;
+
+// 2. Compara el hostname actual
+const currentHost = location.hostname;
+
+if (currentHost.includes(PROD_HOST) || currentHost.includes('www.' + PROD_HOST)) {
+    // Estamos EN VIVO
+    API = PROD_API;
+} else if (currentHost.includes(STAGING_HOST)) {
+    // Estamos en STAGING (Pruebas)
+    API = STAGING_API;
+} else {
+    // Estamos en LOCALHOST
+    API = LOCAL_API;
+}
+
+console.log('API conectada a:', API); // (Para que podamos verificar)
+// --- Fin de la lógica de entornos ---
 
 function showLogin() {
   const login = document.getElementById('admin-login');
