@@ -11,28 +11,21 @@ let exitoAbierto = false; // ← Candado para evitar cierres accidentales
 // --- Lógica de Entornos (Staging y Producción) ---
 
 // 1. Define tus URLs
-// (Asegúrate de que estos dominios coincidan con tus URLs reales)
 const PROD_HOST = 'doblecerove.com';
-const STAGING_HOST = 'staging.rifas-doble-cero.pages.dev'; // <-- CAMBIA ESTO por tu URL de Cloudflare Pages
-
 const PROD_API = 'https://doble-cero.onrender.com';
-const STAGING_API = 'https://doble-cero-staging.onrender.com'; // <-- CAMBIA ESTO por tu URL de Render Staging
-const LOCAL_API = 'http://localhost:4000';
+const STAGING_API = 'https://doble-cero-staging.onrender.com'; // URL de Render Staging
 
 let API;
-
-// 2. Compara el hostname actual
 const currentHost = location.hostname;
 
+// 2. Revisa si estamos en el dominio de PRODUCCIÓN
 if (currentHost.includes(PROD_HOST) || currentHost.includes('www.' + PROD_HOST)) {
-    // Estamos EN VIVO
+    // SÍ: Conectar al Backend EN VIVO
     API = PROD_API;
-} else if (currentHost.includes(STAGING_HOST)) {
-    // Estamos en STAGING (Pruebas)
-    API = STAGING_API;
 } else {
-    // Estamos en LOCALHOST
-    API = LOCAL_API;
+    // NO: Conectar al Backend DE PRUEBAS
+    // (Esto aplica para 'staging.rifas-doble-cero.pages.dev' Y para '127.0.0.1' de Live Server)
+    API = STAGING_API;
 }
 
 console.log('API conectada a:', API); // (Para que podamos verificar)
