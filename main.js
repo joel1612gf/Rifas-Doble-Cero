@@ -172,6 +172,89 @@ function cerrarModalSelector() {
   setTimeout(() => { document.getElementById('selector-content').innerHTML = ""; }, 300);
 }
 
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
+/**
+ * Renderiza SÓLO el grid de números y el paginador.
+ */
+function renderGridAndPaginatorHTML() {
+    const rifa = rifaSeleccionada;
+    if (!rifa) return '';
+
+    const total = rifa.totalNumbers || 100;
+    const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
+    const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
+    
+    // TAREA 2: (Ya implementado) La lista base es solo de disponibles
+    let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1).filter(n => !vendidos.includes(n));
+    
+    // Aplicamos el filtro de búsqueda (searchValue es una variable global)
+    if (searchValue && searchValue.length > 0) {
+        numerosFiltrados = numerosFiltrados.filter(n => {
+            const numFormateado = formatTicketNumber(n, total);
+            return numFormateado.includes(searchValue) || String(n).includes(searchValue);
+        });
+    }
+
+    const startIdx = (paginaActual - 1) * numerosPorPagina;
+    const endIdx = startIdx + numerosPorPagina;
+    const numerosPaginados = numerosFiltrados.slice(startIdx, endIdx);
+
+    // CUADRÍCULA
+    let gridHtml = `<div id="numeros-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 mb-2 mt-2">`;
+    for (let i = 0; i < numerosPaginados.length; i++) {
+        const n = numerosPaginados[i];
+        const seleccionado = numerosSeleccionados.includes(n);
+        gridHtml += `
+            <button type="button"
+                class="numero-btn h-12 w-18 rounded-md font-bold text-lg border border-gray-700 transition
+                ${seleccionado ? 'bg-green-400 text-gray-900 border-green-600' : 'bg-gray-700 text-gray-200 hover:bg-green-400 hover:text-gray-900'}"
+                onclick="toggleNumero(${n}, this)"
+                data-numero="${n}">
+                ${formatTicketNumber(n, total)}
+            </button>
+        `;
+    }
+    gridHtml += `</div>`;
+
+    // PAGINADOR
+    let paginadorHtml = '';
+    let paginasTotales = Math.ceil(numerosFiltrados.length / numerosPorPagina);
+    if (paginasTotales > 1) {
+        let paginasPorBloque = 10;
+        let bloqueActual = Math.floor((paginaActual - 1) / paginasPorBloque);
+        let inicioBloque = bloqueActual * paginasPorBloque + 1;
+        let finBloque = Math.min(inicioBloque + paginasPorBloque - 1, paginasTotales);
+
+        paginadorHtml += `<div class="flex justify-center items-center mt-3 gap-2 flex-wrap">`;
+        paginadorHtml += `
+            <button onclick="cambiarBloquePaginas(-1)" ${bloqueActual === 0 ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
+                class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Anterior 10">
+                &#171;
+            </button>
+        `;
+        for (let i = inicioBloque; i <= finBloque; i++) {
+            paginadorHtml += `
+                <button onclick="irPagina(${i})"
+                    class="px-3 py-1 rounded ${i === paginaActual ? 'bg-green-400 text-black font-bold' : 'bg-gray-700 text-gray-300 hover:bg-green-300 hover:text-black'} transition">
+                    ${i}
+                </button>
+            `;
+        }
+        paginadorHtml += `
+            <button onclick="cambiarBloquePaginas(1)" ${finBloque === paginasTotales ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
+                class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Siguiente 10">
+                &#187;
+            </button>
+        `;
+        paginadorHtml += `</div>`;
+    }
+    
+    // Devolvemos ambos HTML combinados
+    return gridHtml + paginadorHtml;
+}
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
+
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function renderSelectorContent() {
     const rifa = rifaSeleccionada;
     // Info y resumen de premios
@@ -189,93 +272,17 @@ function renderSelectorContent() {
         `;
     }
 
-    // CONFIGURACIÓN
-// CONFIGURACIÓN
+    // Dejamos solo la lógica que necesitamos para los stats de arriba
     const total = rifa.totalNumbers || 100;
     const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
     const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
-    const numerosPorPagina = 100;
-    const columnas = 10;
-
-    // Búsqueda y paginador
-    // TAREA 2: Filtramos los números vendidos ANTES de paginar
-    let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1).filter(n => !vendidos.includes(n));
-    if (searchValue && searchValue.length > 0) {
-        numerosFiltrados = numerosFiltrados.filter(n => n.toString().includes(searchValue));
-    }
-    const paginas = Math.ceil(numerosFiltrados.length / numerosPorPagina);
-    const startIdx = (paginaActual - 1) * numerosPorPagina;
-    const endIdx = startIdx + numerosPorPagina;
-    const numerosPaginados = numerosFiltrados.slice(startIdx, endIdx);
-
-// CUADRÍCULA RESPONSIVA 5x10
-let gridHtml = `<div class="grid grid-cols-5 sm:grid-cols-10 gap-2">`;
-for (let i = 0; i < numerosPaginados.length; i++) {
-    const n = numerosPaginados[i];
-    // const vendido = vendidos.includes(n); // <-- TAREA 2: Ya no es necesario
-    const seleccionado = numerosSeleccionados.includes(n);
-    gridHtml += `
-        <button type="button"
-            class="numero-btn h-12 w-18 rounded-md font-bold text-lg border border-gray-700 transition
-            ${seleccionado ? 'bg-green-400 text-gray-900 border-green-600' : 'bg-gray-700 text-gray-200 hover:bg-green-400 hover:text-gray-900'}"
-            onclick="toggleNumero(${n}, this)"
-            data-numero="${n}">
-            ${formatTicketNumber(n, total)}
-        </button>
-    `;
-}
-gridHtml += `</div>`;
-
-let paginasTotales = Math.ceil(numerosFiltrados.length / numerosPorPagina);
-let paginasPorBloque = 10;
-let bloqueActual = Math.floor((paginaActual - 1) / paginasPorBloque);
-let inicioBloque = bloqueActual * paginasPorBloque + 1;
-let finBloque = Math.min(inicioBloque + paginasPorBloque - 1, paginasTotales);
-
-let paginadorHtml = '';
-if (paginasTotales > 1) {
-    paginadorHtml += `<div class="flex justify-center items-center mt-3 gap-2 flex-wrap">`;
-    // << Flecha Doble Izquierda
-    paginadorHtml += `
-        <button onclick="cambiarBloquePaginas(-1)" ${bloqueActual === 0 ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
-            class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Anterior 10">
-            &#171;
-        </button>
-    `;
-   
-    // Números de página del rango actual
-    for (let i = inicioBloque; i <= finBloque; i++) {
-        paginadorHtml += `
-            <button onclick="irPagina(${i})"
-                class="px-3 py-1 rounded ${i === paginaActual ? 'bg-green-400 text-black font-bold' : 'bg-gray-700 text-gray-300 hover:bg-green-300 hover:text-black'} transition">
-                ${i}
-            </button>
-        `;
-    }
-
-    // >> Flecha Doble Derecha
-    paginadorHtml += `
-        <button onclick="cambiarBloquePaginas(1)" ${finBloque === paginasTotales ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
-            class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Siguiente 10">
-            &#187;
-        </button>
-    `;
-    paginadorHtml += `</div>`;
-}
-
-// Cambiar página en el paginador
-function irPagina(num) {
-    paginaActual = num;
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
-}
-
-    // RESTO DEL MODAL
     let disponibles = Array.from({ length: total }, (_, i) => i + 1).filter(n => !vendidos.includes(n));
-    // Dentro de renderSelectorContent
+
+    // RESTO DEL MODAL (El "Marco")
     let seleccionadosHtml = '';
     if (numerosSeleccionados.length > 0) {
     seleccionadosHtml = numerosSeleccionados.map(n =>
-        `<span class="inline-block rounded-full bg-green-500 text-black px-4 py-1 text-lg font-bold mx-1 mb-2">${n}</span>`
+        `<span class="inline-block rounded-full bg-green-500 text-black px-4 py-1 text-lg font-bold mx-1 mb-2">${formatTicketNumber(n, total)}</span>`
     ).join('');
     } else {
     seleccionadosHtml = '<span class="text-gray-300 px-2 py-1">Ninguno</span>';
@@ -325,19 +332,20 @@ function irPagina(num) {
                     <span class="text-base text-white font-medium">Seleccionados:</span>
                     <div id="seleccionados-label" class="flex flex-wrap gap-1 mt-1">
                         ${numerosSeleccionados.length > 0
-                              ? numerosSeleccionados.map(n =>
-                              `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifa.totalNumbers)}</span>`
-                             ).join('')
+                            ? numerosSeleccionados.map(n =>
+                                `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifa.totalNumbers)}</span>`
+                            ).join('')
                             : '<span class="text-gray-400">Ninguno</span>'
                         }
                     </div>
                 </div>
 
+            <div id="grid-paginator-container">
+                ${renderGridAndPaginatorHTML()}
+            </div>
 
-            <div id="numeros-grid" class="mb-2 mt-2">${gridHtml}</div>
-            ${paginadorHtml}
             <div class="flex justify-end mt-4">
-                <button class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded text-center transition duration-300" onclick="continuarCompra()"
+                <button id="btn-continuar-compra" class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded text-center transition duration-300" onclick="continuarCompra()"
                     ${numerosSeleccionados.length === 0 ? 'disabled style="opacity:0.5;"' : ''}>
                     Continuar <i class="fas fa-arrow-right ml-2"></i>
                 </button>
@@ -345,61 +353,61 @@ function irPagina(num) {
         </div>
     `;
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 // Lógica para seleccionar/deseleccionar número
 
-function toggleNumero(num) {
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
+function toggleNumero(num, elementoBoton) {
     const idx = numerosSeleccionados.indexOf(num);
     if (idx >= 0) {
         numerosSeleccionados.splice(idx, 1);
     } else {
         numerosSeleccionados.push(num);
     }
-    // Siempre redibuja el grid y todo el contenido para que el botón "Continuar" se active/desactive correctamente
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
 
-    // Actualiza el botón continuar (deshabilitado si no hay nada)
-    document.querySelector('.bg-green-500')?.removeAttribute('disabled');
-    if (numerosSeleccionados.length === 0) {
-        document.querySelector('.bg-green-500')?.setAttribute('disabled', true);
-        document.querySelector('.bg-green-500').style.opacity = 0.5;
-    } else {
-        document.querySelector('.bg-green-500').style.opacity = 1;
+    // 1. Actualizar visualmente el botón que se tocó
+    const seleccionado = numerosSeleccionados.includes(num);
+    if (elementoBoton) { // elementoBoton es el 'this' que pasamos desde el onclick
+        if (seleccionado) {
+            elementoBoton.classList.add('bg-green-400', 'text-gray-900', 'border-green-600');
+            elementoBoton.classList.remove('bg-gray-700', 'text-gray-200', 'hover:bg-green-400', 'hover:text-gray-900');
+        } else {
+            elementoBoton.classList.remove('bg-green-400', 'text-gray-900', 'border-green-600');
+            elementoBoton.classList.add('bg-gray-700', 'text-gray-200', 'hover:bg-green-400', 'hover:text-gray-900');
+        }
+    }
+
+    // 2. Actualizar la lista de "Seleccionados"
+    const seleccionadosLabel = document.getElementById('seleccionados-label');
+    if (seleccionadosLabel) {
+        seleccionadosLabel.innerHTML = numerosSeleccionados.length > 0
+            ? numerosSeleccionados.map(n =>
+                `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifaSeleccionada.totalNumbers)}</span>`
+            ).join('')
+            : '<span class="text-gray-400">Ninguno</span>';
+    }
+
+    // 3. Actualiza el botón continuar (deshabilitado si no hay nada)
+    const btnContinuar = document.getElementById('btn-continuar-compra');
+    if (btnContinuar) {
+        btnContinuar.disabled = (numerosSeleccionados.length === 0);
+        btnContinuar.style.opacity = (numerosSeleccionados.length === 0) ? 0.5 : 1;
     }
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 
-// --- INICIO DE CAMBIO (TAREA 5 - v3) ---
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function buscarNumero(valor) {
-    // 1. Actualiza las variables globales
     searchValue = valor.trim();
     paginaActual = 1;
 
-    // 2. Redibuja todo el modal (esto es necesario para filtrar la lista completa)
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
-
-    // 3. EL TRUCO: Volver a poner el foco en el input
-    // Usamos setTimeout(..., 0) para esperar que el navegador "termine" de redibujar.
-    setTimeout(() => {
-        // 3a. Busca el NUEVO input que acabamos de crear
-        const input = document.querySelector('#selector-content input[oninput="buscarNumero(this.value)"]');
-
-        if (input) {
-            // 3b. Le decimos al navegador: "enfócate aquí"
-            input.focus();
-
-            // 3c. Le re-asignamos el valor que el usuario escribió
-            input.value = valor;
-
-            // 3d. (Opcional pero útil) Movemos el cursor al final del texto
-            try {
-                input.setSelectionRange(valor.length, valor.length);
-            } catch(e) {
-                // (Ignorar si falla, no es crítico)
-            }
-        }
-    }, 0); // 0 milisegundos, solo espera al siguiente "tick" del navegador
+    // Ya no redibuja TODO, solo el grid y el paginador
+    const container = document.getElementById('grid-paginator-container');
+    if (container) {
+        container.innerHTML = renderGridAndPaginatorHTML();
+    }
 }
-// --- FIN DE CAMBIO (TAREA 5 - v3) ---
-
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 function moverPaginas(direccion) {
     // dirección = +1 o -1
     const rifa = rifaSeleccionada;
@@ -438,29 +446,81 @@ function moverBloquePaginas(direccion) {
 }
 
 // Cambiar página en el paginador
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function irPagina(num) {
     paginaActual = num;
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+    // Ya no redibuja TODO, solo el grid y el paginador
+    const container = document.getElementById('grid-paginator-container');
+    if (container) {
+        container.innerHTML = renderGridAndPaginatorHTML();
+    }
 }
-// Botón limpiar selección
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function limpiarNumeros() {
     numerosSeleccionados = [];
-    // Esto fuerza a que se regenere TODO el selector desde cero
+    searchValue = ''; // <-- Limpiamos la búsqueda también
+
+    // Redibujamos el modal completo para resetear el input de búsqueda
     document.getElementById('selector-content').innerHTML = renderSelectorContent();
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 
 // Botón número al azar (solo disponible, nunca repite)
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function numeroAlAzar() {
+    // Si había una búsqueda activa, la limpiamos
+    if (searchValue !== '') {
+        searchValue = '';
+        // Recargamos todo el modal para que 'disponibles' esté completo
+        document.getElementById('selector-content').innerHTML = renderSelectorContent();
+        // Esperamos que se redibuje ANTES de intentar seleccionar
+        setTimeout(_seleccionarNumeroAlAzarInterno, 50);
+    } else {
+        _seleccionarNumeroAlAzarInterno();
+    }
+}
+
+// Nueva función interna para no duplicar código
+function _seleccionarNumeroAlAzarInterno() {
     const rifa  = rifaSeleccionada;
     const total = rifa.totalNumbers || 100;
     const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
     const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
+
     let disponibles = Array.from({ length: total }, (_, i) => i + 1)
         .filter(n => !vendidos.includes(n) && !numerosSeleccionados.includes(n));
+
     if (disponibles.length === 0) return;
+
     const random = disponibles[Math.floor(Math.random() * disponibles.length)];
-    toggleNumero(random, document.querySelector(`.numero-btn[data-numero="${random}"]`));
+
+    // Buscamos el botón en el DOM
+    const boton = document.querySelector(`.numero-btn[data-numero="${random}"]`);
+
+    // Si el botón no está visible (ej. en otra página), no podemos hacer clic
+    // así que llamamos a toggleNumero (sin 'this') y luego recargamos el grid.
+    if (!boton) {
+        toggleNumero(random); // Solo actualiza el array
+
+        // Recargamos solo el grid para que aparezca seleccionado
+        const container = document.getElementById('grid-paginator-container');
+        if (container) {
+            container.innerHTML = renderGridAndPaginatorHTML();
+        }
+        // Y actualizamos el label de seleccionados
+        const seleccionadosLabel = document.getElementById('seleccionados-label');
+        if (seleccionadosLabel) {
+            seleccionadosLabel.innerHTML = numerosSeleccionados.map(n =>
+                    `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifaSeleccionada.totalNumbers)}</span>`
+                ).join('');
+        }
+    } else {
+        // Si el botón SÍ está visible, llamamos a toggleNumero con 'this'
+        toggleNumero(random, boton);
+    }
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 // Botón continuar → muestra modal de resumen/compra
 function continuarCompra() {
   // Mostrar modal resumen
@@ -743,7 +803,9 @@ function toggleFAQ(id) {
         });
 
         // Cambia el rango visible de páginas (avanza o retrocede de 10 en 10, y actualiza la página activa)
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function cambiarBloquePaginas(direccion) {
+    // dirección = +1 o -1
     const rifa = rifaSeleccionada;
     const total = rifa.totalNumbers || 100;
     let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1);
@@ -761,8 +823,14 @@ function cambiarBloquePaginas(direccion) {
     if (inicioNuevoBloque < 1) inicioNuevoBloque = 1;
 
     paginaActual = inicioNuevoBloque; // Al cambiar de bloque, ir a la primera página del nuevo rango
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+
+    // Ya no redibuja TODO, solo el grid y el paginador
+    const container = document.getElementById('grid-paginator-container');
+    if (container) {
+        container.innerHTML = renderGridAndPaginatorHTML();
+    }
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 
 // Desliza la ventana de páginas 1 hacia adelante o atrás (sin cambiar la página activa si sigue en rango, si no, la mueve al extremo)
 function moverRangoPaginas(direccion) {
