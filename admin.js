@@ -45,6 +45,12 @@ function formatTicketNumber(number, totalNumbers) {
   return String(number).padStart(padding, '0');
 }
 // --- FIN DE CAMBIO (TAREA 1) ---
+// --- INICIO DE CAMBIO (TAREA 3) ---
+// Helper para no ejecutar una función mil veces por segundo
+function debounce(fn, wait = 200) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait); };
+}
+// --- FIN DE CAMBIO (TAREA 3) ---
 
 function showApp() {
   const login = document.getElementById('admin-login');
@@ -431,6 +437,10 @@ async function loadPayments(mode = paymentsMode) {
   const header = document.getElementById('viewer-header');
   const tableWrapper = document.getElementById('payments-table-wrapper');
   const viewerWrapper = document.getElementById('payments-viewer-wrapper');
+  const btnApproveAll = document.getElementById('btn-approve-all'); // <-- AÑADIDO
+
+  // Mostrar/ocultar botón "Aprobar Todos" (solo en tabla)
+  if (btnApproveAll) btnApproveAll.style.display = (mode === 'table') ? 'block' : 'none';
 
   // Toggle active
   btnTable?.classList.toggle('bg-green-600', mode === 'table');
@@ -675,6 +685,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-approve')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) approvePayment(p._id, 'viewer'); });
   document.getElementById('btn-wait')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) waitPayment(p._id, 'viewer'); });
   document.getElementById('btn-reject')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) rejectPayment(p._id, 'viewer'); });
+  // AÑADIDO (TAREA 3)
+  document.getElementById('btn-approve-all')?.addEventListener('click', approveAllPending);
 });
 
 // ----- Acciones -----
@@ -699,6 +711,49 @@ async function rejectPayment(id) {
     alert('Error rechazando la compra');
   }
 }
+
+// --- INICIO DE CAMBIO (TAREA 3) ---
+async function approveAllPending() {
+  // 1. Obtenemos solo los pagos que están actualmente en la tabla filtrada
+  const paymentsToApprove = applyPaymentsFilters(payments);
+
+  if (!paymentsToApprove || paymentsToApprove.length === 0) {
+    alert('No hay pagos pendientes en la vista actual para aprobar.');
+    return;
+  }
+
+  // 2. Confirmación de seguridad
+  if (!confirm(`¿Estás seguro de que deseas aprobar ${paymentsToApprove.length} pagos pendientes?\n\nEsta acción es irreversible.`)) {
+    return;
+  }
+
+  const btn = document.getElementById('btn-approve-all');
+  btn.disabled = true;
+  btn.textContent = 'Aprobando...';
+
+  // 3. Creamos una promesa por cada pago a aprobar
+  const promises = paymentsToApprove.map(pago =>
+    fetchWithAuth(`${API}/api/purchases/${pago._id}/approve`, { method: 'PUT' })
+      .then(res => res.ok) // Nos importa si tuvo éxito (true) o no (false)
+      .catch(() => false) // Si falla la red, cuenta como error
+  );
+
+  // 4. Ejecutamos todas las promesas en paralelo
+  const results = await Promise.allSettled(promises);
+
+  const successes = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+  const failures = results.length - successes;
+
+  // 5. Mostramos el resultado
+  alert(`Proceso completado:\n- Aprobados: ${successes}\n- Fallidos: ${failures}`);
+
+  btn.disabled = false;
+  btn.textContent = 'Aprobar Todos';
+
+  // 6. Recargamos la tabla (que ahora debería estar vacía o con menos pagos)
+  await loadPayments('table');
+}
+// --- FIN DE CAMBIO (TAREA 3) ---
 
 async function waitPayment(id) {
   try {
