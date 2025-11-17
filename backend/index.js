@@ -503,11 +503,12 @@ app.get('/api/contacts/export', requireAdmin, async (req, res) => {
   try {
     const contacts = await Contact.find({}).sort({ createdAt: -1 }).lean();
     const rows = [
-      ['phone','firstName','lastName','consent','consentAt','source','createdAt','updatedAt'],
+      ['phone','firstName','lastName','email','consent','consentAt','source','createdAt','updatedAt'], // <-- AÑADIDO 'email' AL TÍTULO
       ...contacts.map(c => [
         c.phone || '',
         c.firstName || '',
         c.lastName || '',
+        c.email || '', // <-- AÑADIDO c.email
         c.consent ? 'true' : 'false',
         c.consentAt ? new Date(c.consentAt).toISOString() : '',
         c.source || '',
