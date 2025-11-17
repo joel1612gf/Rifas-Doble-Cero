@@ -7,6 +7,7 @@ const purchaseSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
   phone: String,
+  email: String, // <--- ¡AQUÍ ESTÁ EL ARREGLO!
   paymentMethod: String,
   paymentReference: String,
   paymentProof: String,
