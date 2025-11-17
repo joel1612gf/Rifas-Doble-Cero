@@ -367,12 +367,38 @@ function toggleNumero(num) {
     }
 }
 
-// Buscar número por input
+// --- INICIO DE CAMBIO (TAREA 5 - v3) ---
 function buscarNumero(valor) {
+    // 1. Actualiza las variables globales
     searchValue = valor.trim();
     paginaActual = 1;
+
+    // 2. Redibuja todo el modal (esto es necesario para filtrar la lista completa)
     document.getElementById('selector-content').innerHTML = renderSelectorContent();
+
+    // 3. EL TRUCO: Volver a poner el foco en el input
+    // Usamos setTimeout(..., 0) para esperar que el navegador "termine" de redibujar.
+    setTimeout(() => {
+        // 3a. Busca el NUEVO input que acabamos de crear
+        const input = document.querySelector('#selector-content input[oninput="buscarNumero(this.value)"]');
+
+        if (input) {
+            // 3b. Le decimos al navegador: "enfócate aquí"
+            input.focus();
+
+            // 3c. Le re-asignamos el valor que el usuario escribió
+            input.value = valor;
+
+            // 3d. (Opcional pero útil) Movemos el cursor al final del texto
+            try {
+                input.setSelectionRange(valor.length, valor.length);
+            } catch(e) {
+                // (Ignorar si falla, no es crítico)
+            }
+        }
+    }, 0); // 0 milisegundos, solo espera al siguiente "tick" del navegador
 }
+// --- FIN DE CAMBIO (TAREA 5 - v3) ---
 
 function moverPaginas(direccion) {
     // dirección = +1 o -1
