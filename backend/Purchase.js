@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const purchaseSchema = new mongoose.Schema({
   raffleId: String,
   raffleTitle: String,     // ← NUEVO: nombre de la rifa (denormalizado)
+  totalNumbers: Number, // <-- AÑADIDO PARA PADDING
   numbers: [Number],
   firstName: String,
   lastName: String,

@@ -75,6 +75,20 @@ function currencyCodeFrom(monedaSimbolo) {
   return (monedaSimbolo === '$') ? 'USD' : 'VES';
 }
 
+// --- INICIO DE CAMBIO (TAREA 1) ---
+/**
+ * Formatea un número de ticket con ceros a la izquierda.
+ * Ej: (5, 1000) -> "0004" (basado en longitud)
+ * Ej: (101, 9999) -> "0101"
+ */
+function formatTicketNumber(number, totalNumbers) {
+  // Determina la cantidad de dígitos necesarios
+  // Si totalNumbers es 999, la longitud es 3. Si es 1000, la longitud es 4.
+  const padding = String(totalNumbers).length;
+  return String(number).padStart(padding, '0');
+}
+// --- FIN DE CAMBIO (TAREA 1) ---
+
 // ============ 1. CARGAR RIFAS DINÁMICAMENTE ===============
 async function cargarRifas() {
     const rifasContainer = document.getElementById('rifas-container');
@@ -206,7 +220,7 @@ for (let i = 0; i < numerosPaginados.length; i++) {
             ${vendido ? 'disabled' : ''}
             onclick="toggleNumero(${n}, this)"
             data-numero="${n}">
-            ${n}
+            ${formatTicketNumber(n, total)}
         </button>
     `;
 }
@@ -311,9 +325,9 @@ function irPagina(num) {
                     <span class="text-base text-white font-medium">Seleccionados:</span>
                     <div id="seleccionados-label" class="flex flex-wrap gap-1 mt-1">
                         ${numerosSeleccionados.length > 0
-                            ? numerosSeleccionados.map(n =>
-                                `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${n}</span>`
-                            ).join('')
+                              ? numerosSeleccionados.map(n =>
+                              `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifa.totalNumbers)}</span>`
+                             ).join('')
                             : '<span class="text-gray-400">Ninguno</span>'
                         }
                     </div>
@@ -597,7 +611,7 @@ function renderResumenContent() {
     document.getElementById('resumen-rifa-titulo').textContent = rifa.title;
 
     // Asigna los números seleccionados (puedes usar .join(', '))
-    document.getElementById('resumen-numeros-lista').textContent = numeros.join(', ');
+    document.getElementById('resumen-numeros-lista').textContent = numeros.map(n => formatTicketNumber(n, rifa.totalNumbers)).join(', ');
 
     // Asigna el precio por boleto
     document.getElementById('resumen-precio-boleto').textContent = rifa.priceBs + ' Bs';
@@ -835,7 +849,7 @@ function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda 
   // Relleno
   document.getElementById('exito-rifa').textContent = titulo || '-';
   document.getElementById('exito-numeros').textContent =
-    Array.isArray(numeros) && numeros.length ? numeros.join(', ') : '-';
+    Array.isArray(numeros) && numeros.length ? numeros.map(n => formatTicketNumber(n, rifaSeleccionada.totalNumbers)).join(', ') : '-';
   document.getElementById('exito-metodo').textContent = metodo || '-';
   document.getElementById('exito-referencia').textContent = referencia || '-';
   document.getElementById('exito-total').textContent =
@@ -1101,7 +1115,7 @@ async function buscarMisNumeros() {
             ${
               (r.numbers || []).map(n =>
                 `<li class="flex justify-between border-b border-gray-700/60 py-1">
-                   <span class="font-mono">#${n.number}</span>
+                   <span class="font-mono">#${formatTicketNumber(n.number, r.totalNumbers)}</span>
                    <span class="${n.status === 'Aprobado' ? 'text-green-400' : 'text-yellow-300'} font-semibold">${n.status}</span>
                  </li>`
               ).join('')

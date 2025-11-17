@@ -147,10 +147,18 @@ app.get('/api/tickets/by-phone', phoneLookupLimiter, async (req, res) => {
     // Filtrar por rifas ACTIVAS
     const raffleIds = Array.from(new Set(purchases.map(p => p.raffleId).filter(Boolean)));
     const activeRaffles = await Raffle.find({ _id: { $in: raffleIds }, status: 'activa' })
-      .select('_id title status')
+      .select('_id title status totalNumbers') // <-- AÑADIDO totalNumbers
       .lean();
     const activeSet = new Set(activeRaffles.map(r => String(r._id)));
-    const titleById = Object.fromEntries(activeRaffles.map(r => [String(r._id), r.title || 'Rifa']));
+
+    // Crear un mapa para guardar ambos valores
+    const raffleInfoById = new Map();
+    activeRaffles.forEach(r => {
+      raffleInfoById.set(String(r._id), {
+        title: r.title || 'Rifa',
+        totalNumbers: r.totalNumbers || 100 // Default a 100 si no existe
+      });
+    });
 
     // Agrupar por rifa
     const byRaffle = new Map();
@@ -173,9 +181,11 @@ app.get('/api/tickets/by-phone', phoneLookupLimiter, async (req, res) => {
     const results = [];
     for (const [raffleId, entries] of byRaffle.entries()) {
       entries.sort((a, b) => a.number - b.number);
+      const info = raffleInfoById.get(raffleId) || { title: 'Rifa', totalNumbers: 100 };
       results.push({
         raffleId,
-        raffleTitle: titleById[raffleId] || '',
+        raffleTitle: info.title,
+        totalNumbers: info.totalNumbers, // <-- NUEVO
         numbers: entries
       });
     }
@@ -348,10 +358,11 @@ app.post('/api/purchases', async (req, res) => {
     }
 
     // (Opcional) calcular monto/moneda según método de pago y rifa
-    let amount = undefined, currency = undefined, raffleTitle = '';
+    let amount = undefined, currency = undefined, raffleTitle = '', totalNumbers = 100; // <-- Default
     const rifa = await Raffle.findById(raffleId).lean();
     if (rifa) {
     raffleTitle = rifa.title || rifa.name || '';
+    totalNumbers = rifa.totalNumbers; // <-- Guardamos el total
     const pagaEnUsd = (paymentMethod === 'binance' || paymentMethod === 'zinli') && (rifa.priceUsd || 0) > 0;
     const unitPrice  = pagaEnUsd ? (rifa.priceUsd || 0) : (rifa.priceBs || 0);
     amount   = unitPrice * numbers.length;
@@ -365,6 +376,7 @@ app.post('/api/purchases', async (req, res) => {
 const purchase = new Purchase({
   raffleId,
   raffleTitle,
+  totalNumbers, // <-- AÑADIDO
   numbers,
   firstName,
   lastName,

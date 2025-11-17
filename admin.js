@@ -31,6 +31,21 @@ function showLogin() {
   if (panel) panel.classList.add('hidden');
 }
 
+// --- INICIO DE CAMBIO (TAREA 1) ---
+/**
+ * Formatea un número de ticket con ceros a la izquierda.
+ * Es seguro para compras antiguas que no tengan totalNumbers.
+ */
+function formatTicketNumber(number, totalNumbers) {
+  // Si totalNumbers no está (ej: compra antigua), no rellenamos
+  if (totalNumbers == null) {
+    return String(number);
+  }
+  const padding = String(totalNumbers).length;
+  return String(number).padStart(padding, '0');
+}
+// --- FIN DE CAMBIO (TAREA 1) ---
+
 function showApp() {
   const login = document.getElementById('admin-login');
   const panel = document.getElementById('admin-panel');
@@ -509,7 +524,7 @@ function renderPaymentsTable(pagos) {
         <td class="py-2 px-4 font-bold">${(pago?.firstName || '')} ${(pago?.lastName || '')}</td>
         <td class="py-2 px-4">${rifaNombre}</td>
         <td class="py-2 px-4">${pago?.phone || '-'}</td>
-        <td class="py-2 px-4">${Array.isArray(pago?.numbers) ? pago.numbers.join(', ') : '-'}</td>
+        <td class="py-2 px-4">${Array.isArray(pago?.numbers) ? pago.numbers.map(n => formatTicketNumber(n, pago.totalNumbers)).join(', ') : '-'}</td>
         <td class="py-2 px-4">${pago?.paymentMethod || '-'}</td>
         <td class="py-2 px-4">${pago?.paymentReference || '-'}</td>
         <td class="py-2 px-4">${monto}</td>
@@ -643,7 +658,7 @@ function renderViewerDetails(pago) {
   set('v-nombre', `${pago.firstName || ''} ${pago.lastName || ''}`.trim() || '-');
   set('v-rifa', pago.raffleTitle || '-');
   set('v-telefono', pago.phone || '-');
-  set('v-numeros', (pago.numbers || []).join(', ') || '-');
+  set('v-numeros', (pago.numbers || []).map(n => formatTicketNumber(n, pago.totalNumbers)).join(', ') || '-');
   set('v-metodo', pago.paymentMethod || '-');
   set('v-ref', pago.paymentReference || '-');
   const monto = (pago.amount != null && pago.currency) ? `${pago.currency}${pago.amount}` : '-';
@@ -812,9 +827,9 @@ function setWinnerDetails(lookup, raffle) {
     document.getElementById('winners-status').textContent = '—';
     // Mostramos el número consultado como ticket para referencia
     const num = (typeof lookup.ticket !== 'undefined' && lookup.ticket !== null)
-      ? String(lookup.ticket)
-      : String(document.getElementById('winners-number-input').value || '—');
-    document.getElementById('winners-ticket').textContent = num;
+      ? lookup.ticket
+      : Number(document.getElementById('winners-number-input').value || 0);
+    document.getElementById('winners-ticket').textContent = formatTicketNumber(num, raffle ? raffle.totalNumbers : null);
     document.getElementById('winners-date').textContent = '—';
 
     // El texto del premio se mantiene según la rifa/posición seleccionada
@@ -847,7 +862,7 @@ function setWinnerDetails(lookup, raffle) {
   document.getElementById('winners-phone').textContent  = masked || '—';
   document.getElementById('winners-phone').dataset.full = phone || '';
   document.getElementById('winners-status').textContent = (src && src.status) ? src.status.toUpperCase() : '—';
-  document.getElementById('winners-ticket').textContent = (src && src.ticket) ? String(src.ticket) : '—';
+  document.getElementById('winners-ticket').textContent = (src && src.ticket) ? formatTicketNumber(src.ticket, raffle ? raffle.totalNumbers : null) : '—';
 
   const dt = (src && (src.purchasedAt || src.createdAt)) ? formatDateVE(src.purchasedAt || src.createdAt) : '—';
   document.getElementById('winners-date').textContent = dt;
