@@ -198,7 +198,8 @@ function renderSelectorContent() {
     const columnas = 10;
 
     // Búsqueda y paginador
-    let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1);
+    // TAREA 2: Filtramos los números vendidos ANTES de paginar
+    let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1).filter(n => !vendidos.includes(n));
     if (searchValue && searchValue.length > 0) {
         numerosFiltrados = numerosFiltrados.filter(n => n.toString().includes(searchValue));
     }
@@ -211,13 +212,12 @@ function renderSelectorContent() {
 let gridHtml = `<div class="grid grid-cols-5 sm:grid-cols-10 gap-2">`;
 for (let i = 0; i < numerosPaginados.length; i++) {
     const n = numerosPaginados[i];
-    const vendido = vendidos.includes(n);
+    // const vendido = vendidos.includes(n); // <-- TAREA 2: Ya no es necesario
     const seleccionado = numerosSeleccionados.includes(n);
     gridHtml += `
         <button type="button"
             class="numero-btn h-12 w-18 rounded-md font-bold text-lg border border-gray-700 transition
-            ${vendido ? 'bg-red-500 text-white cursor-not-allowed' : (seleccionado ? 'bg-green-400 text-gray-900 border-green-600' : 'bg-gray-700 text-gray-200 hover:bg-green-400 hover:text-gray-900')}"
-            ${vendido ? 'disabled' : ''}
+            ${seleccionado ? 'bg-green-400 text-gray-900 border-green-600' : 'bg-gray-700 text-gray-200 hover:bg-green-400 hover:text-gray-900'}"
             onclick="toggleNumero(${n}, this)"
             data-numero="${n}">
             ${formatTicketNumber(n, total)}
