@@ -158,23 +158,14 @@
                         class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
                 </div>
                 <div class="mb-4">
-                    <label for="payment-reference" class="block text-gray-300 mb-2">Referencia de pago</label>
-                    <input type="text" id="payment-reference" inputmode="text" maxlength="20" placeholder="Ej: 12345678 (4–20 caracteres)"
+                    <label for="email" class="block text-gray-300 mb-2">Correo Electrónico</label>
+                    <input type="email" id="email" inputmode="email" placeholder="tu@correo.com" maxlength="60"
                         class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
                 </div>
                 <div class="mb-4">
-                    <label for="payment-proof" class="block text-gray-300 mb-2">Captura del pago</label>
-                    <div class="flex items-center">
-                        <label for="payment-proof" class="cursor-pointer bg-gray-800 text-gray-200 px-4 py-2 rounded-lg border border-gray-600 transition duration-300">
-                            <i class="fas fa-upload mr-2"></i> Seleccionar archivo
-                        </label>
-                        <span id="file-name" data-default="Ningún archivo seleccionado" aria-live="polite" class="ml-3 text-sm text-gray-400">
-                            Ningún archivo seleccionado
-                        </span>
-                        <input type="file" id="payment-proof" class="hidden" accept="image/*,.pdf" required>
-                    </div>
-                    <input type="file" id="payment-proof" class="hidden" accept="image/*,.pdf" required>
-                    <p class="text-gray-500 text-xs mt-1">Formatos aceptados: JPG, PNG, PDF (máx. 5MB)</p>
+                    <label for="payment-reference" class="block text-gray-300 mb-2">Número de Referencia del Pago</label>
+                    <input type="text" id="payment-reference" inputmode="text" maxlength="20" placeholder="Ej: 12345678 (4–20 caracteres)"
+                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
                 </div>
             <div class="flex justify-center mt-6">
                 <button 

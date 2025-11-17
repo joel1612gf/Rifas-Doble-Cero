@@ -54,7 +54,7 @@ function genEventId() {
 // Enviar a CAPI (servidor) SOLO para Purchase (deduplicación con event_id)
 async function sendPurchaseToCapi({ value, currency, eventId }) {
   try {
-    await fetch(`${API_BASE}/api/meta/track`, {
+    await fetch(`${API}/api/meta/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -80,7 +80,7 @@ async function cargarRifas() {
     const rifasContainer = document.getElementById('rifas-container');
     rifasContainer.innerHTML = `<div class="text-center text-gray-400">Cargando rifas...</div>`;
     try {
-        const res = await fetch(`${API_BASE}/api/raffles`);
+        const res = await fetch(`${API}/api/raffles`);
         let rifas = await res.json();
         rifas = rifas.filter(r => r.status === 'activa');
         rifasGlobal = rifas;
@@ -531,24 +531,34 @@ function setInputState(el, ok) {
   el.classList.toggle('ring-red-500', !ok);
 }
 
+// (Asegúrate de tener esta función de validación de email)
+function isValidEmail(email) {
+  const re = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  return re.test(String(email).toLowerCase());
+}
+
 function validarFormularioCompra() {
   const nombreEl   = document.getElementById('first-name');
   const apellidoEl = document.getElementById('last-name');
   const telefonoEl = document.getElementById('phone');
+  const emailEl    = document.getElementById('email'); // <-- NUEVO
   const refEl      = document.getElementById('payment-reference');
 
   const nombreOk   = isValidName(nombreEl.value);
   const apellidoOk = isValidName(apellidoEl.value);
   const telOk      = isValidPhoneVE(telefonoEl.value);
+  const emailOk    = isValidEmail(emailEl.value); // <-- NUEVO
   const refOk      = isValidReference(refEl.value);
 
   setInputState(nombreEl,   nombreOk);
   setInputState(apellidoEl, apellidoOk);
   setInputState(telefonoEl, telOk);
+  setInputState(emailEl,    emailOk); // <-- NUEVO
   setInputState(refEl,      refOk);
 
   const btn = document.getElementById('btn-confirmar-compra');
-  if (nombreOk && apellidoOk && telOk && refOk && metodoPagoSeleccionado) {
+  // Añadimos emailOk a la condición
+  if (nombreOk && apellidoOk && telOk && emailOk && refOk && metodoPagoSeleccionado) {
     btn.removeAttribute('disabled');
   } else {
     btn.setAttribute('disabled', true);
@@ -556,14 +566,14 @@ function validarFormularioCompra() {
 }
 
 // Listeners para validación en vivo
-['first-name','last-name','phone','payment-reference'].forEach(id=>{
+['first-name','last-name','phone','email','payment-reference'].forEach(id=>{
   const el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('input', validarFormularioCompra);
 });
 
 
-['first-name','last-name','phone','payment-reference'].forEach(id => {
+['first-name','last-name','phone','email','payment-reference'].forEach(id=>{
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', validarFormularioCompra);
 });
@@ -729,26 +739,27 @@ async function confirmarCompra() {
   const firstName        = document.getElementById('first-name').value.trim();
   const lastName         = document.getElementById('last-name').value.trim();
   const phone            = document.getElementById('phone').value.trim();
+  const email            = document.getElementById('email').value.trim(); // <-- NUEVO
   const paymentReference = document.getElementById('payment-reference').value.trim();
-  const proofInput       = document.getElementById('payment-proof');
-  const file             = proofInput.files[0] || null;
+  // const proofInput       = document.getElementById('payment-proof'); // <-- ELIMINADO
+  // const file             = proofInput.files[0] || null; // <-- ELIMINADO
 
-// Validar archivo
-let fileOk = file;
-if (!file) {
-  alert("Adjunta el comprobante de pago.");
-  return;
-}
-// Solo imágenes o PDF
-const okTypes = ["image/jpeg","image/png","image/webp","application/pdf"];
-if (!okTypes.includes(file.type)) {
-  alert("Formato no permitido. Sube JPG, PNG, WEBP o PDF.");
-  return;
-}
-// Si es imagen y pasa de 1.2MB, comprimimos a ~0.8 calidad y máx 1600px
-if (file.type.startsWith("image/") && file.size > 1.2 * 1024 * 1024) {
-  fileOk = await compressImageFile(file, {maxW:1600, maxH:1600, quality:0.8});
-}
+// // Validar archivo <-- TODO ESTE BLOQUE SE ELIMINA
+// let fileOk = file;
+// if (!file) {
+//   alert("Adjunta el comprobante de pago.");
+//   return;
+// }
+// // Solo imágenes o PDF
+// const okTypes = ["image/jpeg","image/png","image/webp","application/pdf"];
+// if (!okTypes.includes(file.type)) {
+//   alert("Formato no permitido. Sube JPG, PNG, WEBP o PDF.");
+//   return;
+// }
+// // Si es imagen y pasa de 1.2MB, comprimimos a ~0.8 calidad y máx 1600px
+// if (file.type.startsWith("image/") && file.size > 1.2 * 1024 * 1024) {
+//   fileOk = await compressImageFile(file, {maxW:1600, maxH:1600, quality:0.8});
+// }
 
 
 // Normalizar teléfono (0412...) y guardarlo para "Ver mis números"
@@ -759,12 +770,12 @@ window.lastPurchasePhone = phoneNorm; // <-- lo usaremos al abrir "Mis números"
 
 const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinli'
 
-    // Validación estricta
-    if (!isValidName(firstName) || !isValidName(lastName) || !isValidPhoneVE(phone) || !isValidReference(paymentReference) || !file) {
-    validarFormularioCompra(); // pinta los errores
-    alert("Revisa los datos: nombre/apellido (solo letras), teléfono VE y referencia (6–20).");
-    return;
-    }
+// Validación estricta
+if (!isValidName(firstName) || !isValidName(lastName) || !isValidPhoneVE(phone) || !isValidEmail(email) || !isValidReference(paymentReference)) {
+  validarFormularioCompra(); // pinta los errores
+  alert("Revisa todos los datos: nombre, apellido, teléfono, email y referencia.");
+  return;
+}
 
   // 👇 FormData (NO pongas headers Content-Type)
   const formData = new FormData();
@@ -773,13 +784,14 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
   formData.append('firstName', firstName);
   formData.append('lastName', lastName);
   formData.append('phone', window.lastPurchasePhone || phone);
+  formData.append('email', email); // <-- NUEVO
   formData.append('paymentMethod', paymentMethod);
   formData.append('paymentReference', paymentReference);
-  formData.append('paymentProof', fileOk);
-  formData.append('contactConsent', window._consentWhatsApp ? 'true' : 'false'); // NUEVO
+  // formData.append('paymentProof', fileOk); // <-- ELIMINADO
+  formData.append('contactConsent', window._consentWhatsApp ? 'true' : 'false');
 
   try {
-    const res = await fetch(`${API_BASE}/api/purchases`, {
+    const res = await fetch(`${API}/api/purchases`, {
       method: 'POST',
       body: formData
     });
@@ -817,15 +829,6 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
     console.error('Error registrando la compra:', error);
     alert('Hubo un problema al registrar tu compra. Intenta de nuevo.');
   }
-}
-
-const proofInput = document.getElementById('payment-proof');
-const labelSpan = document.getElementById('file-name');
-if (proofInput && labelSpan) {
-  proofInput.value = '';
-  labelSpan.textContent = labelSpan.dataset.default || 'Ningún archivo seleccionado';
-  labelSpan.classList.remove('text-green-400');
-  labelSpan.classList.add('text-gray-400');
 }
 
 function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda }) {
@@ -929,27 +932,7 @@ window.addEventListener('DOMContentLoaded', () => {
       metaTrack('Contact', { content_name: 'join_whatsapp' });
     });
   }
-
-  // --- lo que ya tenías ---
-  const input = document.getElementById('payment-proof');
-  const labelSpan = document.getElementById('file-name');
-  if (!input || !labelSpan) return;
-
-  const DEFAULT_TEXT = labelSpan.dataset.default || 'Ningún archivo seleccionado';
-  input.addEventListener('change', () => {
-    if (input.files && input.files.length) {
-      const file = input.files[0];
-      labelSpan.textContent = file.name;
-      labelSpan.classList.remove('text-gray-400');
-      labelSpan.classList.add('text-green-400');
-    } else {
-      labelSpan.textContent = DEFAULT_TEXT;
-      labelSpan.classList.remove('text-green-400');
-      labelSpan.classList.add('text-gray-400');
-    }
-  });
 });
-
 
 // Envolver el click para mostrar el mini-modal de aceptación
 (function wireConfirmarCompra() {
@@ -1091,7 +1074,7 @@ async function buscarMisNumeros() {
 
   resultsEl.innerHTML = `<div class="text-gray-400">Buscando...</div>`;
   try {
-    const url = `${API_BASE}/api/tickets/by-phone?phone=${encodeURIComponent(phone)}&includePending=${includePending}`;
+    const url = `${API}/api/tickets/by-phone?phone=${encodeURIComponent(phone)}&includePending=${includePending}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Error de servidor');
     const data = await res.json();

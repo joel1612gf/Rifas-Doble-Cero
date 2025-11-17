@@ -489,7 +489,7 @@ function renderPaymentsTable(pagos) {
                 <th class="py-2 px-4">Pago</th>
                 <th class="py-2 px-4">Referencia</th>
                 <th class="py-2 px-4">Monto</th>
-                <th class="py-2 px-4">Comprobante</th>
+                <th class="py-2 px-4">Email</th>
                 <th class="py-2 px-4">Acciones</th>
             </tr>
         </thead>
@@ -501,9 +501,7 @@ function renderPaymentsTable(pagos) {
     ? `${pago.currency}${pago.amount}`
     : '-';
     const rifaNombre = (pago && pago.raffleTitle) ? pago.raffleTitle : '-';
-    const comp = (pago && pago.paymentProof)
-    ? `<a href="${pago.paymentProof}" target="_blank" class="underline text-blue-400">Ver</a>`
-    : '-';
+    const email = pago?.email || '-'; // <-- NUEVA VARIABLE
 
     table += `
     <tr class="border-b border-gray-800 hover:bg-gray-800">
@@ -515,7 +513,7 @@ function renderPaymentsTable(pagos) {
         <td class="py-2 px-4">${pago?.paymentMethod || '-'}</td>
         <td class="py-2 px-4">${pago?.paymentReference || '-'}</td>
         <td class="py-2 px-4">${monto}</td>
-        <td class="py-2 px-4">${comp}</td>
+        <td class="py-2 px-4">${email}</td>
         <td class="py-2 px-4 space-x-2">
         <button class="bg-green-500 hover:bg-green-400 px-3 py-1 rounded font-bold" onclick="approvePayment('${pago?._id}')">Aprobar</button>
         <button class="bg-red-500 hover:bg-red-400 px-3 py-1 rounded font-bold" onclick="rejectPayment('${pago?._id}')">Rechazar</button>
@@ -622,12 +620,15 @@ function renderViewer(idx) {
   document.getElementById('viewer-counter').textContent = `${currentIdx + 1}/${paymentsPending.length}`;
 
   const box = document.getElementById('proof-box');
-  const url = pago.paymentProof || '';
-  if (/\.(pdf)(\?|$)/i.test(url)) {
-    box.innerHTML = `<iframe src="${url}" class="w-full h-full" frameborder="0"></iframe>`;
-  } else {
-    box.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain" alt="Comprobante">`;
-  }
+  
+  // Como ya no hay comprobante, mostramos un mensaje en el visor
+  box.innerHTML = `
+    <div class="flex flex-col items-center justify-center h-full text-gray-400">
+        <i class="fas fa-file-invoice-dollar text-6xl mb-4"></i>
+        <h3 class="text-2xl font-bold">Sin Comprobante</h3>
+        <p class="text-lg">Esta compra se registró sin archivo de comprobante.</p>
+    </div>
+  `;
 
   renderViewerDetails(pago);
 }

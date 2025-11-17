@@ -322,7 +322,7 @@ app.delete('/api/raffles/:id', async (req, res) => {
 app.post('/api/purchases', async (req, res) => {
   try {
     // Body puede venir como strings (FormData)
-    let { raffleId, numbers, firstName, lastName, phone, paymentMethod, paymentReference } = req.body || {};
+    let { raffleId, numbers, firstName, lastName, phone, email, paymentMethod, paymentReference } = req.body || {}; // <-- AÑADIMOS EMAIL
     if (typeof numbers === 'string') {
       try { numbers = JSON.parse(numbers); } catch { numbers = []; }
     }
@@ -360,22 +360,8 @@ app.post('/api/purchases', async (req, res) => {
 
 
     // 2) Guardar la compra en PENDIENTE (aquí ya tendrás tu paymentProof si usas express-fileupload)
-// 2) Tomar y guardar el comprobante (OBLIGATORIO)
-const file = req.files && req.files.paymentProof ? req.files.paymentProof : null;
-if (!file) {
-  return res.status(400).json({ message: 'Falta el comprobante (paymentProof).' });
-}
 
-// Nombre seguro y guardado físico
-const ext = path.extname(file.name).toLowerCase();
-const safeName = Date.now() + '-' + Math.random().toString(36).slice(2) + ext;
-const finalPath = path.join(uploadDir, safeName);
-await file.mv(finalPath);
-
-// URL pública para verlo en admin (tabla/visor)
-const proofUrl = `${req.protocol}://${req.get('host')}/uploads/${safeName}`;
-
-// 3) Guardar la compra en PENDIENTE con la URL del comprobante
+// 3) Guardar la compra en PENDIENTE
 const purchase = new Purchase({
   raffleId,
   raffleTitle,
@@ -383,9 +369,9 @@ const purchase = new Purchase({
   firstName,
   lastName,
   phone,
+  email, // <-- NUEVO
   paymentMethod,
   paymentReference,
-  paymentProof: proofUrl,   // ← AHORA guardamos la URL real
   amount,
   currency
 });
