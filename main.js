@@ -518,19 +518,56 @@ function calcularTotalCompra() {
   return { bs, usd: usd.toFixed(2) };
 }
 
-// Valida todo el form (puedes hacer más validaciones si quieres)
+// --- INICIO DE CAMBIO (TAREA 4) ---
 function isValidPhoneVE(raw) {
-  const s = String(raw).replace(/\s+/g, '');
-  // Acepta 0412..., 0424..., 0414..., 0416..., 0426... (10-11 dígitos) o +58 412...
-  const reLocal = /^(0)?(412|414|416|422|424|426)\d{7}$/;
-  const reIntl  = /^\+?58(412|414|416|422|424|426)\d{7}$/;
-  return reLocal.test(s) || reIntl.test(s);
+  let s = String(raw || '').trim().replace(/[^0-9+]/g, '');
+
+  // 1. Normalizar a 10 dígitos (sin el 0 o el 58)
+  // Caso: +58424...
+  if (s.startsWith('+58')) {
+    s = s.substring(3); // Queda 424...
+  }
+  // Caso: 58424...
+  else if (s.startsWith('58') && s.length === 12) {
+    s = s.substring(2); // Queda 424...
+  }
+  // Caso: 0424...
+  else if (s.startsWith('0') && s.length === 11) {
+    s = s.substring(1); // Queda 424...
+  }
+
+  // 2. Validar que tenga 10 dígitos y sea un prefijo venezolano
+  const re = /^(412|414|416|422|424|426)\d{7}$/;
+  return re.test(s); // s debe ser '4241234567'
 }
+// --- FIN DE CAMBIO (TAREA 4) ---
+// --- INICIO DE CAMBIO (TAREA 4) ---
 function normalizePhoneVE(raw) {
-  let s = String(raw).replace(/\s+/g, '');
-  if (/^\+?58/.test(s)) s = '0' + s.replace(/^\+?58/, '');
-  return s;
+  // 1. Quitar todo lo que no sea dígito, excepto el '+' inicial
+  let s = String(raw || '').trim().replace(/[^0-9+]/g, '');
+
+  // 2. Caso: +58424...
+  if (s.startsWith('+58')) {
+    s = s.substring(3); // Queda 424...
+  }
+  // 3. Caso: 58424...
+  else if (s.startsWith('58') && s.length === 12) {
+    s = s.substring(2); // Queda 424...
+  }
+  // 4. Caso: 0424... (ya está casi bien)
+  else if (s.startsWith('0') && s.length === 11) {
+    s = s.substring(1); // Queda 424...
+  }
+
+  // 5. Si s es 10 dígitos (ej. 4241234567), le añadimos el '0'
+  if (s.length === 10) {
+    return '0' + s; // Devuelve 04241234567
+  }
+
+  // Si algo falló (ej. '424123' o un número inválido), devolvemos el original limpiado
+  return String(raw).trim();
 }
+// --- FIN DE CAMBIO (TAREA 4) ---
 function isValidName(x) {
   return /^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]{2,40}$/.test(String(x).trim());
 }
