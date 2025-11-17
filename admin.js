@@ -1391,6 +1391,7 @@ async function loadContacts() {
           <tr class="bg-gray-800 text-green-400">
             <th class="py-2 px-4">Nombre</th>
             <th class="py-2 px-4">Teléfono</th>
+            <th class="py-2 px-4">Email</th>
             <th class="py-2 px-4">Consentimiento</th>
             <th class="py-2 px-4">Fecha consentimiento</th>
             <th class="py-2 px-4">Acciones</th>
@@ -1411,6 +1412,7 @@ async function loadContacts() {
         <tr class="border-b border-gray-800 hover:bg-gray-800">
           <td class="py-2 px-4 font-bold">${fullName}</td>
           <td class="py-2 px-4">${tel}</td>
+          <td class="py-2 px-4">${c.email || '—'}</td>
           <td class="py-2 px-4">${ok}</td>
           <td class="py-2 px-4">${dt}</td>
           <td class="py-2 px-4">

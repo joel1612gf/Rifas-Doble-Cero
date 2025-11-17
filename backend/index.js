@@ -387,7 +387,7 @@ try {
     await Contact.findOneAndUpdate(
       { phone: phoneNorm },
       {
-        $set: { firstName, lastName },
+        $set: { firstName, lastName, email },
         $setOnInsert: { createdAt: new Date() },
         consent: true,
         consentAt: new Date(),
