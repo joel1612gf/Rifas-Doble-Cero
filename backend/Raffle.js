@@ -26,6 +26,7 @@ const raffleSchema = new mongoose.Schema({
   priceUsd: { type: Number, default: 0 },
   drawDate: Date,
   totalNumbers: { type: Number, required: true },
+  minTickets: { type: Number, default: 1 }, // <-- AÑADIDO (TAREA 6)
   numbersSold: [Number],
   numbersReserved: [Number],
   prizes: [prizeSchema],

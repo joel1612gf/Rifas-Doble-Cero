@@ -522,7 +522,24 @@ function _seleccionarNumeroAlAzarInterno() {
 }
 // --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 // Botón continuar → muestra modal de resumen/compra
+// --- INICIO DE CAMBIO (TAREA 6) ---
 function continuarCompra() {
+  // Validar el mínimo de tickets
+  const min = rifaSeleccionada.minTickets || 1; // El '|| 1' da soporte a rifas viejas
+  const seleccionados = numerosSeleccionados.length;
+
+  if (seleccionados < min) {
+    // Si no cumple, mostramos el aviso y detenemos la función
+    const msg = (min === 1)
+      ? 'Debes seleccionar al menos 1 ticket para continuar.'
+      : `El mínimo de compra para esta rifa es de ${min} tickets.\n\nHas seleccionado ${seleccionados}. Por favor, selecciona ${min - seleccionados} más.`;
+
+    alert(msg);
+    return; // <-- Frena la ejecución aquí
+  }
+
+  // Si todo está OK, continúa con el código original:
+
   // Mostrar modal resumen
   cerrarModalSelector();
   setTimeout(() => {
@@ -543,6 +560,7 @@ function continuarCompra() {
     metaTrack('InitiateCheckout', { value: total, currency: currencyCodeFrom(moneda) });
   } catch (_) {}
 }
+// --- FIN DE CAMBIO (TAREA 6) ---
 
 
 function cerrarModalResumen() {

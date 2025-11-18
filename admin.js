@@ -294,6 +294,7 @@ function openCreateRaffleForm() {
     document.getElementById('raffle-form-title').textContent = 'Crear Nueva Rifa';
     document.getElementById('raffle-form').reset();
     document.getElementById('raffle-id').value = '';
+    document.getElementById('raffle-minTickets').value = 1; // <-- AÑADIDO (TAREA 6)
     currentPrizes = [];
     renderPrizesList();
     document.getElementById('raffle-form-modal').classList.remove('hidden');
@@ -352,6 +353,7 @@ async function submitRaffleForm(e) {
     const priceUsd = Number(document.getElementById('raffle-priceUsd').value) || 0;
     const drawDate = document.getElementById('raffle-date').value;
     const totalNumbers = Number(document.getElementById('raffle-totalNumbers').value);
+    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1; // <-- AÑADIDO (TAREA 6)
     const status = document.getElementById('raffle-status').value;
 
     const prizes = currentPrizes.map((p, i) => ({
@@ -360,9 +362,9 @@ async function submitRaffleForm(e) {
         image: p.image
     }));
 
-    const data = { title, description, image, priceBs, priceUsd, drawDate, totalNumbers, prizes, status };
+const data = { title, description, image, priceBs, priceUsd, drawDate, totalNumbers, minTickets, prizes, status };
 
-    try {
+try {
         if (id) {
             // Editar rifa existente
             await fetchWithAuth(`${API}/api/raffles/${id}`, {
@@ -401,6 +403,7 @@ async function editRaffle(id) {
         document.getElementById('raffle-priceUsd').value = raffle.priceUsd || '';   
         document.getElementById('raffle-date').value = raffle.drawDate ? raffle.drawDate.split('T')[0] : '';
         document.getElementById('raffle-totalNumbers').value = raffle.totalNumbers;
+        document.getElementById('raffle-minTickets').value = raffle.minTickets || 1; // <-- AÑADIDO (TAREA 6)
         document.getElementById('raffle-status').value = raffle.status || 'activa';
         currentPrizes = (raffle.prizes || []).map((p, i) => ({
             place: p.place || (i + 1),
