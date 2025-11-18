@@ -1,10 +1,25 @@
+// --- Lógica de Entornos (Staging y Producción) ---
 
-// UNA SOLA definición
-const API =
-  (location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1'))
-    ? 'http://localhost:4000'
-    : 'https://doble-cero.onrender.com';
+// 1. Define tus URLs
+const PROD_HOST = 'doblecerove.com';
+const PROD_API = 'https://doble-cero.onrender.com';
+const STAGING_API = 'https://doble-cero-staging.onrender.com'; // URL de Render Staging
 
+let API;
+const currentHost = location.hostname;
+
+// 2. Revisa si estamos en el dominio de PRODUCCIÓN
+if (currentHost.includes(PROD_HOST) || currentHost.includes('www.' + PROD_HOST)) {
+    // SÍ: Conectar al Backend EN VIVO
+    API = PROD_API;
+} else {
+    // NO: Conectar al Backend DE PRUEBAS
+    // (Esto aplica para 'staging.rifas-doble-cero.pages.dev' Y para '127.0.0.1' de Live Server)
+    API = STAGING_API;
+}
+
+console.log('API conectada a:', API); // (Para que podamos verificar)
+// --- Fin de la lógica de entornos ---
 
 function showLogin() {
   const login = document.getElementById('admin-login');
@@ -15,6 +30,27 @@ function showLogin() {
   }
   if (panel) panel.classList.add('hidden');
 }
+
+// --- INICIO DE CAMBIO (TAREA 1) ---
+/**
+ * Formatea un número de ticket con ceros a la izquierda.
+ * Es seguro para compras antiguas que no tengan totalNumbers.
+ */
+function formatTicketNumber(number, totalNumbers) {
+  // Si totalNumbers no está (ej: compra antigua), no rellenamos
+  if (totalNumbers == null) {
+    return String(number);
+  }
+  const padding = String(totalNumbers).length;
+  return String(number).padStart(padding, '0');
+}
+// --- FIN DE CAMBIO (TAREA 1) ---
+// --- INICIO DE CAMBIO (TAREA 3) ---
+// Helper para no ejecutar una función mil veces por segundo
+function debounce(fn, wait = 200) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait); };
+}
+// --- FIN DE CAMBIO (TAREA 3) ---
 
 function showApp() {
   const login = document.getElementById('admin-login');
@@ -258,6 +294,7 @@ function openCreateRaffleForm() {
     document.getElementById('raffle-form-title').textContent = 'Crear Nueva Rifa';
     document.getElementById('raffle-form').reset();
     document.getElementById('raffle-id').value = '';
+    document.getElementById('raffle-minTickets').value = 1; // <-- AÑADIDO (TAREA 6)
     currentPrizes = [];
     renderPrizesList();
     document.getElementById('raffle-form-modal').classList.remove('hidden');
@@ -316,6 +353,7 @@ async function submitRaffleForm(e) {
     const priceUsd = Number(document.getElementById('raffle-priceUsd').value) || 0;
     const drawDate = document.getElementById('raffle-date').value;
     const totalNumbers = Number(document.getElementById('raffle-totalNumbers').value);
+    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1; // <-- AÑADIDO (TAREA 6)
     const status = document.getElementById('raffle-status').value;
 
     const prizes = currentPrizes.map((p, i) => ({
@@ -324,9 +362,9 @@ async function submitRaffleForm(e) {
         image: p.image
     }));
 
-    const data = { title, description, image, priceBs, priceUsd, drawDate, totalNumbers, prizes, status };
+const data = { title, description, image, priceBs, priceUsd, drawDate, totalNumbers, minTickets, prizes, status };
 
-    try {
+try {
         if (id) {
             // Editar rifa existente
             await fetchWithAuth(`${API}/api/raffles/${id}`, {
@@ -365,6 +403,7 @@ async function editRaffle(id) {
         document.getElementById('raffle-priceUsd').value = raffle.priceUsd || '';   
         document.getElementById('raffle-date').value = raffle.drawDate ? raffle.drawDate.split('T')[0] : '';
         document.getElementById('raffle-totalNumbers').value = raffle.totalNumbers;
+        document.getElementById('raffle-minTickets').value = raffle.minTickets || 1; // <-- AÑADIDO (TAREA 6)
         document.getElementById('raffle-status').value = raffle.status || 'activa';
         currentPrizes = (raffle.prizes || []).map((p, i) => ({
             place: p.place || (i + 1),
@@ -401,6 +440,10 @@ async function loadPayments(mode = paymentsMode) {
   const header = document.getElementById('viewer-header');
   const tableWrapper = document.getElementById('payments-table-wrapper');
   const viewerWrapper = document.getElementById('payments-viewer-wrapper');
+  const btnApproveAll = document.getElementById('btn-approve-all'); // <-- AÑADIDO
+
+  // Mostrar/ocultar botón "Aprobar Todos" (solo en tabla)
+  if (btnApproveAll) btnApproveAll.style.display = (mode === 'table') ? 'block' : 'none';
 
   // Toggle active
   btnTable?.classList.toggle('bg-green-600', mode === 'table');
@@ -474,7 +517,7 @@ function renderPaymentsTable(pagos) {
                 <th class="py-2 px-4">Pago</th>
                 <th class="py-2 px-4">Referencia</th>
                 <th class="py-2 px-4">Monto</th>
-                <th class="py-2 px-4">Comprobante</th>
+                <th class="py-2 px-4">Email</th>
                 <th class="py-2 px-4">Acciones</th>
             </tr>
         </thead>
@@ -486,9 +529,7 @@ function renderPaymentsTable(pagos) {
     ? `${pago.currency}${pago.amount}`
     : '-';
     const rifaNombre = (pago && pago.raffleTitle) ? pago.raffleTitle : '-';
-    const comp = (pago && pago.paymentProof)
-    ? `<a href="${pago.paymentProof}" target="_blank" class="underline text-blue-400">Ver</a>`
-    : '-';
+    const email = pago?.email || '-'; // <-- NUEVA VARIABLE
 
     table += `
     <tr class="border-b border-gray-800 hover:bg-gray-800">
@@ -496,11 +537,11 @@ function renderPaymentsTable(pagos) {
         <td class="py-2 px-4 font-bold">${(pago?.firstName || '')} ${(pago?.lastName || '')}</td>
         <td class="py-2 px-4">${rifaNombre}</td>
         <td class="py-2 px-4">${pago?.phone || '-'}</td>
-        <td class="py-2 px-4">${Array.isArray(pago?.numbers) ? pago.numbers.join(', ') : '-'}</td>
+        <td class="py-2 px-4">${Array.isArray(pago?.numbers) ? pago.numbers.map(n => formatTicketNumber(n, pago.totalNumbers)).join(', ') : '-'}</td>
         <td class="py-2 px-4">${pago?.paymentMethod || '-'}</td>
         <td class="py-2 px-4">${pago?.paymentReference || '-'}</td>
         <td class="py-2 px-4">${monto}</td>
-        <td class="py-2 px-4">${comp}</td>
+        <td class="py-2 px-4">${email}</td>
         <td class="py-2 px-4 space-x-2">
         <button class="bg-green-500 hover:bg-green-400 px-3 py-1 rounded font-bold" onclick="approvePayment('${pago?._id}')">Aprobar</button>
         <button class="bg-red-500 hover:bg-red-400 px-3 py-1 rounded font-bold" onclick="rejectPayment('${pago?._id}')">Rechazar</button>
@@ -607,12 +648,15 @@ function renderViewer(idx) {
   document.getElementById('viewer-counter').textContent = `${currentIdx + 1}/${paymentsPending.length}`;
 
   const box = document.getElementById('proof-box');
-  const url = pago.paymentProof || '';
-  if (/\.(pdf)(\?|$)/i.test(url)) {
-    box.innerHTML = `<iframe src="${url}" class="w-full h-full" frameborder="0"></iframe>`;
-  } else {
-    box.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain" alt="Comprobante">`;
-  }
+  
+  // Como ya no hay comprobante, mostramos un mensaje en el visor
+  box.innerHTML = `
+    <div class="flex flex-col items-center justify-center h-full text-gray-400">
+        <i class="fas fa-file-invoice-dollar text-6xl mb-4"></i>
+        <h3 class="text-2xl font-bold">Sin Comprobante</h3>
+        <p class="text-lg">Esta compra se registró sin archivo de comprobante.</p>
+    </div>
+  `;
 
   renderViewerDetails(pago);
 }
@@ -627,7 +671,7 @@ function renderViewerDetails(pago) {
   set('v-nombre', `${pago.firstName || ''} ${pago.lastName || ''}`.trim() || '-');
   set('v-rifa', pago.raffleTitle || '-');
   set('v-telefono', pago.phone || '-');
-  set('v-numeros', (pago.numbers || []).join(', ') || '-');
+  set('v-numeros', (pago.numbers || []).map(n => formatTicketNumber(n, pago.totalNumbers)).join(', ') || '-');
   set('v-metodo', pago.paymentMethod || '-');
   set('v-ref', pago.paymentReference || '-');
   const monto = (pago.amount != null && pago.currency) ? `${pago.currency}${pago.amount}` : '-';
@@ -644,6 +688,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-approve')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) approvePayment(p._id, 'viewer'); });
   document.getElementById('btn-wait')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) waitPayment(p._id, 'viewer'); });
   document.getElementById('btn-reject')?.addEventListener('click', () => { const p = paymentsPending[currentIdx]; if (p) rejectPayment(p._id, 'viewer'); });
+  // AÑADIDO (TAREA 3)
+  document.getElementById('btn-approve-all')?.addEventListener('click', approveAllPending);
 });
 
 // ----- Acciones -----
@@ -668,6 +714,49 @@ async function rejectPayment(id) {
     alert('Error rechazando la compra');
   }
 }
+
+// --- INICIO DE CAMBIO (TAREA 3) ---
+async function approveAllPending() {
+  // 1. Obtenemos solo los pagos que están actualmente en la tabla filtrada
+  const paymentsToApprove = applyPaymentsFilters(payments);
+
+  if (!paymentsToApprove || paymentsToApprove.length === 0) {
+    alert('No hay pagos pendientes en la vista actual para aprobar.');
+    return;
+  }
+
+  // 2. Confirmación de seguridad
+  if (!confirm(`¿Estás seguro de que deseas aprobar ${paymentsToApprove.length} pagos pendientes?\n\nEsta acción es irreversible.`)) {
+    return;
+  }
+
+  const btn = document.getElementById('btn-approve-all');
+  btn.disabled = true;
+  btn.textContent = 'Aprobando...';
+
+  // 3. Creamos una promesa por cada pago a aprobar
+  const promises = paymentsToApprove.map(pago =>
+    fetchWithAuth(`${API}/api/purchases/${pago._id}/approve`, { method: 'PUT' })
+      .then(res => res.ok) // Nos importa si tuvo éxito (true) o no (false)
+      .catch(() => false) // Si falla la red, cuenta como error
+  );
+
+  // 4. Ejecutamos todas las promesas en paralelo
+  const results = await Promise.allSettled(promises);
+
+  const successes = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+  const failures = results.length - successes;
+
+  // 5. Mostramos el resultado
+  alert(`Proceso completado:\n- Aprobados: ${successes}\n- Fallidos: ${failures}`);
+
+  btn.disabled = false;
+  btn.textContent = 'Aprobar Todos';
+
+  // 6. Recargamos la tabla (que ahora debería estar vacía o con menos pagos)
+  await loadPayments('table');
+}
+// --- FIN DE CAMBIO (TAREA 3) ---
 
 async function waitPayment(id) {
   try {
@@ -796,9 +885,9 @@ function setWinnerDetails(lookup, raffle) {
     document.getElementById('winners-status').textContent = '—';
     // Mostramos el número consultado como ticket para referencia
     const num = (typeof lookup.ticket !== 'undefined' && lookup.ticket !== null)
-      ? String(lookup.ticket)
-      : String(document.getElementById('winners-number-input').value || '—');
-    document.getElementById('winners-ticket').textContent = num;
+      ? lookup.ticket
+      : Number(document.getElementById('winners-number-input').value || 0);
+    document.getElementById('winners-ticket').textContent = formatTicketNumber(num, raffle ? raffle.totalNumbers : null);
     document.getElementById('winners-date').textContent = '—';
 
     // El texto del premio se mantiene según la rifa/posición seleccionada
@@ -831,7 +920,7 @@ function setWinnerDetails(lookup, raffle) {
   document.getElementById('winners-phone').textContent  = masked || '—';
   document.getElementById('winners-phone').dataset.full = phone || '';
   document.getElementById('winners-status').textContent = (src && src.status) ? src.status.toUpperCase() : '—';
-  document.getElementById('winners-ticket').textContent = (src && src.ticket) ? String(src.ticket) : '—';
+  document.getElementById('winners-ticket').textContent = (src && src.ticket) ? formatTicketNumber(src.ticket, raffle ? raffle.totalNumbers : null) : '—';
 
   const dt = (src && (src.purchasedAt || src.createdAt)) ? formatDateVE(src.purchasedAt || src.createdAt) : '—';
   document.getElementById('winners-date').textContent = dt;
@@ -1375,6 +1464,7 @@ async function loadContacts() {
           <tr class="bg-gray-800 text-green-400">
             <th class="py-2 px-4">Nombre</th>
             <th class="py-2 px-4">Teléfono</th>
+            <th class="py-2 px-4">Email</th>
             <th class="py-2 px-4">Consentimiento</th>
             <th class="py-2 px-4">Fecha consentimiento</th>
             <th class="py-2 px-4">Acciones</th>
@@ -1395,6 +1485,7 @@ async function loadContacts() {
         <tr class="border-b border-gray-800 hover:bg-gray-800">
           <td class="py-2 px-4 font-bold">${fullName}</td>
           <td class="py-2 px-4">${tel}</td>
+          <td class="py-2 px-4">${c.email || '—'}</td>
           <td class="py-2 px-4">${ok}</td>
           <td class="py-2 px-4">${dt}</td>
           <td class="py-2 px-4">

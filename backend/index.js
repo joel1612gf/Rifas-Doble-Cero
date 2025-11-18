@@ -147,10 +147,18 @@ app.get('/api/tickets/by-phone', phoneLookupLimiter, async (req, res) => {
     // Filtrar por rifas ACTIVAS
     const raffleIds = Array.from(new Set(purchases.map(p => p.raffleId).filter(Boolean)));
     const activeRaffles = await Raffle.find({ _id: { $in: raffleIds }, status: 'activa' })
-      .select('_id title status')
+      .select('_id title status totalNumbers') // <-- AÑADIDO totalNumbers
       .lean();
     const activeSet = new Set(activeRaffles.map(r => String(r._id)));
-    const titleById = Object.fromEntries(activeRaffles.map(r => [String(r._id), r.title || 'Rifa']));
+
+    // Crear un mapa para guardar ambos valores
+    const raffleInfoById = new Map();
+    activeRaffles.forEach(r => {
+      raffleInfoById.set(String(r._id), {
+        title: r.title || 'Rifa',
+        totalNumbers: r.totalNumbers || 100 // Default a 100 si no existe
+      });
+    });
 
     // Agrupar por rifa
     const byRaffle = new Map();
@@ -173,9 +181,11 @@ app.get('/api/tickets/by-phone', phoneLookupLimiter, async (req, res) => {
     const results = [];
     for (const [raffleId, entries] of byRaffle.entries()) {
       entries.sort((a, b) => a.number - b.number);
+      const info = raffleInfoById.get(raffleId) || { title: 'Rifa', totalNumbers: 100 };
       results.push({
         raffleId,
-        raffleTitle: titleById[raffleId] || '',
+        raffleTitle: info.title,
+        totalNumbers: info.totalNumbers, // <-- NUEVO
         numbers: entries
       });
     }
@@ -322,7 +332,7 @@ app.delete('/api/raffles/:id', async (req, res) => {
 app.post('/api/purchases', async (req, res) => {
   try {
     // Body puede venir como strings (FormData)
-    let { raffleId, numbers, firstName, lastName, phone, paymentMethod, paymentReference } = req.body || {};
+    let { raffleId, numbers, firstName, lastName, phone, email, paymentMethod, paymentReference } = req.body || {}; // <-- AÑADIMOS EMAIL
     if (typeof numbers === 'string') {
       try { numbers = JSON.parse(numbers); } catch { numbers = []; }
     }
@@ -348,10 +358,11 @@ app.post('/api/purchases', async (req, res) => {
     }
 
     // (Opcional) calcular monto/moneda según método de pago y rifa
-    let amount = undefined, currency = undefined, raffleTitle = '';
+    let amount = undefined, currency = undefined, raffleTitle = '', totalNumbers = 100; // <-- Default
     const rifa = await Raffle.findById(raffleId).lean();
     if (rifa) {
     raffleTitle = rifa.title || rifa.name || '';
+    totalNumbers = rifa.totalNumbers; // <-- Guardamos el total
     const pagaEnUsd = (paymentMethod === 'binance' || paymentMethod === 'zinli') && (rifa.priceUsd || 0) > 0;
     const unitPrice  = pagaEnUsd ? (rifa.priceUsd || 0) : (rifa.priceBs || 0);
     amount   = unitPrice * numbers.length;
@@ -360,32 +371,19 @@ app.post('/api/purchases', async (req, res) => {
 
 
     // 2) Guardar la compra en PENDIENTE (aquí ya tendrás tu paymentProof si usas express-fileupload)
-// 2) Tomar y guardar el comprobante (OBLIGATORIO)
-const file = req.files && req.files.paymentProof ? req.files.paymentProof : null;
-if (!file) {
-  return res.status(400).json({ message: 'Falta el comprobante (paymentProof).' });
-}
 
-// Nombre seguro y guardado físico
-const ext = path.extname(file.name).toLowerCase();
-const safeName = Date.now() + '-' + Math.random().toString(36).slice(2) + ext;
-const finalPath = path.join(uploadDir, safeName);
-await file.mv(finalPath);
-
-// URL pública para verlo en admin (tabla/visor)
-const proofUrl = `${req.protocol}://${req.get('host')}/uploads/${safeName}`;
-
-// 3) Guardar la compra en PENDIENTE con la URL del comprobante
+// 3) Guardar la compra en PENDIENTE
 const purchase = new Purchase({
   raffleId,
   raffleTitle,
+  totalNumbers, // <-- AÑADIDO
   numbers,
   firstName,
   lastName,
   phone,
+  email, // <-- NUEVO
   paymentMethod,
   paymentReference,
-  paymentProof: proofUrl,   // ← AHORA guardamos la URL real
   amount,
   currency
 });
@@ -401,7 +399,7 @@ try {
     await Contact.findOneAndUpdate(
       { phone: phoneNorm },
       {
-        $set: { firstName, lastName },
+        $set: { firstName, lastName, email },
         $setOnInsert: { createdAt: new Date() },
         consent: true,
         consentAt: new Date(),
@@ -517,11 +515,12 @@ app.get('/api/contacts/export', requireAdmin, async (req, res) => {
   try {
     const contacts = await Contact.find({}).sort({ createdAt: -1 }).lean();
     const rows = [
-      ['phone','firstName','lastName','consent','consentAt','source','createdAt','updatedAt'],
+      ['phone','firstName','lastName','email','consent','consentAt','source','createdAt','updatedAt'], // <-- AÑADIDO 'email' AL TÍTULO
       ...contacts.map(c => [
         c.phone || '',
         c.firstName || '',
         c.lastName || '',
+        c.email || '', // <-- AÑADIDO c.email
         c.consent ? 'true' : 'false',
         c.consentAt ? new Date(c.consentAt).toISOString() : '',
         c.source || '',

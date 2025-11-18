@@ -8,11 +8,28 @@ let numerosPorPagina = 100; // Ajusta este número para mostrar más o menos en 
 let searchValue = "";
 let exitoAbierto = false; // ← Candado para evitar cierres accidentales
 
-// Base de API automática: local (desarrollo) vs producción (Render)
-const API_BASE =
-  (location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1'))
-    ? 'http://localhost:4000'
-    : 'https://doble-cero.onrender.com';
+// --- Lógica de Entornos (Staging y Producción) ---
+
+// 1. Define tus URLs
+const PROD_HOST = 'doblecerove.com';
+const PROD_API = 'https://doble-cero.onrender.com';
+const STAGING_API = 'https://doble-cero-staging.onrender.com'; // URL de Render Staging
+
+let API;
+const currentHost = location.hostname;
+
+// 2. Revisa si estamos en el dominio de PRODUCCIÓN
+if (currentHost.includes(PROD_HOST) || currentHost.includes('www.' + PROD_HOST)) {
+    // SÍ: Conectar al Backend EN VIVO
+    API = PROD_API;
+} else {
+    // NO: Conectar al Backend DE PRUEBAS
+    // (Esto aplica para 'staging.rifas-doble-cero.pages.dev' Y para '127.0.0.1' de Live Server)
+    API = STAGING_API;
+}
+
+console.log('API conectada a:', API); // (Para que podamos verificar)
+// --- Fin de la lógica de entornos ---
 
     // === Meta helpers (seguros si no hay Pixel) ===
 function metaTrack(event, params = {}, options = {}) {
@@ -37,7 +54,7 @@ function genEventId() {
 // Enviar a CAPI (servidor) SOLO para Purchase (deduplicación con event_id)
 async function sendPurchaseToCapi({ value, currency, eventId }) {
   try {
-    await fetch(`${API_BASE}/api/meta/track`, {
+    await fetch(`${API}/api/meta/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -58,12 +75,26 @@ function currencyCodeFrom(monedaSimbolo) {
   return (monedaSimbolo === '$') ? 'USD' : 'VES';
 }
 
+// --- INICIO DE CAMBIO (TAREA 1) ---
+/**
+ * Formatea un número de ticket con ceros a la izquierda.
+ * Ej: (5, 1000) -> "0004" (basado en longitud)
+ * Ej: (101, 9999) -> "0101"
+ */
+function formatTicketNumber(number, totalNumbers) {
+  // Determina la cantidad de dígitos necesarios
+  // Si totalNumbers es 999, la longitud es 3. Si es 1000, la longitud es 4.
+  const padding = String(totalNumbers).length;
+  return String(number).padStart(padding, '0');
+}
+// --- FIN DE CAMBIO (TAREA 1) ---
+
 // ============ 1. CARGAR RIFAS DINÁMICAMENTE ===============
 async function cargarRifas() {
     const rifasContainer = document.getElementById('rifas-container');
     rifasContainer.innerHTML = `<div class="text-center text-gray-400">Cargando rifas...</div>`;
     try {
-        const res = await fetch(`${API_BASE}/api/raffles`);
+        const res = await fetch(`${API}/api/raffles`);
         let rifas = await res.json();
         rifas = rifas.filter(r => r.status === 'activa');
         rifasGlobal = rifas;
@@ -141,6 +172,89 @@ function cerrarModalSelector() {
   setTimeout(() => { document.getElementById('selector-content').innerHTML = ""; }, 300);
 }
 
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
+/**
+ * Renderiza SÓLO el grid de números y el paginador.
+ */
+function renderGridAndPaginatorHTML() {
+    const rifa = rifaSeleccionada;
+    if (!rifa) return '';
+
+    const total = rifa.totalNumbers || 100;
+    const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
+    const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
+    
+    // TAREA 2: (Ya implementado) La lista base es solo de disponibles
+    let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1).filter(n => !vendidos.includes(n));
+    
+    // Aplicamos el filtro de búsqueda (searchValue es una variable global)
+    if (searchValue && searchValue.length > 0) {
+        numerosFiltrados = numerosFiltrados.filter(n => {
+            const numFormateado = formatTicketNumber(n, total);
+            return numFormateado.includes(searchValue) || String(n).includes(searchValue);
+        });
+    }
+
+    const startIdx = (paginaActual - 1) * numerosPorPagina;
+    const endIdx = startIdx + numerosPorPagina;
+    const numerosPaginados = numerosFiltrados.slice(startIdx, endIdx);
+
+    // CUADRÍCULA
+    let gridHtml = `<div id="numeros-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 mb-2 mt-2">`;
+    for (let i = 0; i < numerosPaginados.length; i++) {
+        const n = numerosPaginados[i];
+        const seleccionado = numerosSeleccionados.includes(n);
+        gridHtml += `
+            <button type="button"
+                class="numero-btn h-12 w-18 rounded-md font-bold text-lg border border-gray-700 transition
+                ${seleccionado ? 'bg-green-400 text-gray-900 border-green-600' : 'bg-gray-700 text-gray-200 hover:bg-green-400 hover:text-gray-900'}"
+                onclick="toggleNumero(${n}, this)"
+                data-numero="${n}">
+                ${formatTicketNumber(n, total)}
+            </button>
+        `;
+    }
+    gridHtml += `</div>`;
+
+    // PAGINADOR
+    let paginadorHtml = '';
+    let paginasTotales = Math.ceil(numerosFiltrados.length / numerosPorPagina);
+    if (paginasTotales > 1) {
+        let paginasPorBloque = 10;
+        let bloqueActual = Math.floor((paginaActual - 1) / paginasPorBloque);
+        let inicioBloque = bloqueActual * paginasPorBloque + 1;
+        let finBloque = Math.min(inicioBloque + paginasPorBloque - 1, paginasTotales);
+
+        paginadorHtml += `<div class="flex justify-center items-center mt-3 gap-2 flex-wrap">`;
+        paginadorHtml += `
+            <button onclick="cambiarBloquePaginas(-1)" ${bloqueActual === 0 ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
+                class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Anterior 10">
+                &#171;
+            </button>
+        `;
+        for (let i = inicioBloque; i <= finBloque; i++) {
+            paginadorHtml += `
+                <button onclick="irPagina(${i})"
+                    class="px-3 py-1 rounded ${i === paginaActual ? 'bg-green-400 text-black font-bold' : 'bg-gray-700 text-gray-300 hover:bg-green-300 hover:text-black'} transition">
+                    ${i}
+                </button>
+            `;
+        }
+        paginadorHtml += `
+            <button onclick="cambiarBloquePaginas(1)" ${finBloque === paginasTotales ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
+                class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Siguiente 10">
+                &#187;
+            </button>
+        `;
+        paginadorHtml += `</div>`;
+    }
+    
+    // Devolvemos ambos HTML combinados
+    return gridHtml + paginadorHtml;
+}
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
+
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function renderSelectorContent() {
     const rifa = rifaSeleccionada;
     // Info y resumen de premios
@@ -158,93 +272,17 @@ function renderSelectorContent() {
         `;
     }
 
-    // CONFIGURACIÓN
-// CONFIGURACIÓN
+    // Dejamos solo la lógica que necesitamos para los stats de arriba
     const total = rifa.totalNumbers || 100;
     const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
     const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
-    const numerosPorPagina = 100;
-    const columnas = 10;
-
-    // Búsqueda y paginador
-    let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1);
-    if (searchValue && searchValue.length > 0) {
-        numerosFiltrados = numerosFiltrados.filter(n => n.toString().includes(searchValue));
-    }
-    const paginas = Math.ceil(numerosFiltrados.length / numerosPorPagina);
-    const startIdx = (paginaActual - 1) * numerosPorPagina;
-    const endIdx = startIdx + numerosPorPagina;
-    const numerosPaginados = numerosFiltrados.slice(startIdx, endIdx);
-
-// CUADRÍCULA RESPONSIVA 5x10
-let gridHtml = `<div class="grid grid-cols-5 sm:grid-cols-10 gap-2">`;
-for (let i = 0; i < numerosPaginados.length; i++) {
-    const n = numerosPaginados[i];
-    const vendido = vendidos.includes(n);
-    const seleccionado = numerosSeleccionados.includes(n);
-    gridHtml += `
-        <button type="button"
-            class="numero-btn h-12 w-18 rounded-md font-bold text-lg border border-gray-700 transition
-            ${vendido ? 'bg-red-500 text-white cursor-not-allowed' : (seleccionado ? 'bg-green-400 text-gray-900 border-green-600' : 'bg-gray-700 text-gray-200 hover:bg-green-400 hover:text-gray-900')}"
-            ${vendido ? 'disabled' : ''}
-            onclick="toggleNumero(${n}, this)"
-            data-numero="${n}">
-            ${n}
-        </button>
-    `;
-}
-gridHtml += `</div>`;
-
-let paginasTotales = Math.ceil(numerosFiltrados.length / numerosPorPagina);
-let paginasPorBloque = 10;
-let bloqueActual = Math.floor((paginaActual - 1) / paginasPorBloque);
-let inicioBloque = bloqueActual * paginasPorBloque + 1;
-let finBloque = Math.min(inicioBloque + paginasPorBloque - 1, paginasTotales);
-
-let paginadorHtml = '';
-if (paginasTotales > 1) {
-    paginadorHtml += `<div class="flex justify-center items-center mt-3 gap-2 flex-wrap">`;
-    // << Flecha Doble Izquierda
-    paginadorHtml += `
-        <button onclick="cambiarBloquePaginas(-1)" ${bloqueActual === 0 ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
-            class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Anterior 10">
-            &#171;
-        </button>
-    `;
-   
-    // Números de página del rango actual
-    for (let i = inicioBloque; i <= finBloque; i++) {
-        paginadorHtml += `
-            <button onclick="irPagina(${i})"
-                class="px-3 py-1 rounded ${i === paginaActual ? 'bg-green-400 text-black font-bold' : 'bg-gray-700 text-gray-300 hover:bg-green-300 hover:text-black'} transition">
-                ${i}
-            </button>
-        `;
-    }
-
-    // >> Flecha Doble Derecha
-    paginadorHtml += `
-        <button onclick="cambiarBloquePaginas(1)" ${finBloque === paginasTotales ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}
-            class="px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-500 transition" title="Siguiente 10">
-            &#187;
-        </button>
-    `;
-    paginadorHtml += `</div>`;
-}
-
-// Cambiar página en el paginador
-function irPagina(num) {
-    paginaActual = num;
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
-}
-
-    // RESTO DEL MODAL
     let disponibles = Array.from({ length: total }, (_, i) => i + 1).filter(n => !vendidos.includes(n));
-    // Dentro de renderSelectorContent
+
+    // RESTO DEL MODAL (El "Marco")
     let seleccionadosHtml = '';
     if (numerosSeleccionados.length > 0) {
     seleccionadosHtml = numerosSeleccionados.map(n =>
-        `<span class="inline-block rounded-full bg-green-500 text-black px-4 py-1 text-lg font-bold mx-1 mb-2">${n}</span>`
+        `<span class="inline-block rounded-full bg-green-500 text-black px-4 py-1 text-lg font-bold mx-1 mb-2">${formatTicketNumber(n, total)}</span>`
     ).join('');
     } else {
     seleccionadosHtml = '<span class="text-gray-300 px-2 py-1">Ninguno</span>';
@@ -293,20 +331,30 @@ function irPagina(num) {
                 <div class="mt-3 mb-2">
                     <span class="text-base text-white font-medium">Seleccionados:</span>
                     <div id="seleccionados-label" class="flex flex-wrap gap-1 mt-1">
-                        ${numerosSeleccionados.length > 0
-                            ? numerosSeleccionados.map(n =>
-                                `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${n}</span>`
-                            ).join('')
-                            : '<span class="text-gray-400">Ninguno</span>'
-                        }
-                    </div>
+                    ${numerosSeleccionados.length > 0
+                        ? numerosSeleccionados.map(n =>
+                            // --- INICIO DE CAMBIO (TAREA "Quitar píldora") ---
+                            `<button 
+                                type="button"
+                                title="Quitar ${n}"
+                                onclick="toggleNumero(${n}, document.querySelector('.numero-btn[data-numero=\\'${n}\\']'))"
+                                class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
+                            >
+                                ${formatTicketNumber(n, rifa.totalNumbers)}
+                            </button>`
+                            // --- FIN DE CAMBIO ---
+                        ).join('')
+                        : '<span class="text-gray-400">Ninguno</span>'
+                    }
+                </div>
                 </div>
 
+            <div id="grid-paginator-container">
+                ${renderGridAndPaginatorHTML()}
+            </div>
 
-            <div id="numeros-grid" class="mb-2 mt-2">${gridHtml}</div>
-            ${paginadorHtml}
             <div class="flex justify-end mt-4">
-                <button class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded text-center transition duration-300" onclick="continuarCompra()"
+                <button id="btn-continuar-compra" class="bg-green-500 hover:bg-green-600 text-black font-bold py-2 px-6 rounded text-center transition duration-300" onclick="continuarCompra()"
                     ${numerosSeleccionados.length === 0 ? 'disabled style="opacity:0.5;"' : ''}>
                     Continuar <i class="fas fa-arrow-right ml-2"></i>
                 </button>
@@ -314,35 +362,70 @@ function irPagina(num) {
         </div>
     `;
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 // Lógica para seleccionar/deseleccionar número
 
-function toggleNumero(num) {
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
+function toggleNumero(num, elementoBoton) {
     const idx = numerosSeleccionados.indexOf(num);
     if (idx >= 0) {
         numerosSeleccionados.splice(idx, 1);
     } else {
         numerosSeleccionados.push(num);
     }
-    // Siempre redibuja el grid y todo el contenido para que el botón "Continuar" se active/desactive correctamente
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
 
-    // Actualiza el botón continuar (deshabilitado si no hay nada)
-    document.querySelector('.bg-green-500')?.removeAttribute('disabled');
-    if (numerosSeleccionados.length === 0) {
-        document.querySelector('.bg-green-500')?.setAttribute('disabled', true);
-        document.querySelector('.bg-green-500').style.opacity = 0.5;
-    } else {
-        document.querySelector('.bg-green-500').style.opacity = 1;
+    // 1. Actualizar visualmente el botón que se tocó
+    const seleccionado = numerosSeleccionados.includes(num);
+    if (elementoBoton) { // elementoBoton es el 'this' que pasamos desde el onclick
+        if (seleccionado) {
+            elementoBoton.classList.add('bg-green-400', 'text-gray-900', 'border-green-600');
+            elementoBoton.classList.remove('bg-gray-700', 'text-gray-200', 'hover:bg-green-400', 'hover:text-gray-900');
+        } else {
+            elementoBoton.classList.remove('bg-green-400', 'text-gray-900', 'border-green-600');
+            elementoBoton.classList.add('bg-gray-700', 'text-gray-200', 'hover:bg-green-400', 'hover:text-gray-900');
+        }
     }
+
+// 2. Actualizar la lista de "Seleccionados"
+const seleccionadosLabel = document.getElementById('seleccionados-label');
+if (seleccionadosLabel) {
+    seleccionadosLabel.innerHTML = numerosSeleccionados.length > 0
+        ? numerosSeleccionados.map(n =>
+            // --- INICIO DE CAMBIO (TAREA "Quitar píldora") ---
+            `<button 
+                type="button"
+                title="Quitar ${n}"
+                onclick="toggleNumero(${n}, document.querySelector('.numero-btn[data-numero=\\'${n}\\']'))"
+                class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
+            >
+                ${formatTicketNumber(n, rifaSeleccionada.totalNumbers)}
+            </button>`
+            // --- FIN DE CAMBIO ---
+        ).join('')
+        : '<span class="text-gray-400">Ninguno</span>';
 }
 
-// Buscar número por input
+    // 3. Actualiza el botón continuar (deshabilitado si no hay nada)
+    const btnContinuar = document.getElementById('btn-continuar-compra');
+    if (btnContinuar) {
+        btnContinuar.disabled = (numerosSeleccionados.length === 0);
+        btnContinuar.style.opacity = (numerosSeleccionados.length === 0) ? 0.5 : 1;
+    }
+}
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
+
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function buscarNumero(valor) {
     searchValue = valor.trim();
     paginaActual = 1;
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
-}
 
+    // Ya no redibuja TODO, solo el grid y el paginador
+    const container = document.getElementById('grid-paginator-container');
+    if (container) {
+        container.innerHTML = renderGridAndPaginatorHTML();
+    }
+}
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 function moverPaginas(direccion) {
     // dirección = +1 o -1
     const rifa = rifaSeleccionada;
@@ -381,31 +464,100 @@ function moverBloquePaginas(direccion) {
 }
 
 // Cambiar página en el paginador
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function irPagina(num) {
     paginaActual = num;
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+    // Ya no redibuja TODO, solo el grid y el paginador
+    const container = document.getElementById('grid-paginator-container');
+    if (container) {
+        container.innerHTML = renderGridAndPaginatorHTML();
+    }
 }
-// Botón limpiar selección
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function limpiarNumeros() {
     numerosSeleccionados = [];
-    // Esto fuerza a que se regenere TODO el selector desde cero
+    searchValue = ''; // <-- Limpiamos la búsqueda también
+
+    // Redibujamos el modal completo para resetear el input de búsqueda
     document.getElementById('selector-content').innerHTML = renderSelectorContent();
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 
 // Botón número al azar (solo disponible, nunca repite)
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function numeroAlAzar() {
+    // Si había una búsqueda activa, la limpiamos
+    if (searchValue !== '') {
+        searchValue = '';
+        // Recargamos todo el modal para que 'disponibles' esté completo
+        document.getElementById('selector-content').innerHTML = renderSelectorContent();
+        // Esperamos que se redibuje ANTES de intentar seleccionar
+        setTimeout(_seleccionarNumeroAlAzarInterno, 50);
+    } else {
+        _seleccionarNumeroAlAzarInterno();
+    }
+}
+
+// Nueva función interna para no duplicar código
+function _seleccionarNumeroAlAzarInterno() {
     const rifa  = rifaSeleccionada;
     const total = rifa.totalNumbers || 100;
     const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
     const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
+
     let disponibles = Array.from({ length: total }, (_, i) => i + 1)
         .filter(n => !vendidos.includes(n) && !numerosSeleccionados.includes(n));
+
     if (disponibles.length === 0) return;
+
     const random = disponibles[Math.floor(Math.random() * disponibles.length)];
-    toggleNumero(random, document.querySelector(`.numero-btn[data-numero="${random}"]`));
+
+    // Buscamos el botón en el DOM
+    const boton = document.querySelector(`.numero-btn[data-numero="${random}"]`);
+
+    // Si el botón no está visible (ej. en otra página), no podemos hacer clic
+    // así que llamamos a toggleNumero (sin 'this') y luego recargamos el grid.
+    if (!boton) {
+        toggleNumero(random); // Solo actualiza el array
+
+        // Recargamos solo el grid para que aparezca seleccionado
+        const container = document.getElementById('grid-paginator-container');
+        if (container) {
+            container.innerHTML = renderGridAndPaginatorHTML();
+        }
+        // Y actualizamos el label de seleccionados
+        const seleccionadosLabel = document.getElementById('seleccionados-label');
+        if (seleccionadosLabel) {
+            seleccionadosLabel.innerHTML = numerosSeleccionados.map(n =>
+                    `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifaSeleccionada.totalNumbers)}</span>`
+                ).join('');
+        }
+    } else {
+        // Si el botón SÍ está visible, llamamos a toggleNumero con 'this'
+        toggleNumero(random, boton);
+    }
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 // Botón continuar → muestra modal de resumen/compra
+// --- INICIO DE CAMBIO (TAREA 6) ---
 function continuarCompra() {
+  // Validar el mínimo de tickets
+  const min = rifaSeleccionada.minTickets || 1; // El '|| 1' da soporte a rifas viejas
+  const seleccionados = numerosSeleccionados.length;
+
+  if (seleccionados < min) {
+    // Si no cumple, mostramos el aviso y detenemos la función
+    const msg = (min === 1)
+      ? 'Debes seleccionar al menos 1 ticket para continuar.'
+      : `El mínimo de compra para esta rifa es de ${min} tickets.\n\nHas seleccionado ${seleccionados}. Por favor, selecciona ${min - seleccionados} más.`;
+
+    alert(msg);
+    return; // <-- Frena la ejecución aquí
+  }
+
+  // Si todo está OK, continúa con el código original:
+
   // Mostrar modal resumen
   cerrarModalSelector();
   setTimeout(() => {
@@ -426,6 +578,7 @@ function continuarCompra() {
     metaTrack('InitiateCheckout', { value: total, currency: currencyCodeFrom(moneda) });
   } catch (_) {}
 }
+// --- FIN DE CAMBIO (TAREA 6) ---
 
 
 function cerrarModalResumen() {
@@ -487,19 +640,56 @@ function calcularTotalCompra() {
   return { bs, usd: usd.toFixed(2) };
 }
 
-// Valida todo el form (puedes hacer más validaciones si quieres)
+// --- INICIO DE CAMBIO (TAREA 4) ---
 function isValidPhoneVE(raw) {
-  const s = String(raw).replace(/\s+/g, '');
-  // Acepta 0412..., 0424..., 0414..., 0416..., 0426... (10-11 dígitos) o +58 412...
-  const reLocal = /^(0)?(412|414|416|422|424|426)\d{7}$/;
-  const reIntl  = /^\+?58(412|414|416|422|424|426)\d{7}$/;
-  return reLocal.test(s) || reIntl.test(s);
+  let s = String(raw || '').trim().replace(/[^0-9+]/g, '');
+
+  // 1. Normalizar a 10 dígitos (sin el 0 o el 58)
+  // Caso: +58424...
+  if (s.startsWith('+58')) {
+    s = s.substring(3); // Queda 424...
+  }
+  // Caso: 58424...
+  else if (s.startsWith('58') && s.length === 12) {
+    s = s.substring(2); // Queda 424...
+  }
+  // Caso: 0424...
+  else if (s.startsWith('0') && s.length === 11) {
+    s = s.substring(1); // Queda 424...
+  }
+
+  // 2. Validar que tenga 10 dígitos y sea un prefijo venezolano
+  const re = /^(412|414|416|422|424|426)\d{7}$/;
+  return re.test(s); // s debe ser '4241234567'
 }
+// --- FIN DE CAMBIO (TAREA 4) ---
+// --- INICIO DE CAMBIO (TAREA 4) ---
 function normalizePhoneVE(raw) {
-  let s = String(raw).replace(/\s+/g, '');
-  if (/^\+?58/.test(s)) s = '0' + s.replace(/^\+?58/, '');
-  return s;
+  // 1. Quitar todo lo que no sea dígito, excepto el '+' inicial
+  let s = String(raw || '').trim().replace(/[^0-9+]/g, '');
+
+  // 2. Caso: +58424...
+  if (s.startsWith('+58')) {
+    s = s.substring(3); // Queda 424...
+  }
+  // 3. Caso: 58424...
+  else if (s.startsWith('58') && s.length === 12) {
+    s = s.substring(2); // Queda 424...
+  }
+  // 4. Caso: 0424... (ya está casi bien)
+  else if (s.startsWith('0') && s.length === 11) {
+    s = s.substring(1); // Queda 424...
+  }
+
+  // 5. Si s es 10 dígitos (ej. 4241234567), le añadimos el '0'
+  if (s.length === 10) {
+    return '0' + s; // Devuelve 04241234567
+  }
+
+  // Si algo falló (ej. '424123' o un número inválido), devolvemos el original limpiado
+  return String(raw).trim();
 }
+// --- FIN DE CAMBIO (TAREA 4) ---
 function isValidName(x) {
   return /^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]{2,40}$/.test(String(x).trim());
 }
@@ -514,24 +704,34 @@ function setInputState(el, ok) {
   el.classList.toggle('ring-red-500', !ok);
 }
 
+// (Asegúrate de tener esta función de validación de email)
+function isValidEmail(email) {
+  const re = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  return re.test(String(email).toLowerCase());
+}
+
 function validarFormularioCompra() {
   const nombreEl   = document.getElementById('first-name');
   const apellidoEl = document.getElementById('last-name');
   const telefonoEl = document.getElementById('phone');
+  const emailEl    = document.getElementById('email'); // <-- NUEVO
   const refEl      = document.getElementById('payment-reference');
 
   const nombreOk   = isValidName(nombreEl.value);
   const apellidoOk = isValidName(apellidoEl.value);
   const telOk      = isValidPhoneVE(telefonoEl.value);
+  const emailOk    = isValidEmail(emailEl.value); // <-- NUEVO
   const refOk      = isValidReference(refEl.value);
 
   setInputState(nombreEl,   nombreOk);
   setInputState(apellidoEl, apellidoOk);
   setInputState(telefonoEl, telOk);
+  setInputState(emailEl,    emailOk); // <-- NUEVO
   setInputState(refEl,      refOk);
 
   const btn = document.getElementById('btn-confirmar-compra');
-  if (nombreOk && apellidoOk && telOk && refOk && metodoPagoSeleccionado) {
+  // Añadimos emailOk a la condición
+  if (nombreOk && apellidoOk && telOk && emailOk && refOk && metodoPagoSeleccionado) {
     btn.removeAttribute('disabled');
   } else {
     btn.setAttribute('disabled', true);
@@ -539,14 +739,14 @@ function validarFormularioCompra() {
 }
 
 // Listeners para validación en vivo
-['first-name','last-name','phone','payment-reference'].forEach(id=>{
+['first-name','last-name','phone','email','payment-reference'].forEach(id=>{
   const el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('input', validarFormularioCompra);
 });
 
 
-['first-name','last-name','phone','payment-reference'].forEach(id => {
+['first-name','last-name','phone','email','payment-reference'].forEach(id=>{
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', validarFormularioCompra);
 });
@@ -570,7 +770,7 @@ function renderResumenContent() {
     document.getElementById('resumen-rifa-titulo').textContent = rifa.title;
 
     // Asigna los números seleccionados (puedes usar .join(', '))
-    document.getElementById('resumen-numeros-lista').textContent = numeros.join(', ');
+    document.getElementById('resumen-numeros-lista').textContent = numeros.map(n => formatTicketNumber(n, rifa.totalNumbers)).join(', ');
 
     // Asigna el precio por boleto
     document.getElementById('resumen-precio-boleto').textContent = rifa.priceBs + ' Bs';
@@ -639,7 +839,9 @@ function toggleFAQ(id) {
         });
 
         // Cambia el rango visible de páginas (avanza o retrocede de 10 en 10, y actualiza la página activa)
+// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
 function cambiarBloquePaginas(direccion) {
+    // dirección = +1 o -1
     const rifa = rifaSeleccionada;
     const total = rifa.totalNumbers || 100;
     let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1);
@@ -657,8 +859,14 @@ function cambiarBloquePaginas(direccion) {
     if (inicioNuevoBloque < 1) inicioNuevoBloque = 1;
 
     paginaActual = inicioNuevoBloque; // Al cambiar de bloque, ir a la primera página del nuevo rango
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+
+    // Ya no redibuja TODO, solo el grid y el paginador
+    const container = document.getElementById('grid-paginator-container');
+    if (container) {
+        container.innerHTML = renderGridAndPaginatorHTML();
+    }
 }
+// --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 
 // Desliza la ventana de páginas 1 hacia adelante o atrás (sin cambiar la página activa si sigue en rango, si no, la mueve al extremo)
 function moverRangoPaginas(direccion) {
@@ -697,41 +905,52 @@ function copyToClipboard(elementId) {
     });
   }
 
+  // --- INICIO DE CAMBIO (TAREA "Toast Bonito") ---
   function showToast(message) {
     const toast = document.getElementById("toast");
-    toast.textContent = message;
-    toast.style.display = "block";
-    setTimeout(() => {
-      toast.style.display = "none";
-    }, 2000);
-  }
+    if (!toast) return;
 
+    toast.textContent = message;
+
+    // 1. Mostrar (Fade in y pop)
+    toast.classList.remove('opacity-0', 'invisible', 'scale-95');
+    toast.classList.add('opacity-100', 'visible', 'scale-100');
+
+    // 2. Ocultar después de 1.5 segundos
+    setTimeout(() => {
+      toast.classList.remove('opacity-100', 'visible', 'scale-100');
+      toast.classList.add('opacity-0', 'invisible', 'scale-95');
+    }, 1500); // 1500ms = 1.5 segundos. Cambia a 1000 si lo quieres más rápido
+  }
+  // --- FIN DE CAMBIO ---
+  
 async function confirmarCompra() {
     // META: el usuario ya está introduciendo/confirmando datos de pago
   metaTrack('AddPaymentInfo');
   const firstName        = document.getElementById('first-name').value.trim();
   const lastName         = document.getElementById('last-name').value.trim();
   const phone            = document.getElementById('phone').value.trim();
+  const email            = document.getElementById('email').value.trim(); // <-- NUEVO
   const paymentReference = document.getElementById('payment-reference').value.trim();
-  const proofInput       = document.getElementById('payment-proof');
-  const file             = proofInput.files[0] || null;
+  // const proofInput       = document.getElementById('payment-proof'); // <-- ELIMINADO
+  // const file             = proofInput.files[0] || null; // <-- ELIMINADO
 
-// Validar archivo
-let fileOk = file;
-if (!file) {
-  alert("Adjunta el comprobante de pago.");
-  return;
-}
-// Solo imágenes o PDF
-const okTypes = ["image/jpeg","image/png","image/webp","application/pdf"];
-if (!okTypes.includes(file.type)) {
-  alert("Formato no permitido. Sube JPG, PNG, WEBP o PDF.");
-  return;
-}
-// Si es imagen y pasa de 1.2MB, comprimimos a ~0.8 calidad y máx 1600px
-if (file.type.startsWith("image/") && file.size > 1.2 * 1024 * 1024) {
-  fileOk = await compressImageFile(file, {maxW:1600, maxH:1600, quality:0.8});
-}
+// // Validar archivo <-- TODO ESTE BLOQUE SE ELIMINA
+// let fileOk = file;
+// if (!file) {
+//   alert("Adjunta el comprobante de pago.");
+//   return;
+// }
+// // Solo imágenes o PDF
+// const okTypes = ["image/jpeg","image/png","image/webp","application/pdf"];
+// if (!okTypes.includes(file.type)) {
+//   alert("Formato no permitido. Sube JPG, PNG, WEBP o PDF.");
+//   return;
+// }
+// // Si es imagen y pasa de 1.2MB, comprimimos a ~0.8 calidad y máx 1600px
+// if (file.type.startsWith("image/") && file.size > 1.2 * 1024 * 1024) {
+//   fileOk = await compressImageFile(file, {maxW:1600, maxH:1600, quality:0.8});
+// }
 
 
 // Normalizar teléfono (0412...) y guardarlo para "Ver mis números"
@@ -742,12 +961,12 @@ window.lastPurchasePhone = phoneNorm; // <-- lo usaremos al abrir "Mis números"
 
 const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinli'
 
-    // Validación estricta
-    if (!isValidName(firstName) || !isValidName(lastName) || !isValidPhoneVE(phone) || !isValidReference(paymentReference) || !file) {
-    validarFormularioCompra(); // pinta los errores
-    alert("Revisa los datos: nombre/apellido (solo letras), teléfono VE y referencia (6–20).");
-    return;
-    }
+// Validación estricta
+if (!isValidName(firstName) || !isValidName(lastName) || !isValidPhoneVE(phone) || !isValidEmail(email) || !isValidReference(paymentReference)) {
+  validarFormularioCompra(); // pinta los errores
+  alert("Revisa todos los datos: nombre, apellido, teléfono, email y referencia.");
+  return;
+}
 
   // 👇 FormData (NO pongas headers Content-Type)
   const formData = new FormData();
@@ -756,13 +975,14 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
   formData.append('firstName', firstName);
   formData.append('lastName', lastName);
   formData.append('phone', window.lastPurchasePhone || phone);
+  formData.append('email', email); // <-- NUEVO
   formData.append('paymentMethod', paymentMethod);
   formData.append('paymentReference', paymentReference);
-  formData.append('paymentProof', fileOk);
-  formData.append('contactConsent', window._consentWhatsApp ? 'true' : 'false'); // NUEVO
+  // formData.append('paymentProof', fileOk); // <-- ELIMINADO
+  formData.append('contactConsent', window._consentWhatsApp ? 'true' : 'false');
 
   try {
-    const res = await fetch(`${API_BASE}/api/purchases`, {
+    const res = await fetch(`${API}/api/purchases`, {
       method: 'POST',
       body: formData
     });
@@ -802,20 +1022,11 @@ const paymentMethod = metodoPagoSeleccionado; // 'pagoMovil' | 'binance' | 'zinl
   }
 }
 
-const proofInput = document.getElementById('payment-proof');
-const labelSpan = document.getElementById('file-name');
-if (proofInput && labelSpan) {
-  proofInput.value = '';
-  labelSpan.textContent = labelSpan.dataset.default || 'Ningún archivo seleccionado';
-  labelSpan.classList.remove('text-green-400');
-  labelSpan.classList.add('text-gray-400');
-}
-
 function mostrarModalExito({ titulo, numeros, metodo, referencia, total, moneda }) {
   // Relleno
   document.getElementById('exito-rifa').textContent = titulo || '-';
   document.getElementById('exito-numeros').textContent =
-    Array.isArray(numeros) && numeros.length ? numeros.join(', ') : '-';
+    Array.isArray(numeros) && numeros.length ? numeros.map(n => formatTicketNumber(n, rifaSeleccionada.totalNumbers)).join(', ') : '-';
   document.getElementById('exito-metodo').textContent = metodo || '-';
   document.getElementById('exito-referencia').textContent = referencia || '-';
   document.getElementById('exito-total').textContent =
@@ -912,27 +1123,7 @@ window.addEventListener('DOMContentLoaded', () => {
       metaTrack('Contact', { content_name: 'join_whatsapp' });
     });
   }
-
-  // --- lo que ya tenías ---
-  const input = document.getElementById('payment-proof');
-  const labelSpan = document.getElementById('file-name');
-  if (!input || !labelSpan) return;
-
-  const DEFAULT_TEXT = labelSpan.dataset.default || 'Ningún archivo seleccionado';
-  input.addEventListener('change', () => {
-    if (input.files && input.files.length) {
-      const file = input.files[0];
-      labelSpan.textContent = file.name;
-      labelSpan.classList.remove('text-gray-400');
-      labelSpan.classList.add('text-green-400');
-    } else {
-      labelSpan.textContent = DEFAULT_TEXT;
-      labelSpan.classList.remove('text-green-400');
-      labelSpan.classList.add('text-gray-400');
-    }
-  });
 });
-
 
 // Envolver el click para mostrar el mini-modal de aceptación
 (function wireConfirmarCompra() {
@@ -1074,7 +1265,7 @@ async function buscarMisNumeros() {
 
   resultsEl.innerHTML = `<div class="text-gray-400">Buscando...</div>`;
   try {
-    const url = `${API_BASE}/api/tickets/by-phone?phone=${encodeURIComponent(phone)}&includePending=${includePending}`;
+    const url = `${API}/api/tickets/by-phone?phone=${encodeURIComponent(phone)}&includePending=${includePending}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Error de servidor');
     const data = await res.json();
@@ -1101,7 +1292,7 @@ async function buscarMisNumeros() {
             ${
               (r.numbers || []).map(n =>
                 `<li class="flex justify-between border-b border-gray-700/60 py-1">
-                   <span class="font-mono">#${n.number}</span>
+                   <span class="font-mono">#${formatTicketNumber(n.number, r.totalNumbers)}</span>
                    <span class="${n.status === 'Aprobado' ? 'text-green-400' : 'text-yellow-300'} font-semibold">${n.status}</span>
                  </li>`
               ).join('')
@@ -1203,3 +1394,46 @@ document.getElementById('btn-exito-misnumeros')?.addEventListener('click', () =>
     setTimeout(() => document.getElementById('btn-mn-buscar')?.click(), 50);
   }
 });
+
+// --- INICIO DE CAMBIO (TAREA "Seleccionar Todos") ---
+/**
+ * FUNCIÓN SECRETA DE ADMIN: Selecciona todos los números disponibles.
+ * Para usar:
+ * 1. Abre el modal de la rifa.
+ * 2. Abre la consola del navegador (F12).
+ * 3. Escribe: seleccionarTodosDisponibles() y presiona Enter.
+ */
+function seleccionarTodosDisponibles() {
+    if (!rifaSeleccionada) {
+        console.error("No hay ninguna rifa seleccionada. Abre el modal de una rifa primero.");
+        return "Error: Abre el modal de una rifa primero.";
+    }
+
+    console.log(`Seleccionando todos los números disponibles para "${rifaSeleccionada.title}"...`);
+
+    // 1. Obtener todos los números vendidos/reservados
+    const total = rifaSeleccionada.totalNumbers || 100;
+    const reservados = Array.isArray(rifaSeleccionada.numbersReserved) ? rifaSeleccionada.numbersReserved : [];
+    const vendidos = [...new Set([...(rifaSeleccionada.numbersSold || []), ...reservados])];
+
+    // 2. Crear la lista de TODOS los disponibles
+    const disponibles = [];
+    for (let i = 1; i <= total; i++) {
+        if (!vendidos.includes(i)) {
+            disponibles.push(i);
+        }
+    }
+
+    // 3. Asignar esta lista a la selección global
+    numerosSeleccionados = disponibles;
+
+    // 4. Forzar un redibujado completo del contenido del modal
+    // (Esto es necesario para que las "píldoras" y el grid se actualicen)
+    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+
+    const mensaje = `¡Función de Admin!\n\nSe han seleccionado los ${numerosSeleccionados.length} números disponibles.`;
+    console.log(mensaje);
+    alert(mensaje); // Un pop-up para confirmar
+    return `Éxito: ${numerosSeleccionados.length} números seleccionados.`;
+}
+// --- FIN DE CAMBIO ---

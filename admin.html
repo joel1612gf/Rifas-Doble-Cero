@@ -110,11 +110,17 @@
             </div>
 
             <!-- Total de números -->
-            <div>
+<div>
             <label class="block font-bold mb-1 text-base">Total de números</label>
             <input type="number" id="raffle-totalNumbers" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
             </div>
 
+            <div>
+            <label class="block font-bold mb-1 text-base">Mínimo de tickets</label>
+            <input type="number" id="raffle-minTickets" min="1" value="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
+            </div>
+
+            
             <!-- Premios (ocupa 2 columnas en ≥sm) -->
             <div class="sm:col-span-2">
             <label class="block font-bold mb-1 text-base">Premios</label>
@@ -182,6 +188,9 @@
       </div>
       <button id="pay-filter-clear" class="bg-gray-700 hover:bg-gray-600 rounded px-3 py-2 text-sm font-bold">
         Limpiar
+      </button>
+      <button id="btn-approve-all" class="bg-green-600 hover:bg-green-500 text-black rounded px-3 py-2 text-sm font-bold hidden">
+        Aprobar Todos
       </button>
     </div>
   </div>
