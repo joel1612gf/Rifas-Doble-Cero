@@ -331,13 +331,22 @@ function renderSelectorContent() {
                 <div class="mt-3 mb-2">
                     <span class="text-base text-white font-medium">Seleccionados:</span>
                     <div id="seleccionados-label" class="flex flex-wrap gap-1 mt-1">
-                        ${numerosSeleccionados.length > 0
-                            ? numerosSeleccionados.map(n =>
-                                `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifa.totalNumbers)}</span>`
-                            ).join('')
-                            : '<span class="text-gray-400">Ninguno</span>'
-                        }
-                    </div>
+                    ${numerosSeleccionados.length > 0
+                        ? numerosSeleccionados.map(n =>
+                            // --- INICIO DE CAMBIO (TAREA "Quitar píldora") ---
+                            `<button 
+                                type="button"
+                                title="Quitar ${n}"
+                                onclick="toggleNumero(${n}, document.querySelector('.numero-btn[data-numero=\\'${n}\\']'))"
+                                class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
+                            >
+                                ${formatTicketNumber(n, rifa.totalNumbers)}
+                            </button>`
+                            // --- FIN DE CAMBIO ---
+                        ).join('')
+                        : '<span class="text-gray-400">Ninguno</span>'
+                    }
+                </div>
                 </div>
 
             <div id="grid-paginator-container">
@@ -377,15 +386,24 @@ function toggleNumero(num, elementoBoton) {
         }
     }
 
-    // 2. Actualizar la lista de "Seleccionados"
-    const seleccionadosLabel = document.getElementById('seleccionados-label');
-    if (seleccionadosLabel) {
-        seleccionadosLabel.innerHTML = numerosSeleccionados.length > 0
-            ? numerosSeleccionados.map(n =>
-                `<span class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm">${formatTicketNumber(n, rifaSeleccionada.totalNumbers)}</span>`
-            ).join('')
-            : '<span class="text-gray-400">Ninguno</span>';
-    }
+// 2. Actualizar la lista de "Seleccionados"
+const seleccionadosLabel = document.getElementById('seleccionados-label');
+if (seleccionadosLabel) {
+    seleccionadosLabel.innerHTML = numerosSeleccionados.length > 0
+        ? numerosSeleccionados.map(n =>
+            // --- INICIO DE CAMBIO (TAREA "Quitar píldora") ---
+            `<button 
+                type="button"
+                title="Quitar ${n}"
+                onclick="toggleNumero(${n}, document.querySelector('.numero-btn[data-numero=\\'${n}\\']'))"
+                class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
+            >
+                ${formatTicketNumber(n, rifaSeleccionada.totalNumbers)}
+            </button>`
+            // --- FIN DE CAMBIO ---
+        ).join('')
+        : '<span class="text-gray-400">Ninguno</span>';
+}
 
     // 3. Actualiza el botón continuar (deshabilitado si no hay nada)
     const btnContinuar = document.getElementById('btn-continuar-compra');
@@ -887,15 +905,25 @@ function copyToClipboard(elementId) {
     });
   }
 
+  // --- INICIO DE CAMBIO (TAREA "Toast Bonito") ---
   function showToast(message) {
     const toast = document.getElementById("toast");
-    toast.textContent = message;
-    toast.style.display = "block";
-    setTimeout(() => {
-      toast.style.display = "none";
-    }, 2000);
-  }
+    if (!toast) return;
 
+    toast.textContent = message;
+
+    // 1. Mostrar (Fade in y pop)
+    toast.classList.remove('opacity-0', 'invisible', 'scale-95');
+    toast.classList.add('opacity-100', 'visible', 'scale-100');
+
+    // 2. Ocultar después de 1.5 segundos
+    setTimeout(() => {
+      toast.classList.remove('opacity-100', 'visible', 'scale-100');
+      toast.classList.add('opacity-0', 'invisible', 'scale-95');
+    }, 1500); // 1500ms = 1.5 segundos. Cambia a 1000 si lo quieres más rápido
+  }
+  // --- FIN DE CAMBIO ---
+  
 async function confirmarCompra() {
     // META: el usuario ya está introduciendo/confirmando datos de pago
   metaTrack('AddPaymentInfo');
@@ -1366,3 +1394,46 @@ document.getElementById('btn-exito-misnumeros')?.addEventListener('click', () =>
     setTimeout(() => document.getElementById('btn-mn-buscar')?.click(), 50);
   }
 });
+
+// --- INICIO DE CAMBIO (TAREA "Seleccionar Todos") ---
+/**
+ * FUNCIÓN SECRETA DE ADMIN: Selecciona todos los números disponibles.
+ * Para usar:
+ * 1. Abre el modal de la rifa.
+ * 2. Abre la consola del navegador (F12).
+ * 3. Escribe: seleccionarTodosDisponibles() y presiona Enter.
+ */
+function seleccionarTodosDisponibles() {
+    if (!rifaSeleccionada) {
+        console.error("No hay ninguna rifa seleccionada. Abre el modal de una rifa primero.");
+        return "Error: Abre el modal de una rifa primero.";
+    }
+
+    console.log(`Seleccionando todos los números disponibles para "${rifaSeleccionada.title}"...`);
+
+    // 1. Obtener todos los números vendidos/reservados
+    const total = rifaSeleccionada.totalNumbers || 100;
+    const reservados = Array.isArray(rifaSeleccionada.numbersReserved) ? rifaSeleccionada.numbersReserved : [];
+    const vendidos = [...new Set([...(rifaSeleccionada.numbersSold || []), ...reservados])];
+
+    // 2. Crear la lista de TODOS los disponibles
+    const disponibles = [];
+    for (let i = 1; i <= total; i++) {
+        if (!vendidos.includes(i)) {
+            disponibles.push(i);
+        }
+    }
+
+    // 3. Asignar esta lista a la selección global
+    numerosSeleccionados = disponibles;
+
+    // 4. Forzar un redibujado completo del contenido del modal
+    // (Esto es necesario para que las "píldoras" y el grid se actualicen)
+    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+
+    const mensaje = `¡Función de Admin!\n\nSe han seleccionado los ${numerosSeleccionados.length} números disponibles.`;
+    console.log(mensaje);
+    alert(mensaje); // Un pop-up para confirmar
+    return `Éxito: ${numerosSeleccionados.length} números seleccionados.`;
+}
+// --- FIN DE CAMBIO ---
