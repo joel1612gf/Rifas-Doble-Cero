@@ -104,7 +104,10 @@
                                                     ${formatName(w.firstName)} ${formatName(w.lastName)}
                                                 </p>
                                                 <p class="text-gray-400 text-xs">
-                                                    ${isTopBuyer ? 'Beneficio por lealtad' : `Número ganador: <span class="text-green-300 font-mono font-bold text-sm">${formatTicketNumber(w.number, rifa.totalNumbers)}</span>`}
+                                                    ${isTopBuyer 
+                                                    ? `Números comprados: <span class="text-blue-400 font-mono font-bold text-sm">${w.number}</span>` 
+                                                    : `Número ganador: <span class="text-green-300 font-mono font-bold text-sm">${formatTicketNumber(w.number, rifa.totalNumbers)}</span>`
+                                                }
                                                 </p>
                                             </div>
                                             <div class="text-right shrink-0">
