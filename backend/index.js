@@ -580,26 +580,44 @@ app.get('/api/raffles/:id/winners', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// --- RUTA PARA GANADORES MULTIPLES (CORREGIDA TAREA 3) ---
 app.put('/api/raffles/:id/winners', async (req, res) => {
   try {
     const { id } = req.params;
-    const newWinner = req.body; // Viene { place, firstName, number, etc }
+    const newWinner = req.body; // Viene { place, number, firstName, etc. }
 
     const raffle = await Raffle.findById(id);
     if (!raffle) return res.status(404).send('Rifa no encontrada');
 
-    // 1. Buscamos si ya existe un ganador en ESE MISMO PUESTO (place)
+    // 1. Lógica de búsqueda automática (si no vienen nombres y hay un número > 0)
+    if (!newWinner.firstName && newWinner.number > 0) {
+        const purchase = await Purchase.findOne({
+            raffleId: id,
+            numbers: newWinner.number,
+            status: { $regex: /^aprobado|^aprobada/i }
+        });
+        if (purchase) {
+            newWinner.firstName = purchase.firstName;
+            newWinner.lastName = purchase.lastName;
+            newWinner.phone = purchase.phone;
+            newWinner.status = 'aprobada';
+        } else {
+            newWinner.status = 'sin_comprador';
+        }
+    }
+
+    // 2. LA SOLUCIÓN: Buscar si ya existe el puesto (place) en el array
     const index = raffle.winners.findIndex(w => w.place === newWinner.place);
 
     if (index !== -1) {
-      // Si ya existe el puesto (ej: ya había un premio 2), lo ACTUALIZAMOS
+      // Si el puesto existe (ej: ya había un Premio 1), lo ACTUALIZAMOS
       raffle.winners[index] = { ...raffle.winners[index], ...newWinner };
     } else {
-      // Si el puesto no existe, lo AÑADIMOS al array
+      // Si el puesto NO existe, lo AÑADIMOS a la lista
       raffle.winners.push(newWinner);
     }
 
-    // 2. Ordenamos por puesto (1ero, 2do...) para que siempre esté organizado
+    // 3. Ordenamos por puesto (1ero, 2do...) para que siempre se guarde organizado
     raffle.winners.sort((a, b) => a.place - b.place);
 
     await raffle.save();
