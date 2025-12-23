@@ -750,34 +750,34 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// --- RUTA PARA TOP COMPRADORES (TAREA 3) ---
-app.get('/api/raffles/:id/top-buyers', requireAuth, async (req, res) => {
+// --- RUTA PARA TOP COMPRADORES (CORREGIDA) ---
+app.get('/api/raffles/:id/top-buyers', async (req, res) => {
   try {
+    // 1. Verificación de seguridad manual (como tienes en otras rutas)
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'No autorizado' });
+    jwt.verify(token, JWT_SECRET);
+
     const { id } = req.params;
-    // Pedimos el top 10 para tener margen de edición, aunque solo usemos los 3 primeros.
     const limit = req.query.limit ? parseInt(req.query.limit) : 10;
 
-    const topBuyers = await Purchase.aggregate([
-      // 1. Filtrar: Solo compras de esta rifa y que estén APROBADAS
-      { $match: { raffleId: new mongoose.Types.ObjectId(id), status: 'aprobado' } },
+    // 2. Validación de ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: 'ID de rifa inválido' });
+    }
 
-      // 2. Agrupar: Usamos el teléfono como identificador único
+    const topBuyers = await Purchase.aggregate([
+      { $match: { raffleId: id, status: 'aprobado' } }, // Nota: raffleId es String en tu modelo
       {
         $group: {
-          _id: "$phone", // Agrupar por teléfono
-          firstName: { $first: "$firstName" }, // Tomamos el primer nombre que encontremos
-          lastName: { $first: "$lastName" },   // Tomamos el primer apellido
-          totalTickets: { $sum: { $size: "$numbers" } } // ¡La magia! Sumamos la cantidad de tickets
+          _id: "$phone",
+          firstName: { $first: "$firstName" },
+          lastName: { $first: "$lastName" },
+          totalTickets: { $sum: { $size: "$numbers" } }
         }
       },
-
-      // 3. Ordenar: De mayor a menor cantidad de tickets
       { $sort: { totalTickets: -1 } },
-
-      // 4. Limitar: Solo los primeros N resultados
       { $limit: limit },
-
-      // 5. Formatear la salida (opcional, para que quede bonito)
       {
         $project: {
           phone: "$_id",
@@ -790,10 +790,9 @@ app.get('/api/raffles/:id/top-buyers', requireAuth, async (req, res) => {
     ]);
 
     res.json(topBuyers);
-
   } catch (error) {
     console.error('Error calculando top compradores:', error);
-    res.status(500).json({ error: 'Error calculando el top de compradores' });
+    res.status(500).json({ error: 'Error en el servidor' });
   }
 });
 

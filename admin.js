@@ -888,6 +888,18 @@ async function onChangeRaffleWinners() {
 
   // Pintar ficha derecha con el estado inicial
   setWinnerDetails(null, winnersState.selectedRaffle);
+
+  // --- INICIO TAREA 3: Mostrar Sección Top ---
+    const topSection = document.getElementById('top-buyers-section');
+    const topList = document.getElementById('top-buyers-list');
+    const topActions = document.getElementById('top-buyers-actions');
+    
+    if (topSection) {
+        topSection.classList.remove('hidden');
+        if (topList) topList.innerHTML = '<p class="text-gray-500 italic">Haz clic en "Calcular Automático" para ver el ranking.</p>';
+        if (topActions) topActions.classList.add('hidden');
+    }
+    // --- FIN TAREA 3 ---
 }
 
 
@@ -1630,14 +1642,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // ... tus otros listeners ...
 });
 
-// Necesitamos mostrar la sección solo cuando se selecciona una rifa
-// Agrega esto al final de tu función existente `onChangeRaffleWinners()`:
+async function guardarTop1ComoGanador() {
+    if (!currentTopBuyers || currentTopBuyers.length === 0) return;
+    
+    const top1 = currentTopBuyers[0];
+    const raffleId = winnersState.selectedRaffle?._id;
 
-  // Mostrar la sección de Top Compradores
-const topSection = document.getElementById('top-buyers-section');
-  if (topSection) {
-      topSection.classList.remove('hidden');
-      // Limpiar lista anterior
-      document.getElementById('top-buyers-list').innerHTML = '<p class="text-gray-500 italic">Haz clic en calcular.</p>';
-      document.getElementById('top-buyers-actions').classList.add('hidden');
-  }
+    if (!confirm(`¿Deseas guardar a ${top1.firstName} ${top1.lastName} (Ticket de mayor comprador) como ganador del 2do Premio?`)) {
+        return;
+    }
+
+    try {
+        // Usamos tu ruta existente de winners, pero para el lugar 2
+        // Nota: Le pasamos un número ficticio '0' o el total de tickets para identificarlo
+        const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                place: 2, 
+                firstName: top1.firstName,
+                lastName: top1.lastName,
+                phone: top1.phone,
+                number: 0, // Como es por mayor compra, no tiene un número único de ticket
+                status: 'aprobada'
+            })
+        });
+
+        if (res.ok) {
+            alert('¡Ganador del 2do Premio guardado exitosamente!');
+            onChangeRaffleWinners(); // Recargamos para ver los cambios
+        }
+    } catch (e) {
+        alert('Error al guardar el ganador');
+    }
+}
