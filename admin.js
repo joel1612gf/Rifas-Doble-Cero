@@ -1648,13 +1648,11 @@ async function guardarTop1ComoGanador() {
     const top1 = currentTopBuyers[0];
     const raffleId = winnersState.selectedRaffle?._id;
 
-    if (!confirm(`¿Deseas guardar a ${top1.firstName} ${top1.lastName} (Ticket de mayor comprador) como ganador del 2do Premio?`)) {
+    if (!confirm(`¿Deseas guardar a ${top1.firstName} ${top1.lastName} como ganador del 2do Premio?`)) {
         return;
     }
 
     try {
-        // Usamos tu ruta existente de winners, pero para el lugar 2
-        // Nota: Le pasamos un número ficticio '0' o el total de tickets para identificarlo
         const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -1663,14 +1661,14 @@ async function guardarTop1ComoGanador() {
                 firstName: top1.firstName,
                 lastName: top1.lastName,
                 phone: top1.phone,
-                number: 0, // Como es por mayor compra, no tiene un número único de ticket
+                // --- CAMBIO CLAVE AQUÍ ---
+                number: top1.totalTickets, // Enviamos el total de tickets como "número"
                 status: 'aprobada'
             })
         });
 
         if (res.ok) {
-            alert('¡Ganador del 2do Premio (Top Comprador) guardado!');
-            // Esto es vital: obliga al admin a cargar de nuevo los datos de la rifa
+            alert('¡Ganador del 2do Premio guardado con éxito!');
             await onChangeRaffleWinners(); 
         }
     } catch (e) {
