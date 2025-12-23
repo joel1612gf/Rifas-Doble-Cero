@@ -1676,3 +1676,99 @@ async function guardarTop1ComoGanador() {
         alert('Error al guardar el ganador');
     }
 }
+
+async function generarImagenTop3() {
+    if (currentTopBuyers.length < 1) {
+        alert("Primero calcula el top de compradores.");
+        return;
+    }
+
+    const W = 1080, H = 1920;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // 1. Fondo Oscuro Premium
+    ctx.fillStyle = '#0b1220';
+    ctx.fillRect(0, 0, W, H);
+
+    // 2. Dibujar Logo
+    const logoImg = new Image();
+    logoImg.src = 'img/logopngcolorweb2.png';
+    await new Promise(r => logoImg.onload = r);
+    ctx.drawImage(logoImg, W/2 - 100, 100, 200, 200);
+
+    // 3. Título
+    ctx.fillStyle = '#34d399'; // Verde esmeralda
+    ctx.font = 'bold 80px Montserrat, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('TOP COMPRADORES', W/2, 420);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '40px Montserrat, sans-serif';
+    ctx.fillText(winnersState.selectedRaffle?.title.toUpperCase() || 'RIFA', W/2, 480);
+
+    // 4. Dibujar los 3 bloques
+    const drawPodium = (buyer, y, rank) => {
+        const colors = ['#fbbf24', '#d1d5db', '#fb923c']; // Oro, Plata, Bronce
+        const color = colors[rank-1] || '#9ca3af';
+        
+        // Caja
+        ctx.fillStyle = '#1f2937';
+        drawRoundedRect(ctx, 100, y, 880, 220, 30);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        // Puesto
+        ctx.fillStyle = color;
+        ctx.font = 'bold 100px Montserrat, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`#${rank}`, 150, y + 140);
+
+        // Nombre
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 55px Montserrat, sans-serif';
+        const nombre = `${buyer.firstName} ${buyer.lastName}`.substring(0, 20);
+        ctx.fillText(nombre.toUpperCase(), 320, y + 110);
+
+        // Tickets
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 45px Montserrat, sans-serif';
+        ctx.fillText(`${buyer.totalTickets} TICKETS COMPRADOS`, 320, y + 175);
+    };
+
+    // Dibujamos hasta los 3 primeros si existen
+    for(let i=0; i<Math.min(3, currentTopBuyers.length); i++) {
+        drawPodium(currentTopBuyers[i], 600 + (i * 280), i + 1);
+    }
+
+    // 5. Footer
+    ctx.fillStyle = '#4b5563';
+    ctx.font = 'bold 35px Montserrat, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('DOBLECEROVE.COM', W/2, H - 100);
+
+    // 6. Descargar
+    const link = document.createElement('a');
+    link.download = `top_compradores_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+// Helper para bordes redondeados en Canvas
+function drawRoundedRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+// Conectar el botón de imagen en el DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-top-image')?.addEventListener('click', generarImagenTop3);
+});

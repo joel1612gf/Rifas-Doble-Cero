@@ -28,29 +28,24 @@
     </main>
 
     <script>
-        // --- HELPERS PARA FORMATO (TAREA GANADORES) ---
+      // --- CONFIGURACIÓN DE API ---
+        const API = window.location.hostname.includes('doblecerove.com') 
+                    ? 'https://doble-cero.onrender.com' 
+                    : 'https://doble-cero-staging.onrender.com';
 
-        /**
-         * Formatea el ticket con ceros a la izquierda según el total de la rifa.
-         */
+        // --- HELPERS DE FORMATO ---
         function formatTicketNumber(number, totalNumbers) {
             if (!totalNumbers) return String(number);
             const padding = String(totalNumbers).length;
             return String(number).padStart(padding, '0');
         }
 
-        /**
-         * Pone la primera letra en mayúscula y el resto en minúscula (Nombre Propio).
-         */
         function formatName(name) {
             if (!name) return '';
             return name.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
         }
-                // Aquí usaremos la misma lógica de API que en main.js
-        const API = window.location.hostname.includes('doblecerove.com') 
-                    ? 'https://doble-cero.onrender.com' 
-                    : 'https://doble-cero-staging.onrender.com';
 
+        // --- FUNCIÓN PRINCIPAL ---
         async function cargarGanadores() {
             const container = document.getElementById('ganadores-container');
             container.innerHTML = '<div class="col-span-full text-center py-10">Cargando historial...</div>';
@@ -67,58 +62,73 @@
                     return;
                 }
 
+                // Generamos el HTML de las tarjetas
                 container.innerHTML = finalizadas.map(rifa => `
-                    <div class="bg-gray-800 rounded-2xl overflow-hidden shadow-2xl border border-white/5">
+                    <div class="bg-gray-800 rounded-2xl overflow-hidden shadow-2xl border border-white/5 flex flex-col h-full">
                         <div class="relative">
                             <img src="${rifa.image}" class="w-full h-48 object-cover opacity-50">
-                            <div class="absolute inset-0 flex flex-col items-center justify-center p-4">
-                                <h2 class="text-2xl font-bold text-white text-center">${rifa.title}</h2>
-                                <span class="bg-green-500 text-black px-4 py-1 rounded-full text-sm font-black mt-2">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                <h2 class="text-2xl font-bold text-white">${rifa.title}</h2>
+                                <span class="bg-green-500 text-black px-4 py-1 rounded-full text-sm font-black mt-2 shadow-lg">
                                     ${rifa.isDelivered ? '✅ PREMIO ENTREGADO' : '⏳ EN PROCESO DE ENTREGA'}
                                 </span>
                             </div>
                         </div>
 
-                        <div class="p-6">
-                            <div class="flex gap-4 mb-6">
-                                ${rifa.lotteryResultImages?.map(img => `
-                                    <div class="flex-1">
-                                        <p class="text-xs text-gray-400 mb-1 text-center">Resultado Oficial</p>
-                                        <img src="${img}" class="rounded-lg border border-green-500/30 cursor-pointer hover:scale-105 transition" onclick="window.open('${img}')">
-                                    </div>
-                                `).join('') || '<p class="text-gray-500 italic">Sin capturas de resultado</p>'}
+                        <div class="p-6 flex-1 flex flex-col">
+                            <div class="flex gap-3 mb-6">
+                                ${rifa.lotteryResultImages && rifa.lotteryResultImages.length > 0 
+                                    ? rifa.lotteryResultImages.map(img => `
+                                        <div class="flex-1">
+                                            <p class="text-[10px] text-gray-400 mb-1 text-center uppercase tracking-wider">Resultado Oficial</p>
+                                            <img src="${img}" class="rounded-lg border border-green-500/30 cursor-pointer hover:scale-105 transition aspect-video object-cover" onclick="window.open('${img}')">
+                                        </div>
+                                    `).join('') 
+                                    : '<div class="w-full py-4 text-center text-gray-600 border border-dashed border-gray-700 rounded-lg text-sm italic font-mono">Esperando capturas oficiales...</div>'
+                                }
                             </div>
 
-                            <div class="bg-gray-900 rounded-xl p-4 border-l-4 border-green-400">
-                                <p class="text-green-400 text-xs font-bold uppercase mb-1">Ganador 1er Premio</p>
-                                <div class="flex justify-between items-center">
-                                    <div class="min-w-0 flex-1 mr-2"> <p class="text-xl font-bold truncate" title="${formatName(rifa.winners[0].firstName)} ${formatName(rifa.winners[0].lastName)}">
-                                            ${formatName(rifa.winners[0].firstName)} ${formatName(rifa.winners[0].lastName)}
-                                        </p>
-                                        <p class="text-gray-400 text-sm">
-                                            Número ganador: 
-                                            <span class="text-white font-mono font-bold">
-                                                ${formatTicketNumber(rifa.winners[0].number, rifa.totalNumbers)}
-                                            </span>
-                                        </p>
+                            <div class="space-y-3">
+                                ${rifa.winners.sort((a,b) => a.place - b.place).map(w => {
+                                    const isTopBuyer = (w.place === 2);
+                                    const colorClass = isTopBuyer ? 'border-blue-500 bg-blue-500/5' : 'border-green-400 bg-green-400/5';
+                                    const labelColor = isTopBuyer ? 'text-blue-400' : 'text-green-400';
+                                    const labelText  = isTopBuyer ? '🏆 Máximo Comprador' : '🥇 Ganador 1er Premio';
+                                    
+                                    return `
+                                    <div class="rounded-xl p-4 border-l-4 ${colorClass}">
+                                        <p class="${labelColor} text-[10px] font-black uppercase mb-1 tracking-widest">${labelText}</p>
+                                        <div class="flex justify-between items-center gap-2">
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-lg font-bold text-white truncate">
+                                                    ${formatName(w.firstName)} ${formatName(w.lastName)}
+                                                </p>
+                                                <p class="text-gray-400 text-xs">
+                                                    ${isTopBuyer ? 'Beneficio por lealtad' : `Número ganador: <span class="text-green-300 font-mono font-bold text-sm">${formatTicketNumber(w.number, rifa.totalNumbers)}</span>`}
+                                                </p>
+                                            </div>
+                                            <div class="text-right shrink-0">
+                                                <p class="text-[10px] text-gray-500 uppercase">Sorteado:</p>
+                                                <p class="text-xs font-bold text-gray-300">
+                                                    ${new Date(rifa.drawDate).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="text-right shrink-0">
-                                        <p class="text-xs text-gray-500">Sorteado el:</p>
-                                        <p class="text-sm font-bold text-gray-300">
-                                            ${new Date(rifa.drawDate).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                     </div>
                 `).join('');
 
             } catch (e) {
-                container.innerHTML = '<div class="col-span-full text-center py-10 text-red-400">Error cargando los ganadores.</div>';
+                console.error(e);
+                container.innerHTML = '<div class="col-span-full text-center py-10 text-red-400">Error conectando con el servidor.</div>';
             }
         }
 
+        // Ejecutar al cargar la página
         window.onload = cargarGanadores;
     </script>
 </body>
