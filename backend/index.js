@@ -750,10 +750,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// --- RUTA PARA TOP COMPRADORES (CORREGIDA) ---
+// --- RUTA PARA TOP COMPRADORES (VERSION BULLETPROOF) ---
 app.get('/api/raffles/:id/top-buyers', async (req, res) => {
   try {
-    // 1. Verificación de seguridad manual (como tienes en otras rutas)
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'No autorizado' });
     jwt.verify(token, JWT_SECRET);
@@ -761,13 +760,15 @@ app.get('/api/raffles/:id/top-buyers', async (req, res) => {
     const { id } = req.params;
     const limit = req.query.limit ? parseInt(req.query.limit) : 10;
 
-    // 2. Validación de ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ error: 'ID de rifa inválido' });
-    }
-
+    // Buscamos compras que coincidan con la rifa y que el estado sea 
+    // "aprobado" o "aprobada" (sin importar mayúsculas)
     const topBuyers = await Purchase.aggregate([
-      { $match: { raffleId: id, status: 'aprobado' } }, // Nota: raffleId es String en tu modelo
+      { 
+        $match: { 
+          raffleId: id, 
+          status: { $regex: /^aprobado|^aprobada/i } // <-- Busca ambos términos
+        } 
+      },
       {
         $group: {
           _id: "$phone",
@@ -789,10 +790,11 @@ app.get('/api/raffles/:id/top-buyers', async (req, res) => {
       }
     ]);
 
+    console.log(`Top Buyers encontrados para ${id}:`, topBuyers.length);
     res.json(topBuyers);
+
   } catch (error) {
-    console.error('Error calculando top compradores:', error);
+    console.error('Error en top-buyers:', error);
     res.status(500).json({ error: 'Error en el servidor' });
   }
 });
-
