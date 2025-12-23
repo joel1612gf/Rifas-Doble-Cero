@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ganadores - Rifas Doble Cero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-100 font-[Montserrat]">
+
+    <nav class="bg-black py-4 px-6 shadow-lg mb-8">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="flex items-center gap-2">
+                <img src="img/logopngcolorweb2.png" alt="Logo" class="h-10 w-10">
+                <span class="text-xl font-extrabold text-green-400">Doble Cero</span>
+            </a>
+            <a href="/" class="text-gray-300 hover:text-green-400 font-bold">Volver al Inicio</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 max-w-6xl">
+        <h1 class="text-4xl font-extrabold text-center text-green-400 mb-12">Nuestros Ganadores 🎉</h1>
+
+        <div id="ganadores-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            </div>
+    </main>
+
+    <script>
+        // Aquí usaremos la misma lógica de API que en main.js
+        const API = window.location.hostname.includes('doblecerove.com') 
+                    ? 'https://doble-cero.onrender.com' 
+                    : 'https://doble-cero-staging.onrender.com';
+
+        async function cargarGanadores() {
+            const container = document.getElementById('ganadores-container');
+            container.innerHTML = '<div class="col-span-full text-center py-10">Cargando historial...</div>';
+
+            try {
+                const res = await fetch(`${API}/api/raffles`);
+                const rifas = await res.json();
+                
+                // Filtramos solo las que tienen ganadores cargados
+                const finalizadas = rifas.filter(r => r.winners && r.winners.length > 0);
+
+                if (finalizadas.length === 0) {
+                    container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Aún no hay rifas finalizadas. ¡Sé tú el próximo ganador!</div>';
+                    return;
+                }
+
+                container.innerHTML = finalizadas.map(rifa => `
+                    <div class="bg-gray-800 rounded-2xl overflow-hidden shadow-2xl border border-white/5">
+                        <div class="relative">
+                            <img src="${rifa.image}" class="w-full h-48 object-cover opacity-50">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-4">
+                                <h2 class="text-2xl font-bold text-white text-center">${rifa.title}</h2>
+                                <span class="bg-green-500 text-black px-4 py-1 rounded-full text-sm font-black mt-2">
+                                    ${rifa.isDelivered ? '✅ PREMIO ENTREGADO' : '⏳ EN PROCESO DE ENTREGA'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="p-6">
+                            <div class="flex gap-4 mb-6">
+                                ${rifa.lotteryResultImages?.map(img => `
+                                    <div class="flex-1">
+                                        <p class="text-xs text-gray-400 mb-1 text-center">Resultado Oficial</p>
+                                        <img src="${img}" class="rounded-lg border border-green-500/30 cursor-pointer hover:scale-105 transition" onclick="window.open('${img}')">
+                                    </div>
+                                `).join('') || '<p class="text-gray-500 italic">Sin capturas de resultado</p>'}
+                            </div>
+
+                            <div class="bg-gray-900 rounded-xl p-4 border-l-4 border-green-400">
+                                <p class="text-green-400 text-xs font-bold uppercase mb-1">Ganador 1er Premio</p>
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="text-xl font-bold">${rifa.winners[0].firstName} ${rifa.winners[0].lastName[0]}.</p>
+                                        <p class="text-gray-400 text-sm">Ticket: <span class="text-white font-mono font-bold">${rifa.winners[0].number}</span></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-gray-500">Sorteado el:</p>
+                                        <p class="text-sm font-bold text-gray-300">${new Date(rifa.drawDate).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                container.innerHTML = '<div class="col-span-full text-center py-10 text-red-400">Error cargando los ganadores.</div>';
+            }
+        }
+
+        window.onload = cargarGanadores;
+    </script>
+</body>
+</html>

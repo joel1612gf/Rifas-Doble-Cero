@@ -140,6 +140,30 @@
             </select>
             </div>
 
+            <div class="col-span-full border-t border-gray-700 pt-4 mt-2">
+            <h3 class="text-green-400 font-bold mb-3">Gestión de Resultados (Ganadores)</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold mb-1 text-sm text-gray-400">Captura Resultado 1 (URL)</label>
+                    <input type="url" id="raffle-resultImg1" class="w-full px-3 py-2 rounded bg-gray-700 text-white placeholder-gray-500" placeholder="https://...">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1 text-sm text-gray-400">Captura Resultado 2 (URL)</label>
+                    <input type="url" id="raffle-resultImg2" class="w-full px-3 py-2 rounded bg-gray-700 text-white placeholder-gray-500" placeholder="https://...">
+                </div>
+                <div class="flex items-center gap-4 mt-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="raffle-isFinished" class="w-5 h-5 accent-green-500">
+                        <span class="font-bold">Rifa Finalizada</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="raffle-isDelivered" class="w-5 h-5 accent-green-500">
+                        <span class="font-bold">Premio Entregado</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
             <!-- Guardar -->
             <div class="sm:col-span-2">
             <button type="submit" class="w-full bg-green-400 text-gray-900 py-3 rounded font-bold text-lg hover:bg-green-500 transition-all">

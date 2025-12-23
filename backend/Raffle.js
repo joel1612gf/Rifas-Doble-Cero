@@ -28,12 +28,18 @@ const raffleSchema = new mongoose.Schema({
   totalNumbers: { type: Number, required: true },
   minTickets: { type: Number, default: 1 }, // <-- AÑADIDO (TAREA 6)
   numbersSold: [Number],
+  // ... después de numbersSold: [Number] ...
+  lotteryResultImages: [String], // Para las 2 capturas de Super Gana
+  isFinished: { type: Boolean, default: false }, // Para saber si ya pasó la rifa
+  isDelivered: { type: Boolean, default: false }, // Estatus del premio
+  // ...
   numbersReserved: [Number],
   prizes: [prizeSchema],
   winners: [winnerSchema],                   // ← NUEVO
   status: { type: String, default: 'activa' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+  
 });
 
 

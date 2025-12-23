@@ -709,6 +709,34 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     res.status(500).json({ message: 'Error en login', error: err.message });
   }
 });
+
+// --- RUTA PARA ESTADÍSTICAS (TAREA 2) ---
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const compras = await Purchase.find({ status: 'aprobado' });
+    
+    // Aquí el backend procesará los datos para enviarlos "masticaditos" a Chart.js
+    const stats = {
+      ventasPorDia: {},
+      totalMes: 0,
+      horasPico: Array(24).fill(0),
+    };
+
+    compras.forEach(c => {
+      const fecha = new Date(c.createdAt).toISOString().slice(0, 10);
+      const hora = new Date(c.createdAt).getHours();
+      const monto = Number(c.amount) || 0;
+
+      stats.ventasPorDia[fecha] = (stats.ventasPorDia[fecha] || 0) + 1;
+      stats.horasPico[hora]++;
+      // Lógica de suma mensual, etc.
+    });
+
+    res.json(stats);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Servidor backend escuchando en puerto ${PORT}`);
