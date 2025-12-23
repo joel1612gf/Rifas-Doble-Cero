@@ -572,60 +572,42 @@ app.get('/api/raffles/:id/lookup-winner', async (req, res) => {
 });
 
 // 2) Guardar/actualizar ganador de un lugar (place) con un número
+// --- RUTA PARA GANADORES MULTIPLES (CORRECCIÓN PREMIO 1 Y 2) ---
+app.get('/api/raffles/:id/winners', async (req, res) => {
+    try {
+        const raffle = await Raffle.findById(req.params.id);
+        res.json(raffle.winners || []);
+    } catch (err) { res.status(500).send(err.message); }
+});
+
 app.put('/api/raffles/:id/winners', async (req, res) => {
   try {
     const { id } = req.params;
-    const { place, number } = req.body;
-    if (!place || !number) return res.status(400).json({ message: 'place y number son requeridos' });
+    const newWinner = req.body; // Viene { place, firstName, number, etc }
 
     const raffle = await Raffle.findById(id);
-    if (!raffle) return res.status(404).json({ message: 'Rifa no encontrada' });
+    if (!raffle) return res.status(404).send('Rifa no encontrada');
 
-    // buscar compra aprobada para ese número
-    const purchase = await Purchase.findOne({
-      raffleId: id,
-      status: 'aprobada',
-      numbers: Number(number)
-    }).sort({ createdAt: 1 });
+    // 1. Buscamos si ya existe un ganador en ESE MISMO PUESTO (place)
+    const index = raffle.winners.findIndex(w => w.place === newWinner.place);
 
-    let winnerData;
-    if (purchase) {
-      winnerData = {
-        place: Number(place),
-        number: Number(number),
-        purchaseId: purchase._id,
-        firstName: purchase.firstName,
-        lastName: purchase.lastName,
-        phone: purchase.phone,
-        ticket: Number(number),
-        status: 'aprobada',
-        purchasedAt: purchase.createdAt,
-        drawnAt: new Date()
-      };
+    if (index !== -1) {
+      // Si ya existe el puesto (ej: ya había un premio 2), lo ACTUALIZAMOS
+      raffle.winners[index] = { ...raffle.winners[index], ...newWinner };
     } else {
-      // Permitir guardar SIN COMPRADOR para documentar que el número no tenía dueño
-      winnerData = {
-        place: Number(place),
-        number: Number(number),
-        purchaseId: null,
-        firstName: '',
-        lastName: '',
-        phone: '',
-        ticket: Number(number),
-        status: 'sin_comprador',
-        purchasedAt: null,
-        drawnAt: new Date()
-      };
+      // Si el puesto no existe, lo AÑADIMOS al array
+      raffle.winners.push(newWinner);
     }
 
-    // upsert por place
-    raffle.winners = (raffle.winners || []).filter(w => w.place !== Number(place));
-    raffle.winners.push(winnerData);
-    await raffle.save();
+    // 2. Ordenamos por puesto (1ero, 2do...) para que siempre esté organizado
+    raffle.winners.sort((a, b) => a.place - b.place);
 
+    await raffle.save();
     res.json(raffle.winners);
-  } catch (error) {
-    res.status(500).json({ message: 'Error guardando ganador', error: error.message });
+
+  } catch (err) {
+    console.error("Error guardando ganador:", err);
+    res.status(500).send(err.message);
   }
 });
 

@@ -1669,8 +1669,9 @@ async function guardarTop1ComoGanador() {
         });
 
         if (res.ok) {
-            alert('¡Ganador del 2do Premio guardado exitosamente!');
-            onChangeRaffleWinners(); // Recargamos para ver los cambios
+            alert('¡Ganador del 2do Premio (Top Comprador) guardado!');
+            // Esto es vital: obliga al admin a cargar de nuevo los datos de la rifa
+            await onChangeRaffleWinners(); 
         }
     } catch (e) {
         alert('Error al guardar el ganador');
