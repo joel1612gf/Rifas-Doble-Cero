@@ -1682,81 +1682,118 @@ async function generarImagenTop3() {
         return;
     }
 
-    const W = 1080, H = 1920;
+    const W = 1080, H = 1920; // Formato Vertical
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    // 1. Fondo Oscuro Premium
-    ctx.fillStyle = '#0b1220';
+    // === 1. FONDO & TEXTURA ===
+    // Creamos un gradiente radial para el efecto de "luz central"
+    const bgGradient = ctx.createRadialGradient(W/2, H/3, 100, W/2, H/2, W);
+    bgGradient.addColorStop(0, '#1a2230');   // Centro más claro
+    bgGradient.addColorStop(0.8, '#0a0e17'); // Bordes oscuros
+    ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, W, H);
 
-    // 2. Dibujar Logo
-    const logoImg = new Image();
-    logoImg.src = 'img/logopngcolorweb2.png';
-    await new Promise(r => logoImg.onload = r);
-    ctx.drawImage(logoImg, W/2 - 100, 100, 200, 200);
-
-    // 3. Título
-    ctx.fillStyle = '#34d399'; // Verde esmeralda
-    ctx.font = 'bold 80px Montserrat, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('TOP COMPRADORES', W/2, 420);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '40px Montserrat, sans-serif';
-    ctx.fillText(winnersState.selectedRaffle?.title.toUpperCase() || 'RIFA', W/2, 480);
-
-    // 4. Dibujar los 3 bloques
-    const drawPodium = (buyer, y, rank) => {
-        const colors = ['#fbbf24', '#d1d5db', '#fb923c']; // Oro, Plata, Bronce
-        const color = colors[rank-1] || '#9ca3af';
-        
-        // Caja
-        ctx.fillStyle = '#1f2937';
-        drawRoundedRect(ctx, 100, y, 880, 220, 30);
-        ctx.fill();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 5;
-        ctx.stroke();
-
-        // Puesto
-        ctx.fillStyle = color;
-        ctx.font = 'bold 100px Montserrat, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`#${rank}`, 150, y + 140);
-
-        // Nombre
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 55px Montserrat, sans-serif';
-        const nombre = `${buyer.firstName} ${buyer.lastName}`.substring(0, 20);
-        ctx.fillText(nombre.toUpperCase(), 320, y + 110);
-
-        // Tickets
-        ctx.fillStyle = '#34d399';
-        ctx.font = 'bold 45px Montserrat, sans-serif';
-        ctx.fillText(`${buyer.totalTickets} TICKETS COMPRADOS`, 320, y + 175);
-    };
-
-    // Dibujamos hasta los 3 primeros si existen
-    for(let i=0; i<Math.min(3, currentTopBuyers.length); i++) {
-        drawPodium(currentTopBuyers[i], 600 + (i * 280), i + 1);
+    // === 2. LOGO (Arriba al centro) ===
+    try {
+        const logoImg = new Image();
+        logoImg.src = 'img/logopngcolorweb2.png'; // Asegúrate de que esta ruta sea correcta
+        await new Promise(r => logoImg.onload = r);
+        ctx.drawImage(logoImg, W/2 - 120, 80, 240, 240);
+    } catch (e) {
+        console.warn("Logo no encontrado, omitiendo...");
     }
 
-    // 5. Footer
-    ctx.fillStyle = '#4b5563';
+    // === 3. TÍTULO PRINCIPAL ===
+    ctx.font = '900 60px Montserrat, sans-serif'; // Usamos la fuente de la web
+    ctx.textAlign = 'center';
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('TOP 3', W/2, 380);
+    
+    ctx.fillStyle = '#34d399'; // Verde Doble Cero
+    ctx.font = '900 80px Montserrat, sans-serif';
+    ctx.fillText('COMPRADORES', W/2, 460);
+
+    // === 4. EL PODIO (Dibujar las cajas) ===
+    // Orden de dibujo: 2do (Izq) -> 3ro (Der) -> 1ero (Centro, encima)
+    const buyers = currentTopBuyers.slice(0, 3);
+    
+    // Configuración de cada puesto
+    const config = {
+        2: { x: 70,  y: 850, w: 320, h: 600, color: '#9ca3af' }, // Plata
+        3: { x: 690, y: 950, w: 320, h: 500, color: '#b45309' }, // Bronce
+        1: { x: 340, y: 700, w: 400, h: 750, color: '#fbbf24' }  // Oro
+    };
+
+    // Helper para dibujar cada bloque
+    const drawBlock = (rank) => {
+        const buyer = buyers[rank-1];
+        if (!buyer) return; // Si no hay suficientes compradores, no dibujamos
+
+        const { x, y, w, h, color } = config[rank];
+
+        // Caja con borde y sombra (estilo neón)
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; // Azul oscuro semi-transparente
+        drawRoundedRect(ctx, x, y, w, h, 25);
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset sombra
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = rank === 1 ? 6 : 4;
+        drawRoundedRect(ctx, x, y, w, h, 25);
+        ctx.stroke();
+
+        // --- CONTENIDO DEL BLOQUE ---
+        // 1. Medalla / Puesto
+        ctx.fillStyle = color;
+        ctx.font = '900 100px Montserrat, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(rank.toString(), x + w/2, y + 140);
+        
+        if (rank === 1) {
+            ctx.font = '60px Montserrat, sans-serif';
+            ctx.fillText('👑', x + w/2, y + 220); // Corona para el rey
+        }
+
+        // 2. Nombre
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 45px Montserrat, sans-serif';
+        const nombre = `${buyer.firstName} ${buyer.lastName.charAt(0)}.`
+        ctx.fillText(nombre.toUpperCase(), x + w/2, y + rank === 1 ? 320 : 280);
+
+        // 3. Tickets (Resaltado)
+        ctx.fillStyle = rank === 1 ? '#fbbf24' : '#34d399';
+        ctx.font = '900 55px Montserrat, sans-serif';
+        ctx.fillText(buyer.totalTickets, x + w/2, y + rank === 1 ? 420 : 360);
+        
+        ctx.font = 'bold 30px Montserrat, sans-serif';
+        ctx.fillText('TICKETS', x + w/2, y + rank === 1 ? 460 : 400);
+    };
+
+    // ¡A dibujar en orden!
+    drawBlock(2);
+    drawBlock(3);
+    drawBlock(1);
+
+    // === 5. FOOTER ===
+    ctx.fillStyle = '#6b7280'; // Gris claro
     ctx.font = 'bold 35px Montserrat, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('DOBLECEROVE.COM', W/2, H - 100);
 
-    // 6. Descargar
+    // === 6. DESCARGAR IMAGEN ===
     const link = document.createElement('a');
-    link.download = `top_compradores_${Date.now()}.png`;
+    const date = new Date().toISOString().slice(0, 10);
+    link.download = `Top3_${winnersState.selectedRaffle?.title.substring(0, 10)}_${date}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
 }
 
-// Helper para bordes redondeados en Canvas
+// Helper para bordes redondeados (si no lo tienes ya)
 function drawRoundedRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -1766,8 +1803,3 @@ function drawRoundedRect(ctx, x, y, w, h, r) {
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
 }
-
-// Conectar el botón de imagen en el DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btn-top-image')?.addEventListener('click', generarImagenTop3);
-});
