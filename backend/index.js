@@ -750,5 +750,50 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// --- RUTA PARA TOP COMPRADORES (TAREA 3) ---
+app.get('/api/raffles/:id/top-buyers', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Pedimos el top 10 para tener margen de edición, aunque solo usemos los 3 primeros.
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
 
+    const topBuyers = await Purchase.aggregate([
+      // 1. Filtrar: Solo compras de esta rifa y que estén APROBADAS
+      { $match: { raffleId: new mongoose.Types.ObjectId(id), status: 'aprobado' } },
+
+      // 2. Agrupar: Usamos el teléfono como identificador único
+      {
+        $group: {
+          _id: "$phone", // Agrupar por teléfono
+          firstName: { $first: "$firstName" }, // Tomamos el primer nombre que encontremos
+          lastName: { $first: "$lastName" },   // Tomamos el primer apellido
+          totalTickets: { $sum: { $size: "$numbers" } } // ¡La magia! Sumamos la cantidad de tickets
+        }
+      },
+
+      // 3. Ordenar: De mayor a menor cantidad de tickets
+      { $sort: { totalTickets: -1 } },
+
+      // 4. Limitar: Solo los primeros N resultados
+      { $limit: limit },
+
+      // 5. Formatear la salida (opcional, para que quede bonito)
+      {
+        $project: {
+          phone: "$_id",
+          firstName: 1,
+          lastName: 1,
+          totalTickets: 1,
+          _id: 0
+        }
+      }
+    ]);
+
+    res.json(topBuyers);
+
+  } catch (error) {
+    console.error('Error calculando top compradores:', error);
+    res.status(500).json({ error: 'Error calculando el top de compradores' });
+  }
+});
 

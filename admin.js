@@ -1522,3 +1522,122 @@ async function loadContacts() {
     box.innerHTML = '<div class="text-center text-red-400 py-6">Error cargando contactos.</div>';
   }
 }
+
+// ==================== TOP COMPRADORES (TAREA 3) ====================
+
+// Variable global para guardar el estado actual del top
+let currentTopBuyers = [];
+
+// 1. Función principal: Llamar al backend y renderizar
+async function calcularTopCompradores() {
+    const raffleId = winnersState.selectedRaffle?._id;
+    if (!raffleId) {
+        alert("Selecciona una rifa primero.");
+        return;
+    }
+
+    const listContainer = document.getElementById('top-buyers-list');
+    listContainer.innerHTML = '<div class="text-gray-400">Calculando...</div>';
+
+    try {
+        // Llamada al nuevo endpoint del backend
+        const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/top-buyers?limit=5`);
+        if (!res.ok) throw new Error('Error al calcular');
+        
+        currentTopBuyers = await res.json();
+
+        if (currentTopBuyers.length === 0) {
+            listContainer.innerHTML = '<div class="text-gray-500">No hay compras aprobadas para esta rifa.</div>';
+            document.getElementById('top-buyers-actions').classList.add('hidden');
+            return;
+        }
+
+        renderTopBuyersList();
+        document.getElementById('top-buyers-actions').classList.remove('hidden');
+
+    } catch (error) {
+        console.error(error);
+        listContainer.innerHTML = '<div class="text-red-400">Error al calcular el top.</div>';
+    }
+}
+
+// 2. Función para dibujar los inputs editables
+function renderTopBuyersList() {
+    const listContainer = document.getElementById('top-buyers-list');
+    listContainer.innerHTML = '';
+
+    currentTopBuyers.forEach((buyer, index) => {
+        const place = index + 1;
+        // Colores para el 1, 2 y 3
+        const medalColor = place === 1 ? 'text-yellow-400' : (place === 2 ? 'text-gray-300' : (place === 3 ? 'text-orange-400' : 'text-gray-500'));
+        
+        listContainer.innerHTML += `
+            <div class="bg-gray-800 p-3 rounded-lg flex flex-col sm:flex-row gap-2 items-start sm:items-center border border-gray-700 relative" data-index="${index}">
+                <div class="font-bold text-lg ${medalColor} w-8 text-center shrink-0">
+                    #${place}
+                </div>
+                
+                <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+                    <input type="text" value="${buyer.firstName} ${buyer.lastName}" 
+                        class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white text-sm focus:border-green-400 outline-none"
+                        placeholder="Nombre"
+                        onchange="updateTopBuyerData(${index}, 'name', this.value)">
+                    
+                    <input type="text" value="${buyer.phone}" 
+                        class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white text-sm focus:border-green-400 outline-none"
+                        placeholder="Teléfono"
+                        onchange="updateTopBuyerData(${index}, 'phone', this.value)">
+
+                    <div class="flex items-center">
+                         <input type="number" value="${buyer.totalTickets}" min="1"
+                            class="bg-gray-900 border border-gray-700 rounded-l px-2 py-1 text-white text-sm focus:border-green-400 outline-none w-full"
+                            onchange="updateTopBuyerData(${index}, 'totalTickets', this.value)">
+                        <span class="bg-gray-700 border border-gray-700 border-l-0 rounded-r px-2 py-1 text-gray-300 text-sm">Tickets</span>
+                    </div>
+                </div>
+
+                 ${place === 1 ? `
+                    <button onclick="guardarTop1ComoGanador()" title="Guardar como Ganador del 2do Premio"
+                        class="absolute top-2 right-2 sm:static sm:ml-2 bg-green-600 hover:bg-green-500 text-white p-2 rounded-full shadow-lg hover:scale-105 transition">
+                        <i class="fas fa-trophy"></i>
+                    </button>
+                 ` : ''}
+            </div>
+        `;
+    });
+}
+
+// 3. Función para actualizar los datos en memoria cuando editas un input
+function updateTopBuyerData(index, field, value) {
+    if (field === 'totalTickets') {
+        currentTopBuyers[index][field] = Number(value);
+    } else if (field === 'name') {
+        // Separar nombre y apellido si es posible
+        const parts = value.trim().split(' ');
+        currentTopBuyers[index].firstName = parts[0] || '';
+        currentTopBuyers[index].lastName = parts.slice(1).join(' ') || '';
+    } else {
+        currentTopBuyers[index][field] = value;
+    }
+    console.log('Top actualizado:', currentTopBuyers[index]);
+}
+
+// 4. Conectar los listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Conectar el botón de calcular
+    document.getElementById('btn-calc-top')?.addEventListener('click', calcularTopCompradores);
+    
+    // ... tus otros listeners ...
+});
+
+// Necesitamos mostrar la sección solo cuando se selecciona una rifa
+// Agrega esto al final de tu función existente `onChangeRaffleWinners()`:
+
+  // Mostrar la sección de Top Compradores
+const topSection = document.getElementById('top-buyers-section');
+  if (topSection) {
+      topSection.classList.remove('hidden');
+      // Limpiar lista anterior
+      document.getElementById('top-buyers-list').innerHTML = '<p class="text-gray-500 italic">Haz clic en calcular.</p>';
+      document.getElementById('top-buyers-actions').classList.add('hidden');
+  }

@@ -317,7 +317,23 @@
           <select id="winners-place-select" class="w-full bg-gray-900 border border-white/10 rounded-lg px-3 py-2 text-base"></select>
         </div>
       </div>
+      <div id="top-buyers-section" class="mt-8 border-t border-gray-800 pt-6 hidden">
+            <h3 class="text-xl font-bold text-green-400 mb-4">🏆 Top Compradores</h3>
+            
+            <button id="btn-calc-top" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-calculator"></i> Calcular Automático
+            </button>
 
+            <div id="top-buyers-list" class="space-y-4">
+                <p class="text-gray-500 italic">Selecciona una rifa y haz clic en calcular.</p>
+            </div>
+
+             <div id="top-buyers-actions" class="mt-4 hidden">
+                 <button id="btn-top-image" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded font-bold flex items-center gap-2">
+                    <i class="fas fa-image"></i> Generar Imagen Top 3
+                </button>
+            </div>
+        </div>
       <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
         <button id="btn-winner-lookup" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-black font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Buscar</button>
         <button id="btn-winner-save"   class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Guardar ganador</button>
