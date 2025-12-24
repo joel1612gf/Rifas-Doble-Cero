@@ -990,36 +990,45 @@ if (!isValidName(firstName) || !isValidName(lastName) || !isValidPhoneVE(phone) 
       const err = await res.text();
       throw new Error(`Error al registrar la compra: ${err}`);
     }
-    // === INICIO PIXEL FACEBOOK (Code Injection) ===
+    // === INICIO PIXEL FACEBOOK PRO (Advanced Matching + Purchase) ===
     try {
-        // 1. Calcular montos en USD para Facebook (Datos sólidos)
+        // ID de tu Píxel (Lo tomamos del mensaje que me pasaste)
+        const PIXEL_ID = '3648115792156539';
+
+        // 1. Preparar datos limpios del usuario
+        let telefonoPixel = (window.lastPurchasePhone || phone || '').replace(/\D/g, '');
+        if (!telefonoPixel.startsWith('58') && telefonoPixel.length === 10) {
+            telefonoPixel = '58' + telefonoPixel; // Agregamos 58 si falta
+        }
+        const emailPixel = email ? email.trim().toLowerCase() : '';
+        const nombrePixel = firstName ? firstName.trim().toLowerCase() : '';
+        const apellidoPixel = lastName ? lastName.trim().toLowerCase() : '';
+
+        // 2. Calcular montos
         const precioUnitarioUsd = Number(rifaSeleccionada.priceUsd) || 0;
         const totalUsd = precioUnitarioUsd * (numerosSeleccionados.length || 0);
 
-        // 2. Preparar datos del usuario (Advanced Matching)
-        // Usamos las variables 'firstName', 'lastName', 'email' que ya tienes definidas arriba en tu función
-        let telefonoPixel = (window.lastPurchasePhone || phone || '').replace(/\D/g, '');
-        if (!telefonoPixel.startsWith('58') && telefonoPixel.length === 10) {
-            telefonoPixel = '58' + telefonoPixel;
-        }
-
-        // 3. Disparar el evento PURCHASE
         if (typeof fbq === 'function') {
+            // ---> AQUÍ ESTÁ LA SOLUCIÓN AL ERROR <---
+            // Llamamos a 'init' nuevamente CON LOS DATOS para activar Coincidencias Manuales
+            fbq('init', PIXEL_ID, {
+                em: emailPixel, // Email
+                ph: telefonoPixel, // Phone
+                fn: nombrePixel, // First Name
+                ln: apellidoPixel // Last Name
+            });
+
+            // 3. Luego disparamos la compra (ahora el pixel ya sabe quién es el usuario)
             fbq('track', 'Purchase', {
                 value: totalUsd,
-                currency: 'USD', // ¡Esto soluciona el error de divisa!
+                currency: 'USD',
                 content_name: rifaSeleccionada.title,
                 content_ids: [rifaSeleccionada._id],
                 content_type: 'product',
-                num_items: numerosSeleccionados.length,
-                user_data: {
-                    fn: firstName ? firstName.toLowerCase() : '',
-                    ln: lastName ? lastName.toLowerCase() : '',
-                    em: email ? email.toLowerCase() : '',
-                    ph: telefonoPixel
-                }
+                num_items: numerosSeleccionados.length
             });
-            console.log('✅ Pixel Purchase enviado: $' + totalUsd);
+            
+            console.log('✅ Pixel actualizado con Datos de Usuario y Purchase enviado ($' + totalUsd + ')');
         }
     } catch (errPixel) {
         console.warn('Error enviando Pixel:', errPixel);
