@@ -1642,15 +1642,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ... tus otros listeners ...
 });
 
+// 1. Guardar Ganador (Corregido)
 async function guardarTop1ComoGanador() {
     if (!currentTopBuyers || currentTopBuyers.length === 0) return;
     
     const top1 = currentTopBuyers[0];
     const raffleId = winnersState.selectedRaffle?._id;
 
-    if (!confirm(`¿Deseas guardar a ${top1.firstName} ${top1.lastName} como ganador del 2do Premio?`)) {
-        return;
-    }
+    if (!confirm(`¿Deseas guardar a ${top1.firstName} ${top1.lastName} como ganador del 2do Premio?`)) return;
 
     try {
         const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
@@ -1661,20 +1660,29 @@ async function guardarTop1ComoGanador() {
                 firstName: top1.firstName,
                 lastName: top1.lastName,
                 phone: top1.phone,
-                // --- CAMBIO CLAVE AQUÍ ---
-                number: top1.totalTickets, // Enviamos el total de tickets como "número"
+                number: Number(top1.totalTickets), // Aseguramos que sea un número
                 status: 'aprobada'
             })
         });
 
         if (res.ok) {
-            alert('¡Ganador del 2do Premio guardado con éxito!');
+            alert('¡Ganador del 2do Premio guardado!');
             await onChangeRaffleWinners(); 
         }
-    } catch (e) {
-        alert('Error al guardar el ganador');
-    }
+    } catch (e) { alert('Error al guardar'); }
 }
+
+// 2. Botón de Imagen (Fijado para que siempre descargue)
+document.addEventListener('DOMContentLoaded', () => {
+    // Usamos una forma más robusta de conectar el botón
+    const btnTopImg = document.getElementById('btn-top-image');
+    if (btnTopImg) {
+        btnTopImg.onclick = (e) => {
+            e.preventDefault();
+            generarImagenTop3();
+        };
+    }
+});
 
 // --- CORRECCIÓN TAREA 4: Generador de Imagen Top 3 (Versión Estable) ---
 async function generarImagenTop3() {
