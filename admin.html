@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Panel Admin - Rifas Doble Cero</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen font-[Montserrat]">
@@ -48,6 +49,7 @@
               <button id="nav-raffles"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('raffles')">Rifas</button>
               <button id="nav-payments"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('payments')">Verificar pagos</button>
               <button id="nav-winners"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('winners')">Ganadores</button>
+              <button id="nav-stats"     class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('stats')">Estadísticas</button>
               <button id="nav-contacts"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('contacts')">Contactos</button>
               <button class="nav-link font-bold text-red-400" onclick="logoutAdmin()">Cerrar sesión</button>
             </div>
@@ -408,7 +410,23 @@
     Tip: el botón WhatsApp abre el chat con el número en formato internacional.
   </p>
 </section>
+<section id="section-stats" class="admin-section hidden p-6">
+    <h2 class="text-3xl font-extrabold text-green-400 mb-8 flex items-center gap-2">
+        <i class="fas fa-chart-line"></i> Análisis de Negocio
+    </h2>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
+            <h3 class="text-white font-bold mb-4">Ventas de los últimos días</h3>
+            <canvas id="chart-ventas-dias"></canvas>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
+            <h3 class="text-white font-bold mb-4">Actividad por hora (Peak Hours)</h3>
+            <canvas id="chart-horas"></canvas>
+        </div>
+    </div>
+</section>
 <script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
 <!-- Librería para exportar a imagen -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>

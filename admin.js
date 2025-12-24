@@ -198,13 +198,15 @@ function showSection(section) {
   const raffles   = document.getElementById('section-raffles');
   const payments  = document.getElementById('section-payments');
   const winners   = document.getElementById('section-winners');
-  const contacts  = document.getElementById('section-contacts'); // NUEVO
+  const contacts  = document.getElementById('section-contacts');
+  const stats     = document.getElementById('section-stats'); // NUEVO
 
   // Mostrar/Ocultar secciones
   if (raffles)  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
   if (payments) payments.style.display = (section === 'payments') ? 'block' : 'none';
   if (winners)  winners.style.display  = (section === 'winners')  ? 'block' : 'none';
   if (contacts) contacts.style.display = (section === 'contacts') ? 'block' : 'none'; // NUEVO
+  if (stats)    stats.style.display    = (section === 'stats')    ? 'block' : 'none'; // NUEVO
 
   // Marcar activo en navbar
   const links = {
@@ -212,6 +214,7 @@ function showSection(section) {
     payments:  document.getElementById('nav-payments'),
     winners:   document.getElementById('nav-winners'),
     contacts:  document.getElementById('nav-contacts'), // NUEVO
+    stats:     document.getElementById('nav-stats')     // NUEVO
   };
   Object.entries(links).forEach(([key, el]) => {
     if (!el) return;
@@ -230,6 +233,7 @@ function showSection(section) {
   if (section === 'payments') loadPayments('viewer');
   if (section === 'winners')  loadWinnersInit();
   if (section === 'contacts') loadContacts(); // NUEVO
+  if (section === 'stats')    cargarEstadisticas();    // NUEVO
 
 }
 
@@ -1831,5 +1835,66 @@ async function generarImagenTop3() {
     } catch (error) {
         console.error("Error:", error);
         alert("Hubo un error al generar la imagen.");
+    }
+}
+
+// --- VARIABLES GLOBALES PARA GRÁFICOS ---
+let chartVentas = null;
+let chartHoras = null;
+
+// --- FUNCIÓN PARA CARGAR LAS ESTADÍSTICAS ---
+async function cargarEstadisticas() {
+    try {
+        const res = await fetchWithAuth(`${API}/api/admin/stats`);
+        const data = await res.json();
+
+        // 1. Preparar datos para Ventas por Día (Línea)
+        const diasLabels = Object.keys(data.ventasPorDia).sort();
+        const diasValues = diasLabels.map(label => data.ventasPorDia[label]);
+
+        if (chartVentas) chartVentas.destroy();
+        const ctxV = document.getElementById('chart-ventas-dias').getContext('2d');
+        chartVentas = new Chart(ctxV, {
+            type: 'line',
+            data: {
+                labels: diasLabels,
+                datasets: [{
+                    label: 'Tickets Vendidos',
+                    data: diasValues,
+                    borderColor: '#34d399',
+                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { 
+                responsive: true,
+                plugins: { legend: { display: false } } 
+            }
+        });
+
+        // 2. Preparar datos para Horas Pico (Barras)
+        const horasLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+        
+        if (chartHoras) chartHoras.destroy();
+        const ctxH = document.getElementById('chart-horas').getContext('2d');
+        chartHoras = new Chart(ctxH, {
+            type: 'bar',
+            data: {
+                labels: horasLabels,
+                datasets: [{
+                    label: 'Ventas por Hora',
+                    data: data.horasPico,
+                    backgroundColor: '#fbbf24'
+                }]
+            },
+            options: { 
+                responsive: true,
+                plugins: { legend: { display: false } } 
+            }
+        });
+
+    } catch (e) {
+        console.error("Error cargando estadísticas:", e);
     }
 }

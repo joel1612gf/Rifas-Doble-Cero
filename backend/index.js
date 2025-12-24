@@ -710,44 +710,42 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   }
 });
 
-// --- RUTA PARA ESTADÍSTICAS (TAREA 2) ---
+// --- RUTA DE ESTADÍSTICAS PARA EL ADMIN ---
 app.get('/api/admin/stats', async (req, res) => {
   try {
-    const compras = await Purchase.find({ status: 'aprobado' });
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'No autorizado' });
+    jwt.verify(token, JWT_SECRET);
+
+    // Buscamos todas las compras aprobadas
+    const compras = await Purchase.find({ status: { $regex: /^aprobado|^aprobada/i } });
     
-    // Aquí el backend procesará los datos para enviarlos "masticaditos" a Chart.js
     const stats = {
-      ventasPorDia: {},
-      totalMes: 0,
-      horasPico: Array(24).fill(0),
+      totalRecaudado: 0,
+      ventasPorDia: {}, // { "2023-12-20": 5, ... }
+      horasPico: Array(24).fill(0), // [0,0,0... para las 24hrs]
+      rifasMasVendidas: {}
     };
 
     compras.forEach(c => {
-      const fecha = new Date(c.createdAt).toISOString().slice(0, 10);
-      const hora = new Date(c.createdAt).getHours();
-      const monto = Number(c.amount) || 0;
+      const fechaObj = new Date(c.createdAt);
+      const fecha = fechaObj.toISOString().slice(0, 10);
+      const hora = fechaObj.getHours();
 
+      // Sumar al día
       stats.ventasPorDia[fecha] = (stats.ventasPorDia[fecha] || 0) + 1;
+      
+      // Sumar a la hora
       stats.horasPico[hora]++;
-      // Lógica de suma mensual, etc.
+      
+      // Intentar sumar monto si existe amount
+      if(c.amount) stats.totalRecaudado += Number(c.amount);
     });
 
     res.json(stats);
   } catch (err) {
-    res.status(500).send(err.message);
+    res.status(500).json({ error: err.message });
   }
-});
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Servidor backend escuchando en puerto ${PORT}`);
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({
-    ok: true,
-    uptime: process.uptime(),
-    env: process.env.NODE_ENV || 'unknown'
-  });
 });
 
 // --- RUTA TOP COMPRADORES (VERSIÓN DEFINITIVA) ---
