@@ -366,12 +366,26 @@ async function submitRaffleForm(e) {
     const priceUsd = Number(document.getElementById('raffle-priceUsd').value) || 0;
     const drawDate = document.getElementById('raffle-date').value;
     const totalNumbers = Number(document.getElementById('raffle-totalNumbers').value);
-    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1; // <-- AÑADIDO (TAREA 6)
-    const status = document.getElementById('raffle-status').value;
+    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1; 
+    
+    // CAMBIO: Usamos 'let' para poder corregir el estado dinámicamente
+    let status = document.getElementById('raffle-status').value;
+    
     const resultImg1 = document.getElementById('raffle-resultImg1').value;
     const resultImg2 = document.getElementById('raffle-resultImg2').value;
     const isFinished = document.getElementById('raffle-isFinished').checked;
     const isDelivered = document.getElementById('raffle-isDelivered').checked;
+
+    // === FIX DE ESTADO: Sincronizar Checkbox con Status ===
+    if (isFinished) {
+        status = 'finalizada';
+    } else {
+        // Si NO está finalizada (check vacío) pero el status seguía diciendo 'finalizada', lo pasamos a 'activa'
+        if (status === 'finalizada') {
+            status = 'activa';
+        }
+    }
+    // ======================================================
 
     // Metemos las imágenes en un array si existen
     const lotteryResultImages = [];
@@ -1844,20 +1858,21 @@ async function generarImagenTop3() {
 }
 
 
-// Fíjate en el "async" antes de function 👇
+
+// === FUNCIÓN CORREGIDA Y COMPLETA ===
 async function cargarEstadisticas() {
-    console.log("Iniciando carga de estadísticas..."); // Log para confirmar que arranca
+    console.log("Iniciando carga de estadísticas..."); 
     try {
         const res = await fetchWithAuth(`${API}/api/admin/stats`);
         if (!res.ok) throw new Error('Error al obtener datos');
         
         const data = await res.json();
-        console.log("Datos recibidos:", data); // Verás la data en la consola del navegador
+        console.log("Datos recibidos:", data); 
 
         // 1. Gráfico de Línea (Ventas por Día)
         const ctxV = document.getElementById('chart-ventas-dias');
         if (chartVentas) {
-            chartVentas.destroy(); // Destruimos el anterior para no sobreponer
+            chartVentas.destroy();
         }
         
         const diasLabels = Object.keys(data.ventasPorDia || {}).sort();
@@ -1870,7 +1885,7 @@ async function cargarEstadisticas() {
                 datasets: [{
                     label: 'Tickets Vendidos',
                     data: diasValues.length ? diasValues : [0],
-                    borderColor: '#34d399', // Verde neón
+                    borderColor: '#34d399', 
                     backgroundColor: 'rgba(52, 211, 153, 0.1)',
                     borderWidth: 2,
                     fill: true,
@@ -1884,15 +1899,8 @@ async function cargarEstadisticas() {
                 maintainAspectRatio: false, 
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#9ca3af' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#9ca3af' }
-                    }
+                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
                 }
             }
         });
@@ -1903,9 +1911,7 @@ async function cargarEstadisticas() {
             chartHoras.destroy();
         }
 
-        // Generamos etiquetas 0:00 a 23:00
         const horasLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
-        // Aseguramos que data.horasPico sea un array
         const horasData = Array.isArray(data.horasPico) ? data.horasPico : Array(24).fill(0);
         
         chartHoras = new Chart(ctxH, {
@@ -1915,7 +1921,7 @@ async function cargarEstadisticas() {
                 datasets: [{
                     label: 'Ventas',
                     data: horasData,
-                    backgroundColor: '#fbbf24', // Dorado/Amarillo
+                    backgroundColor: '#fbbf24', 
                     borderRadius: 4
                 }]
             },
@@ -1924,137 +1930,53 @@ async function cargarEstadisticas() {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#9ca3af' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#9ca3af', maxTicksLimit: 12 } // Mostrar menos horas si se amontonan
-                    }
+                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 12 } }
                 }
             }
         });
+
+        // 3. NUEVO: Gráfico de Barras Horizontales (Rifas) - ¡AHORA SÍ ESTÁ DENTRO!
+        const ctxRifas = document.getElementById('chart-rifas-ranking');
+        // Verificamos que el canvas exista en el HTML para evitar errores
+        if (ctxRifas) {
+            if (chartRifas) {
+                chartRifas.destroy();
+            }
+
+            // Ordenamos las rifas de mayor a menor venta
+            const rifasEntries = Object.entries(data.rifasMasVendidas || {})
+                .sort(([,a], [,b]) => b - a); 
+            
+            const rifasLabels = rifasEntries.map(([key]) => key);
+            const rifasValues = rifasEntries.map(([,val]) => val);
+
+            chartRifas = new Chart(ctxRifas, {
+                type: 'bar',
+                data: {
+                    labels: rifasLabels.length ? rifasLabels : ['Sin ventas aún'],
+                    datasets: [{
+                        label: 'Tickets Vendidos',
+                        data: rifasValues.length ? rifasValues : [0],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Barras horizontales
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
+                        y: { grid: { display: false }, ticks: { color: '#e5e7eb', font: { weight: 'bold' } } }
+                    }
+                }
+            });
+        }
 
     } catch (err) {
         console.error("Error en estadísticas:", err);
-    }
-}
-// ... (código anterior de chartHoras) ...
-
-        // 3. NUEVO: Gráfico de Barras Horizontales (Rifas)
-        const ctxRifas = document.getElementById('chart-rifas-ranking');
-        if (chartRifas) {
-            chartRifas.destroy();
-        }
-
-        // Ordenamos las rifas de mayor a menor venta
-        const rifasEntries = Object.entries(data.rifasMasVendidas || {})
-            .sort(([,a], [,b]) => b - a); // Orden descendente
-        
-        const rifasLabels = rifasEntries.map(([key]) => key);
-        const rifasValues = rifasEntries.map(([,val]) => val);
-
-        chartRifas = new Chart(ctxRifas, {
-            type: 'bar',
-            data: {
-                labels: rifasLabels.length ? rifasLabels : ['Sin ventas aún'],
-                datasets: [{
-                    label: 'Tickets Vendidos',
-                    data: rifasValues.length ? rifasValues : [0],
-                    backgroundColor: [
-                        '#3b82f6', // Azul
-                        '#10b981', // Verde
-                        '#f59e0b', // Amarillo
-                        '#ef4444', // Rojo
-                        '#8b5cf6'  // Violeta
-                    ],
-                    borderWidth: 0,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                indexAxis: 'y', // <--- IMPORTANTE: Hace que las barras sean horizontales
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#9ca3af' }
-                    },
-                    y: {
-                        grid: { display: false },
-                        ticks: { color: '#e5e7eb', font: { weight: 'bold' } }
-                    }
-                }
-            }
-        });
-// ... al final de admin.js ...
-
-async function cargarEstadisticas() {
-    console.log("Iniciando carga de estadísticas..."); // Log para verificar que entra
-
-    try {
-        const res = await fetchWithAuth(`${API}/api/admin/stats`);
-        const data = await res.json();
-        console.log("Datos recibidos:", data); // Log para ver los datos
-
-        // 1. Gráfico Ventas
-        const ctxV = document.getElementById('chart-ventas-dias');
-        if (chartVentas) chartVentas.destroy();
-
-        const diasLabels = Object.keys(data.ventasPorDia || {}).sort();
-        const diasValues = diasLabels.map(label => data.ventasPorDia[label]);
-
-        chartVentas = new Chart(ctxV, {
-            type: 'line',
-            data: {
-                labels: diasLabels.length ? diasLabels : ['Sin datos'],
-                datasets: [{
-                    label: 'Tickets',
-                    data: diasValues.length ? diasValues : [0],
-                    borderColor: '#34d399',
-                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, // <--- CLAVE PARA QUE SE VEA
-                plugins: { legend: { display: false } }
-            }
-        });
-
-        // 2. Gráfico Horas
-        const ctxH = document.getElementById('chart-horas');
-        if (chartHoras) chartHoras.destroy();
-
-        const horasLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
-        
-        chartHoras = new Chart(ctxH, {
-            type: 'bar',
-            data: {
-                labels: horasLabels,
-                datasets: [{
-                    label: 'Ventas',
-                    data: data.horasPico || [],
-                    backgroundColor: '#fbbf24'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, // <--- CLAVE PARA QUE SE VEA
-                plugins: { legend: { display: false } }
-            }
-        });
-
-    } catch (e) {
-        console.error("Error en estadísticas:", e);
     }
 }
