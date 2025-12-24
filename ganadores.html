@@ -54,8 +54,12 @@
                 const res = await fetch(`${API}/api/raffles`);
                 const rifas = await res.json();
                 
-                // Filtramos solo las que tienen ganadores cargados
-                const finalizadas = rifas.filter(r => r.winners && r.winners.length > 0);
+                // Filtramos solo las que tienen ganadores cargados Y están finalizadas
+                const finalizadas = rifas.filter(r => 
+                    r.winners && 
+                    r.winners.length > 0 && 
+                    (r.status === 'finalizada' || r.isFinished === true)
+                );
 
                 if (finalizadas.length === 0) {
                     container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Aún no hay rifas finalizadas. ¡Sé tú el próximo ganador!</div>';
