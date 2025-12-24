@@ -118,6 +118,10 @@ let paymentsPending = [];       // ...
 let payFilters = { method: '', from: null, to: null, ref: '' }; // NUEVO
 let currentIdx = 0;
 
+// === ESTADÍSTICAS (Variables Globales) ===  <-- AÑADE ESTO
+let chartVentas = null;
+let chartHoras = null;
+
 // === AUTH ===
 
 function showLogin() {
@@ -1838,63 +1842,165 @@ async function generarImagenTop3() {
     }
 }
 
-// --- VARIABLES GLOBALES PARA GRÁFICOS ---
-let chartVentas = null;
-let chartHoras = null;
 
-// --- FUNCIÓN PARA CARGAR LAS ESTADÍSTICAS ---
+// Fíjate en el "async" antes de function 👇
 async function cargarEstadisticas() {
+    console.log("Iniciando carga de estadísticas..."); // Log para confirmar que arranca
     try {
         const res = await fetchWithAuth(`${API}/api/admin/stats`);
+        if (!res.ok) throw new Error('Error al obtener datos');
+        
         const data = await res.json();
+        console.log("Datos recibidos:", data); // Verás la data en la consola del navegador
 
-        // 1. Preparar datos para Ventas por Día (Línea)
-        const diasLabels = Object.keys(data.ventasPorDia).sort();
+        // 1. Gráfico de Línea (Ventas por Día)
+        const ctxV = document.getElementById('chart-ventas-dias');
+        if (chartVentas) {
+            chartVentas.destroy(); // Destruimos el anterior para no sobreponer
+        }
+        
+        const diasLabels = Object.keys(data.ventasPorDia || {}).sort();
         const diasValues = diasLabels.map(label => data.ventasPorDia[label]);
 
-        if (chartVentas) chartVentas.destroy();
-        const ctxV = document.getElementById('chart-ventas-dias').getContext('2d');
         chartVentas = new Chart(ctxV, {
             type: 'line',
             data: {
-                labels: diasLabels,
+                labels: diasLabels.length ? diasLabels : ['Sin datos'],
                 datasets: [{
                     label: 'Tickets Vendidos',
-                    data: diasValues,
+                    data: diasValues.length ? diasValues : [0],
+                    borderColor: '#34d399', // Verde neón
+                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#ffffff',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+
+        // 2. Gráfico de Barras (Horas Pico)
+        const ctxH = document.getElementById('chart-horas');
+        if (chartHoras) {
+            chartHoras.destroy();
+        }
+
+        // Generamos etiquetas 0:00 a 23:00
+        const horasLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+        // Aseguramos que data.horasPico sea un array
+        const horasData = Array.isArray(data.horasPico) ? data.horasPico : Array(24).fill(0);
+        
+        chartHoras = new Chart(ctxH, {
+            type: 'bar',
+            data: {
+                labels: horasLabels,
+                datasets: [{
+                    label: 'Ventas',
+                    data: horasData,
+                    backgroundColor: '#fbbf24', // Dorado/Amarillo
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af', maxTicksLimit: 12 } // Mostrar menos horas si se amontonan
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error("Error en estadísticas:", err);
+    }
+}
+// ... al final de admin.js ...
+
+async function cargarEstadisticas() {
+    console.log("Iniciando carga de estadísticas..."); // Log para verificar que entra
+
+    try {
+        const res = await fetchWithAuth(`${API}/api/admin/stats`);
+        const data = await res.json();
+        console.log("Datos recibidos:", data); // Log para ver los datos
+
+        // 1. Gráfico Ventas
+        const ctxV = document.getElementById('chart-ventas-dias');
+        if (chartVentas) chartVentas.destroy();
+
+        const diasLabels = Object.keys(data.ventasPorDia || {}).sort();
+        const diasValues = diasLabels.map(label => data.ventasPorDia[label]);
+
+        chartVentas = new Chart(ctxV, {
+            type: 'line',
+            data: {
+                labels: diasLabels.length ? diasLabels : ['Sin datos'],
+                datasets: [{
+                    label: 'Tickets',
+                    data: diasValues.length ? diasValues : [0],
                     borderColor: '#34d399',
                     backgroundColor: 'rgba(52, 211, 153, 0.1)',
                     fill: true,
                     tension: 0.4
                 }]
             },
-            options: { 
+            options: {
                 responsive: true,
-                plugins: { legend: { display: false } } 
+                maintainAspectRatio: false, // <--- CLAVE PARA QUE SE VEA
+                plugins: { legend: { display: false } }
             }
         });
 
-        // 2. Preparar datos para Horas Pico (Barras)
+        // 2. Gráfico Horas
+        const ctxH = document.getElementById('chart-horas');
+        if (chartHoras) chartHoras.destroy();
+
         const horasLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
         
-        if (chartHoras) chartHoras.destroy();
-        const ctxH = document.getElementById('chart-horas').getContext('2d');
         chartHoras = new Chart(ctxH, {
             type: 'bar',
             data: {
                 labels: horasLabels,
                 datasets: [{
-                    label: 'Ventas por Hora',
-                    data: data.horasPico,
+                    label: 'Ventas',
+                    data: data.horasPico || [],
                     backgroundColor: '#fbbf24'
                 }]
             },
-            options: { 
+            options: {
                 responsive: true,
-                plugins: { legend: { display: false } } 
+                maintainAspectRatio: false, // <--- CLAVE PARA QUE SE VEA
+                plugins: { legend: { display: false } }
             }
         });
 
     } catch (e) {
-        console.error("Error cargando estadísticas:", e);
+        console.error("Error en estadísticas:", e);
     }
 }

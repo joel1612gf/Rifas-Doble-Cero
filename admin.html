@@ -410,21 +410,25 @@
     Tip: el botón WhatsApp abre el chat con el número en formato internacional.
   </p>
 </section>
-<section id="section-stats" class="admin-section hidden p-6">
+<section id="section-stats" class="hidden p-6">
     <h2 class="text-3xl font-extrabold text-green-400 mb-8 flex items-center gap-2">
         <i class="fas fa-chart-line"></i> Análisis de Negocio
     </h2>
-
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
             <h3 class="text-white font-bold mb-4">Ventas de los últimos días</h3>
-            <canvas id="chart-ventas-dias"></canvas>
+            <div class="h-64 w-full">
+                <canvas id="chart-ventas-dias"></canvas>
+            </div>
         </div>
 
         <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
             <h3 class="text-white font-bold mb-4">Actividad por hora (Peak Hours)</h3>
-            <canvas id="chart-horas"></canvas>
+            <div class="h-64 w-full">
+                <canvas id="chart-horas"></canvas>
+            </div>
         </div>
+    </div>
     </div>
 </section>
 <script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
