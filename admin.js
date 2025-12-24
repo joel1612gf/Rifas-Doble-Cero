@@ -1676,130 +1676,121 @@ async function guardarTop1ComoGanador() {
     }
 }
 
+// --- CORRECCIÓN TAREA 4: Generador de Imagen Top 3 (Versión Estable) ---
 async function generarImagenTop3() {
-    if (currentTopBuyers.length < 1) {
+    if (!currentTopBuyers || currentTopBuyers.length < 1) {
         alert("Primero calcula el top de compradores.");
         return;
     }
 
-    const W = 1080, H = 1920; // Formato Vertical
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-
-    // === 1. FONDO & TEXTURA ===
-    // Creamos un gradiente radial para el efecto de "luz central"
-    const bgGradient = ctx.createRadialGradient(W/2, H/3, 100, W/2, H/2, W);
-    bgGradient.addColorStop(0, '#1a2230');   // Centro más claro
-    bgGradient.addColorStop(0.8, '#0a0e17'); // Bordes oscuros
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, W, H);
-
-    // === 2. LOGO (Arriba al centro) ===
     try {
+        const W = 1080, H = 1920; 
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        // 1. FONDO CON GRADIENTE (Efecto Luz Central)
+        const bgGradient = ctx.createRadialGradient(W/2, H/3, 100, W/2, H/2, W);
+        bgGradient.addColorStop(0, '#1a2230');   
+        bgGradient.addColorStop(0.8, '#0a0e17'); 
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, W, H);
+
+        // 2. DIBUJAR LOGO
         const logoImg = new Image();
-        logoImg.src = 'img/logopngcolorweb2.png'; // Asegúrate de que esta ruta sea correcta
-        await new Promise(r => logoImg.onload = r);
-        ctx.drawImage(logoImg, W/2 - 120, 80, 240, 240);
-    } catch (e) {
-        console.warn("Logo no encontrado, omitiendo...");
-    }
-
-    // === 3. TÍTULO PRINCIPAL ===
-    ctx.font = '900 60px Montserrat, sans-serif'; // Usamos la fuente de la web
-    ctx.textAlign = 'center';
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('TOP 3', W/2, 380);
-    
-    ctx.fillStyle = '#34d399'; // Verde Doble Cero
-    ctx.font = '900 80px Montserrat, sans-serif';
-    ctx.fillText('COMPRADORES', W/2, 460);
-
-    // === 4. EL PODIO (Dibujar las cajas) ===
-    // Orden de dibujo: 2do (Izq) -> 3ro (Der) -> 1ero (Centro, encima)
-    const buyers = currentTopBuyers.slice(0, 3);
-    
-    // Configuración de cada puesto
-    const config = {
-        2: { x: 70,  y: 850, w: 320, h: 600, color: '#9ca3af' }, // Plata
-        3: { x: 690, y: 950, w: 320, h: 500, color: '#b45309' }, // Bronce
-        1: { x: 340, y: 700, w: 400, h: 750, color: '#fbbf24' }  // Oro
-    };
-
-    // Helper para dibujar cada bloque
-    const drawBlock = (rank) => {
-        const buyer = buyers[rank-1];
-        if (!buyer) return; // Si no hay suficientes compradores, no dibujamos
-
-        const { x, y, w, h, color } = config[rank];
-
-        // Caja con borde y sombra (estilo neón)
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 20;
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; // Azul oscuro semi-transparente
-        drawRoundedRect(ctx, x, y, w, h, 25);
-        ctx.fill();
-        ctx.shadowBlur = 0; // Reset sombra
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = rank === 1 ? 6 : 4;
-        drawRoundedRect(ctx, x, y, w, h, 25);
-        ctx.stroke();
-
-        // --- CONTENIDO DEL BLOQUE ---
-        // 1. Medalla / Puesto
-        ctx.fillStyle = color;
-        ctx.font = '900 100px Montserrat, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(rank.toString(), x + w/2, y + 140);
-        
-        if (rank === 1) {
-            ctx.font = '60px Montserrat, sans-serif';
-            ctx.fillText('👑', x + w/2, y + 220); // Corona para el rey
+        logoImg.src = 'img/logopngcolorweb2.png'; 
+        await new Promise((resolve) => {
+            logoImg.onload = resolve;
+            logoImg.onerror = () => { console.warn("Logo no cargado"); resolve(); };
+        });
+        if (logoImg.complete && logoImg.naturalWidth !== 0) {
+            ctx.drawImage(logoImg, W/2 - 120, 80, 240, 240);
         }
 
-        // 2. Nombre
+        // 3. TÍTULOS
+        ctx.textAlign = 'center';
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 45px Montserrat, sans-serif';
-        const nombre = `${buyer.firstName} ${buyer.lastName.charAt(0)}.`
-        ctx.fillText(nombre.toUpperCase(), x + w/2, y + rank === 1 ? 320 : 280);
-
-        // 3. Tickets (Resaltado)
-        ctx.fillStyle = rank === 1 ? '#fbbf24' : '#34d399';
-        ctx.font = '900 55px Montserrat, sans-serif';
-        ctx.fillText(buyer.totalTickets, x + w/2, y + rank === 1 ? 420 : 360);
+        ctx.font = '900 60px Montserrat, sans-serif';
+        ctx.fillText('TOP 3', W/2, 380);
         
-        ctx.font = 'bold 30px Montserrat, sans-serif';
-        ctx.fillText('TICKETS', x + w/2, y + rank === 1 ? 460 : 400);
-    };
+        ctx.fillStyle = '#34d399'; 
+        ctx.font = '900 80px Montserrat, sans-serif';
+        ctx.fillText('COMPRADORES', W/2, 460);
 
-    // ¡A dibujar en orden!
-    drawBlock(2);
-    drawBlock(3);
-    drawBlock(1);
+        // 4. CONFIGURACIÓN DEL PODIO (2do -> 3ro -> 1ero)
+        const buyers = currentTopBuyers.slice(0, 3);
+        const config = {
+            2: { x: 70,  y: 850, w: 320, h: 600, color: '#9ca3af' }, // Plata
+            3: { x: 690, y: 950, w: 320, h: 500, color: '#b45309' }, // Bronce
+            1: { x: 340, y: 700, w: 400, h: 750, color: '#fbbf24' }  // Oro
+        };
 
-    // === 5. FOOTER ===
-    ctx.fillStyle = '#6b7280'; // Gris claro
-    ctx.font = 'bold 35px Montserrat, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('DOBLECEROVE.COM', W/2, H - 100);
+        const drawBlock = (rank) => {
+            const buyer = buyers[rank-1];
+            if (!buyer) return;
 
-    // === 6. DESCARGAR IMAGEN ===
-    const link = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    link.download = `Top3_${winnersState.selectedRaffle?.title.substring(0, 10)}_${date}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-}
+            const { x, y, w, h, color } = config[rank];
 
-// Helper para bordes redondeados (si no lo tienes ya)
-function drawRoundedRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+            // Sombra neón
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)'; 
+            drawRoundedRect(ctx, x, y, w, h, 25);
+            ctx.fill();
+            ctx.shadowBlur = 0; 
+
+            // Borde
+            ctx.strokeStyle = color;
+            ctx.lineWidth = (rank === 1) ? 8 : 4;
+            ctx.stroke();
+
+            // Puesto (Número)
+            ctx.fillStyle = color;
+            ctx.font = '900 120px Montserrat, sans-serif';
+            ctx.fillText(rank.toString(), x + w/2, y + 140);
+            
+            if (rank === 1) {
+                ctx.font = '60px Montserrat, sans-serif';
+                ctx.fillText('👑', x + w/2, y + 210);
+            }
+
+            // Nombre (Corregido paréntesis)
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 40px Montserrat, sans-serif';
+            const nombreFull = `${buyer.firstName} ${buyer.lastName || ''}`.trim();
+            const nombreCorto = nombreFull.length > 15 ? nombreFull.substring(0, 13) + '..' : nombreFull;
+            ctx.fillText(nombreCorto.toUpperCase(), x + w/2, y + (rank === 1 ? 320 : 280));
+
+            // Tickets (Corregido paréntesis)
+            ctx.fillStyle = (rank === 1) ? '#fbbf24' : '#34d399';
+            ctx.font = '900 70px Montserrat, sans-serif';
+            ctx.fillText(buyer.totalTickets, x + w/2, y + (rank === 1 ? 430 : 380));
+            
+            ctx.font = 'bold 30px Montserrat, sans-serif';
+            ctx.fillText('TICKETS', x + w/2, y + (rank === 1 ? 470 : 420));
+        };
+
+        // Dibujar en orden de capas
+        drawBlock(2);
+        drawBlock(3);
+        drawBlock(1);
+
+        // 5. FOOTER
+        ctx.fillStyle = '#6b7280';
+        ctx.font = 'bold 35px Montserrat, sans-serif';
+        ctx.fillText('DOBLECEROVE.COM', W/2, H - 100);
+
+        // 6. DISPARAR DESCARGA (Más compatible)
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `Top3_Compradores_${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error("Error en el generador:", error);
+        alert("Hubo un error al generar la imagen. Revisa la consola.");
+    }
 }
