@@ -366,26 +366,12 @@ async function submitRaffleForm(e) {
     const priceUsd = Number(document.getElementById('raffle-priceUsd').value) || 0;
     const drawDate = document.getElementById('raffle-date').value;
     const totalNumbers = Number(document.getElementById('raffle-totalNumbers').value);
-    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1; 
-    
-    // CAMBIO: Usamos 'let' para poder corregir el estado dinámicamente
-    let status = document.getElementById('raffle-status').value;
-    
+    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1; // <-- AÑADIDO (TAREA 6)
+    const status = document.getElementById('raffle-status').value;
     const resultImg1 = document.getElementById('raffle-resultImg1').value;
     const resultImg2 = document.getElementById('raffle-resultImg2').value;
     const isFinished = document.getElementById('raffle-isFinished').checked;
     const isDelivered = document.getElementById('raffle-isDelivered').checked;
-
-    // === FIX DE ESTADO: Sincronizar Checkbox con Status ===
-    if (isFinished) {
-        status = 'finalizada';
-    } else {
-        // Si NO está finalizada (check vacío) pero el status seguía diciendo 'finalizada', lo pasamos a 'activa'
-        if (status === 'finalizada') {
-            status = 'activa';
-        }
-    }
-    // ======================================================
 
     // Metemos las imágenes en un array si existen
     const lotteryResultImages = [];
