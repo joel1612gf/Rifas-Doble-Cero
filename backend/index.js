@@ -819,3 +819,16 @@ app.get('/api/raffles/:id/top-buyers', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// ... (Aquí terminan tus rutas de /top-buyers y stats)
+
+// === IMPORTANTE: ESTO ES LO QUE LE HABLA A RENDER ===
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor corriendo y escuchando en el puerto ${PORT}`);
+});
+
+// Ruta de salud (Opcional pero recomendada para Render)
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
