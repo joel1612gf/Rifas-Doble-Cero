@@ -1573,44 +1573,37 @@ async function calcularTopCompradores() {
     }
 }
 
-// 2. Función para dibujar los inputs editables
 function renderTopBuyersList() {
     const listContainer = document.getElementById('top-buyers-list');
     listContainer.innerHTML = '';
 
-    currentTopBuyers.forEach((buyer, index) => {
+    // TAREA: Solo mostramos los 5 primeros para que no sea una lista infinita
+    const buyersToShow = currentTopBuyers.slice(0, 5);
+
+    buyersToShow.forEach((buyer, index) => {
         const place = index + 1;
-        // Colores para el 1, 2 y 3
         const medalColor = place === 1 ? 'text-yellow-400' : (place === 2 ? 'text-gray-300' : (place === 3 ? 'text-orange-400' : 'text-gray-500'));
         
         listContainer.innerHTML += `
             <div class="bg-gray-800 p-3 rounded-lg flex flex-col sm:flex-row gap-2 items-start sm:items-center border border-gray-700 relative" data-index="${index}">
-                <div class="font-bold text-lg ${medalColor} w-8 text-center shrink-0">
-                    #${place}
-                </div>
-                
+                <div class="font-bold text-lg ${medalColor} w-8 text-center shrink-0">#${place}</div>
                 <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
                     <input type="text" value="${buyer.firstName} ${buyer.lastName}" 
                         class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white text-sm focus:border-green-400 outline-none"
-                        placeholder="Nombre"
                         onchange="updateTopBuyerData(${index}, 'name', this.value)">
-                    
                     <input type="text" value="${buyer.phone}" 
                         class="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white text-sm focus:border-green-400 outline-none"
-                        placeholder="Teléfono"
                         onchange="updateTopBuyerData(${index}, 'phone', this.value)">
-
                     <div class="flex items-center">
                          <input type="number" value="${buyer.totalTickets}" min="1"
                             class="bg-gray-900 border border-gray-700 rounded-l px-2 py-1 text-white text-sm focus:border-green-400 outline-none w-full"
                             onchange="updateTopBuyerData(${index}, 'totalTickets', this.value)">
-                        <span class="bg-gray-700 border border-gray-700 border-l-0 rounded-r px-2 py-1 text-gray-300 text-sm">Tickets</span>
+                        <span class="bg-gray-700 border border-gray-700 border-l-0 rounded-r px-2 py-1 text-gray-300 text-sm">Tks</span>
                     </div>
                 </div>
-
                  ${place === 1 ? `
-                    <button onclick="guardarTop1ComoGanador()" title="Guardar como Ganador del 2do Premio"
-                        class="absolute top-2 right-2 sm:static sm:ml-2 bg-green-600 hover:bg-green-500 text-white p-2 rounded-full shadow-lg hover:scale-105 transition">
+                    <button onclick="guardarTop1ComoGanador()" title="Guardar como Ganador"
+                        class="sm:ml-2 bg-green-600 hover:bg-green-500 text-white p-2 rounded-full shadow-lg transition">
                         <i class="fas fa-trophy"></i>
                     </button>
                  ` : ''}
@@ -1684,121 +1677,110 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- CORRECCIÓN TAREA 4: Generador de Imagen Top 3 (Versión Estable) ---
 async function generarImagenTop3() {
     if (!currentTopBuyers || currentTopBuyers.length < 1) {
-        alert("Primero calcula el top de compradores.");
+        alert("Primero calcula el top.");
         return;
     }
 
-    try {
-        const W = 1080, H = 1920; 
-        const canvas = document.createElement('canvas');
-        canvas.width = W; canvas.height = H;
-        const ctx = canvas.getContext('2d');
+    const raffle = winnersState.selectedRaffle;
+    const buyers = currentTopBuyers.slice(0, 3); // Solo el Top 3 para la imagen
 
-        // 1. FONDO CON GRADIENTE (Efecto Luz Central)
-        const bgGradient = ctx.createRadialGradient(W/2, H/3, 100, W/2, H/2, W);
-        bgGradient.addColorStop(0, '#1a2230');   
-        bgGradient.addColorStop(0.8, '#0a0e17'); 
-        ctx.fillStyle = bgGradient;
-        ctx.fillRect(0, 0, W, H);
+    const W = 1080, H = 1920; 
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
 
-        // 2. DIBUJAR LOGO
-        const logoImg = new Image();
-        logoImg.src = 'img/logopngcolorweb2.png'; 
-        await new Promise((resolve) => {
-            logoImg.onload = resolve;
-            logoImg.onerror = () => { console.warn("Logo no cargado"); resolve(); };
-        });
-        if (logoImg.complete && logoImg.naturalWidth !== 0) {
-            ctx.drawImage(logoImg, W/2 - 120, 80, 240, 240);
-        }
+    // 1. FONDO (Negro sólido como el del ganador)
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, W, H);
 
-        // 3. TÍTULOS
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 60px Montserrat, sans-serif';
-        ctx.fillText('TOP 3', W/2, 380);
+    // 2. CABECERA (Logo Izquierda + Texto "doble cero")
+    const logoImg = new Image();
+    logoImg.src = 'img/logopngcolorweb2.png';
+    await new Promise(r => logoImg.onload = r);
+    ctx.drawImage(logoImg, 60, 60, 120, 120);
+    
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 60px Montserrat, sans-serif';
+    ctx.fillText('DOBLE CERO', 200, 140);
+
+    // 3. SEGUNDA LÍNEA (Fecha + MAXIMOS COMPRADORES)
+    ctx.font = 'bold 35px Montserrat, sans-serif';
+    ctx.fillStyle = '#6b7280'; // Gris
+    const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    ctx.fillText(fecha, 60, 240);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#34d399'; // Verde
+    ctx.font = '900 45px Montserrat, sans-serif';
+    ctx.fillText('MÁXIMOS COMPRADORES', W - 60, 240);
+
+    // 4. FOTO DE LA RIFA (Centrada)
+    const raffleImg = new Image();
+    raffleImg.crossOrigin = "anonymous";
+    raffleImg.src = raffle.image;
+    await new Promise(r => raffleImg.onload = r);
+    
+    // Dibujamos la imagen centrada con un borde verde
+    const imgW = 850, imgH = 550;
+    const imgX = (W - imgW) / 2, imgY = 320;
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(imgX - 5, imgY - 5, imgW + 10, imgH + 10);
+    ctx.drawImage(raffleImg, imgX, imgY, imgW, imgH);
+
+    // 5. PREMIO (Debajo de la foto)
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fbbf24'; // Oro/Amarillo
+    ctx.font = 'bold 50px Montserrat, sans-serif';
+    // Buscamos el premio del Top Comprador (place 2)
+    const premioTop = raffle.prizes.find(p => p.place === 2)?.description || "PREMIO ESPECIAL";
+    ctx.fillText(`PREMIO: ${premioTop.toUpperCase()}`, W/2, 950);
+
+    // 6. RECTÁNGULO DE POSICIONES (Gris oscuro)
+    ctx.fillStyle = '#111827';
+    drawRoundedRect(ctx, 60, 1030, 960, 680, 40);
+    ctx.fill();
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 55px Montserrat, sans-serif';
+    ctx.fillText('POSICIONES', 110, 1120);
+
+    // Listado de puestos
+    buyers.forEach((b, i) => {
+        const y = 1240 + (i * 140);
+        const name = `${b.firstName} ${b.lastName}`.toUpperCase();
         
-        ctx.fillStyle = '#34d399'; 
-        ctx.font = '900 80px Montserrat, sans-serif';
-        ctx.fillText('COMPRADORES', W/2, 460);
+        // Numero y Tickets
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 45px Montserrat, sans-serif';
+        const txtNum = `N°${i+1}: ${b.totalTickets} TICKETS`;
+        ctx.fillText(txtNum, 110, y);
+        
+        // Nombre (en color verde después de los tickets)
+        const offset = ctx.measureText(txtNum).width + 40;
+        ctx.fillStyle = '#34d399';
+        ctx.fillText(name, 110 + offset, y);
+    });
 
-        // 4. CONFIGURACIÓN DEL PODIO (2do -> 3ro -> 1ero)
-        const buyers = currentTopBuyers.slice(0, 3);
-        const config = {
-            2: { x: 70,  y: 850, w: 320, h: 600, color: '#9ca3af' }, // Plata
-            3: { x: 690, y: 950, w: 320, h: 500, color: '#b45309' }, // Bronce
-            1: { x: 340, y: 700, w: 400, h: 750, color: '#fbbf24' }  // Oro
-        };
+    // Última actualización
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#4b5563';
+    ctx.font = 'italic 30px Montserrat, sans-serif';
+    const ahora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    ctx.fillText(`Última actualización: hoy a las ${ahora}`, W/2, 1660);
 
-        const drawBlock = (rank) => {
-            const buyer = buyers[rank-1];
-            if (!buyer) return;
+    // 7. FOOTER
+    ctx.fillStyle = '#34d399';
+    ctx.font = '900 50px Montserrat, sans-serif';
+    ctx.fillText('DOBLECEROVE.COM', W/2, 1840);
 
-            const { x, y, w, h, color } = config[rank];
-
-            // Sombra neón
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 20;
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)'; 
-            drawRoundedRect(ctx, x, y, w, h, 25);
-            ctx.fill();
-            ctx.shadowBlur = 0; 
-
-            // Borde
-            ctx.strokeStyle = color;
-            ctx.lineWidth = (rank === 1) ? 8 : 4;
-            ctx.stroke();
-
-            // Puesto (Número)
-            ctx.fillStyle = color;
-            ctx.font = '900 120px Montserrat, sans-serif';
-            ctx.fillText(rank.toString(), x + w/2, y + 140);
-            
-            if (rank === 1) {
-                ctx.font = '60px Montserrat, sans-serif';
-                ctx.fillText('👑', x + w/2, y + 210);
-            }
-
-            // Nombre (Corregido paréntesis)
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 40px Montserrat, sans-serif';
-            const nombreFull = `${buyer.firstName} ${buyer.lastName || ''}`.trim();
-            const nombreCorto = nombreFull.length > 15 ? nombreFull.substring(0, 13) + '..' : nombreFull;
-            ctx.fillText(nombreCorto.toUpperCase(), x + w/2, y + (rank === 1 ? 320 : 280));
-
-            // Tickets (Corregido paréntesis)
-            ctx.fillStyle = (rank === 1) ? '#fbbf24' : '#34d399';
-            ctx.font = '900 70px Montserrat, sans-serif';
-            ctx.fillText(buyer.totalTickets, x + w/2, y + (rank === 1 ? 430 : 380));
-            
-            ctx.font = 'bold 30px Montserrat, sans-serif';
-            ctx.fillText('TICKETS', x + w/2, y + (rank === 1 ? 470 : 420));
-        };
-
-        // Dibujar en orden de capas
-        drawBlock(2);
-        drawBlock(3);
-        drawBlock(1);
-
-        // 5. FOOTER
-        ctx.fillStyle = '#6b7280';
-        ctx.font = 'bold 35px Montserrat, sans-serif';
-        ctx.fillText('DOBLECEROVE.COM', W/2, H - 100);
-
-        // 6. DISPARAR DESCARGA (Más compatible)
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `Top3_Compradores_${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-    } catch (error) {
-        console.error("Error en el generador:", error);
-        alert("Hubo un error al generar la imagen. Revisa la consola.");
-    }
+    // DESCARGAR
+    const link = document.createElement('a');
+    link.download = `TopCompradores_${raffle.title.substring(0,5)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
 }
