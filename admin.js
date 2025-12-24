@@ -121,6 +121,7 @@ let currentIdx = 0;
 // === ESTADÍSTICAS (Variables Globales) ===  <-- AÑADE ESTO
 let chartVentas = null;
 let chartHoras = null;
+let chartRifas = null; // <--- NUEVA
 
 // === AUTH ===
 
@@ -1940,6 +1941,59 @@ async function cargarEstadisticas() {
         console.error("Error en estadísticas:", err);
     }
 }
+// ... (código anterior de chartHoras) ...
+
+        // 3. NUEVO: Gráfico de Barras Horizontales (Rifas)
+        const ctxRifas = document.getElementById('chart-rifas-ranking');
+        if (chartRifas) {
+            chartRifas.destroy();
+        }
+
+        // Ordenamos las rifas de mayor a menor venta
+        const rifasEntries = Object.entries(data.rifasMasVendidas || {})
+            .sort(([,a], [,b]) => b - a); // Orden descendente
+        
+        const rifasLabels = rifasEntries.map(([key]) => key);
+        const rifasValues = rifasEntries.map(([,val]) => val);
+
+        chartRifas = new Chart(ctxRifas, {
+            type: 'bar',
+            data: {
+                labels: rifasLabels.length ? rifasLabels : ['Sin ventas aún'],
+                datasets: [{
+                    label: 'Tickets Vendidos',
+                    data: rifasValues.length ? rifasValues : [0],
+                    backgroundColor: [
+                        '#3b82f6', // Azul
+                        '#10b981', // Verde
+                        '#f59e0b', // Amarillo
+                        '#ef4444', // Rojo
+                        '#8b5cf6'  // Violeta
+                    ],
+                    borderWidth: 0,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y', // <--- IMPORTANTE: Hace que las barras sean horizontales
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: '#e5e7eb', font: { weight: 'bold' } }
+                    }
+                }
+            }
+        });
 // ... al final de admin.js ...
 
 async function cargarEstadisticas() {

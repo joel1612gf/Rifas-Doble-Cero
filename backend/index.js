@@ -742,26 +742,29 @@ app.get('/api/admin/stats', async (req, res) => {
       rifasMasVendidas: {}
     };
 
-    compras.forEach(c => {
+compras.forEach(c => {
       // Usamos createdAt para la fecha
       const fechaObj = new Date(c.createdAt);
       
-      // Truco: Ajuste manual para hora Venezuela (UTC-4) si es necesario
-      // fechaObj.setHours(fechaObj.getHours() - 4); 
+      const fecha = fechaObj.toISOString().slice(0, 10); 
+      const hora = fechaObj.getHours(); 
 
-      const fecha = fechaObj.toISOString().slice(0, 10); // "2023-12-24"
-      const hora = fechaObj.getHours(); // 0-23
-
-      // 1. Ventas por Día
+      // 1. Ventas por Día (Cantidad de transacciones)
       stats.ventasPorDia[fecha] = (stats.ventasPorDia[fecha] || 0) + 1;
       
       // 2. Horas Pico
       stats.horasPico[hora]++;
       
-      // 3. Dinero (Sumamos si existe el campo amount)
+      // 3. Dinero
       if (c.amount) {
           stats.totalRecaudado += Number(c.amount);
       }
+
+      // 4. NUEVO: Ranking por Rifa (Sumamos tickets, no solo compras)
+      const tituloRifa = c.raffleTitle || "Rifa Eliminada/Antigua";
+      const cantidadTickets = c.numbers ? c.numbers.length : 0; // Contamos cuántos números compró
+      
+      stats.rifasMasVendidas[tituloRifa] = (stats.rifasMasVendidas[tituloRifa] || 0) + cantidadTickets;
     });
 
     console.log("[DEBUG] Stats generadas:", JSON.stringify(stats.ventasPorDia));
