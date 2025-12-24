@@ -710,40 +710,65 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   }
 });
 
-// --- RUTA DE ESTADÍSTICAS PARA EL ADMIN ---
+// --- RUTA ESTADÍSTICAS (VERSIÓN DEBUG & FLEXIBLE) ---
 app.get('/api/admin/stats', async (req, res) => {
+  console.log("📊 Solicitando estadísticas...");
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'No autorizado' });
     jwt.verify(token, JWT_SECRET);
 
-    // Buscamos todas las compras aprobadas
-    const compras = await Purchase.find({ status: { $regex: /^aprobado|^aprobada/i } });
+    // 🔍 PASO 1: Diagnóstico (Ver qué hay en la DB realmente)
+    const totalDocs = await Purchase.countDocuments();
+    const sampleDocs = await Purchase.find({}, 'status amount').limit(3);
+    console.log(`[DEBUG] Total compras en DB: ${totalDocs}`);
+    console.log(`[DEBUG] Muestra de estados:`, sampleDocs.map(d => d.status));
+
+    // 🔍 PASO 2: Filtro más permisivo
+    // Buscamos estados: aprobado, aprobada, pagado, verificado, completado
+    const filtro = { status: { $regex: /aprobado|aprobada|pagado|verificado|completado/i } };
     
+    // NOTA: Si quieres ver las estadísticas INCLUSO de las pendientes para probar, 
+    // comenta la línea de arriba y descomenta la de abajo:
+    // const filtro = {}; 
+
+    const compras = await Purchase.find(filtro);
+    console.log(`[DEBUG] Compras filtradas para gráficas: ${compras.length}`);
+
     const stats = {
       totalRecaudado: 0,
-      ventasPorDia: {}, // { "2023-12-20": 5, ... }
-      horasPico: Array(24).fill(0), // [0,0,0... para las 24hrs]
+      ventasPorDia: {}, 
+      horasPico: Array(24).fill(0), 
       rifasMasVendidas: {}
     };
 
     compras.forEach(c => {
+      // Usamos createdAt para la fecha
       const fechaObj = new Date(c.createdAt);
-      const fecha = fechaObj.toISOString().slice(0, 10);
-      const hora = fechaObj.getHours();
+      
+      // Truco: Ajuste manual para hora Venezuela (UTC-4) si es necesario
+      // fechaObj.setHours(fechaObj.getHours() - 4); 
 
-      // Sumar al día
+      const fecha = fechaObj.toISOString().slice(0, 10); // "2023-12-24"
+      const hora = fechaObj.getHours(); // 0-23
+
+      // 1. Ventas por Día
       stats.ventasPorDia[fecha] = (stats.ventasPorDia[fecha] || 0) + 1;
       
-      // Sumar a la hora
+      // 2. Horas Pico
       stats.horasPico[hora]++;
       
-      // Intentar sumar monto si existe amount
-      if(c.amount) stats.totalRecaudado += Number(c.amount);
+      // 3. Dinero (Sumamos si existe el campo amount)
+      if (c.amount) {
+          stats.totalRecaudado += Number(c.amount);
+      }
     });
 
+    console.log("[DEBUG] Stats generadas:", JSON.stringify(stats.ventasPorDia));
     res.json(stats);
+
   } catch (err) {
+    console.error("❌ Error en estadísticas:", err);
     res.status(500).json({ error: err.message });
   }
 });
