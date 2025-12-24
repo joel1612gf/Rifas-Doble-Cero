@@ -1677,110 +1677,159 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// --- GENERADOR DE IMAGEN TOP 3 (DISEÑO FINAL PULIDO) ---
 async function generarImagenTop3() {
     if (!currentTopBuyers || currentTopBuyers.length < 1) {
-        alert("Primero calcula el top.");
+        alert("Primero calcula el top de compradores.");
         return;
     }
 
     const raffle = winnersState.selectedRaffle;
-    const buyers = currentTopBuyers.slice(0, 3); // Solo el Top 3 para la imagen
+    const buyers = currentTopBuyers.slice(0, 3); // Tomamos solo el Top 3
 
     const W = 1080, H = 1920; 
+    const PAD = 60;
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    // 1. FONDO (Negro sólido como el del ganador)
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, W, H);
+    const BG = '#0b1220';
+    const PANEL = '#1f2937';
+    const ACCENT = '#34d399'; 
+    const TEXT = '#E5E7EB';   
 
-    // 2. CABECERA (Logo Izquierda + Texto "doble cero")
-    const logoImg = new Image();
-    logoImg.src = 'img/logopngcolorweb2.png';
-    await new Promise(r => logoImg.onload = r);
-    ctx.drawImage(logoImg, 60, 60, 120, 120);
-    
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '900 60px Montserrat, sans-serif';
-    ctx.fillText('DOBLE CERO', 200, 140);
+    try {
+        // 1. FONDO
+        ctx.fillStyle = BG;
+        ctx.fillRect(0, 0, W, H);
 
-    // 3. SEGUNDA LÍNEA (Fecha + MAXIMOS COMPRADORES)
-    ctx.font = 'bold 35px Montserrat, sans-serif';
-    ctx.fillStyle = '#6b7280'; // Gris
-    const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    ctx.fillText(fecha, 60, 240);
+        // 2. CARGAR IMÁGENES (Logo y Rifa)
+        const logoImg = new Image();
+        logoImg.src = 'img/logopngcolorweb2.png';
 
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#34d399'; // Verde
-    ctx.font = '900 45px Montserrat, sans-serif';
-    ctx.fillText('MÁXIMOS COMPRADORES', W - 60, 240);
+        const raffleImg = new Image();
+        raffleImg.crossOrigin = "anonymous";
+        if (raffle.image && !raffle.image.startsWith('img/')) {
+            raffleImg.src = 'https://corsproxy.io/?' + encodeURIComponent(raffle.image);
+        } else {
+            raffleImg.src = (raffle.image || '') + '?t=' + Date.now();
+        }
 
-    // 4. FOTO DE LA RIFA (Centrada)
-    const raffleImg = new Image();
-    raffleImg.crossOrigin = "anonymous";
-    raffleImg.src = raffle.image;
-    await new Promise(r => raffleImg.onload = r);
-    
-    // Dibujamos la imagen centrada con un borde verde
-    const imgW = 850, imgH = 550;
-    const imgX = (W - imgW) / 2, imgY = 320;
-    ctx.strokeStyle = '#34d399';
-    ctx.lineWidth = 10;
-    ctx.strokeRect(imgX - 5, imgY - 5, imgW + 10, imgH + 10);
-    ctx.drawImage(raffleImg, imgX, imgY, imgW, imgH);
+        await Promise.all([
+            new Promise(res => { logoImg.onload = res; logoImg.onerror = res; }),
+            new Promise(res => { raffleImg.onload = res; raffleImg.onerror = res; })
+        ]);
 
-    // 5. PREMIO (Debajo de la foto)
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fbbf24'; // Oro/Amarillo
-    ctx.font = 'bold 50px Montserrat, sans-serif';
-    // Buscamos el premio del Top Comprador (place 2)
-    const premioTop = raffle.prizes.find(p => p.place === 2)?.description || "PREMIO ESPECIAL";
-    ctx.fillText(`PREMIO: ${premioTop.toUpperCase()}`, W/2, 950);
+        // 3. HEADER: Logo + Marca
+        const logoSize = 130;
+        if (logoImg.complete && logoImg.naturalWidth > 0) {
+            ctx.save();
+            drawRoundedRect(ctx, PAD, PAD, logoSize, logoSize, 24);
+            ctx.clip();
+            ctx.drawImage(logoImg, PAD, PAD, logoSize, logoSize);
+            ctx.restore();
+        }
 
-    // 6. RECTÁNGULO DE POSICIONES (Gris oscuro)
-    ctx.fillStyle = '#111827';
-    drawRoundedRect(ctx, 60, 1030, 960, 680, 40);
-    ctx.fill();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = TEXT;
+        ctx.font = 'bold 64px Montserrat, Arial, sans-serif';
+        ctx.fillText('DOBLE CERO', PAD + logoSize + 24, PAD + 24);
 
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '900 55px Montserrat, sans-serif';
-    ctx.fillText('POSICIONES', 110, 1120);
+        // 4. SUBHEADER: Top + Fecha
+        const now = new Date();
+        const dateLabel = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    // Listado de puestos
-    buyers.forEach((b, i) => {
-        const y = 1240 + (i * 140);
-        const name = `${b.firstName} ${b.lastName}`.toUpperCase();
-        
-        // Numero y Tickets
+        ctx.fillStyle = ACCENT;
+        ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
+        ctx.fillText('TOP COMPRADORES:', PAD, PAD + logoSize + 48);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = TEXT;
+        ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
+        ctx.fillText(dateLabel, W - PAD, PAD + logoSize + 48);
+
+        // 5. IMAGEN RIFA (16:9)
+        const imgW = W - PAD*2;
+        const imgH = Math.round(imgW * 9 / 16);
+        const imgX = PAD;
+        const imgY = PAD + logoSize + 140;
+
+        ctx.save();
+        drawRoundedRect(ctx, imgX, imgY, imgW, imgH, 28);
+        ctx.clip();
+        if (raffleImg.complete && raffleImg.naturalWidth > 0) {
+            drawImageCover(ctx, raffleImg, imgX, imgY, imgW, imgH);
+        } else {
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(imgX, imgY, imgW, imgH);
+        }
+        ctx.restore();
+
+        // 6. PREMIO
+        ctx.textAlign = 'center';
+        ctx.fillStyle = TEXT;
+        ctx.font = 'bold 50px Montserrat, sans-serif';
+        const premioDesc = raffle.prizes.find(p => p.place === 2)?.description || "PREMIO TOP COMPRADOR";
+        ctx.fillText(`PREMIO: ${premioDesc.toUpperCase()}`, W/2, imgY + imgH + 80);
+
+        // 7. PANEL DE POSICIONES
+        const panelY = imgY + imgH + 180;
+        const panelH = 650;
+        ctx.fillStyle = PANEL;
+        drawRoundedRect(ctx, PAD, panelY, imgW, panelH, 30);
+        ctx.fill();
+
+        // --- TÍTULO POSICIONES (CENTRADO) ---
+        ctx.textAlign = 'center'; // Centramos el texto
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 45px Montserrat, sans-serif';
-        const txtNum = `N°${i+1}: ${b.totalTickets} TICKETS`;
-        ctx.fillText(txtNum, 110, y);
-        
-        // Nombre (en color verde después de los tickets)
-        const offset = ctx.measureText(txtNum).width + 40;
-        ctx.fillStyle = '#34d399';
-        ctx.fillText(name, 110 + offset, y);
-    });
+        ctx.font = '900 45px Montserrat, sans-serif';
+        ctx.fillText('POSICIONES', W/2, panelY + 70);
 
-    // Última actualización
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#4b5563';
-    ctx.font = 'italic 30px Montserrat, sans-serif';
-    const ahora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    ctx.fillText(`Última actualización: hoy a las ${ahora}`, W/2, 1660);
+        // --- LISTADO DE COMPRADORES ---
+        buyers.forEach((b, i) => {
+            const rowY = panelY + 170 + (i * 120);
+            
+            // Lado Izquierdo: N°1: 710 TICKETS (Alineado a la izquierda)
+            ctx.textAlign = 'left'; 
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 45px Montserrat, sans-serif';
+            const rankingTxt = `N°${i+1}: ${b.totalTickets} TICKETS`;
+            ctx.fillText(rankingTxt, PAD + 50, rowY);
+            
+            // Lado Derecho: NOMBRE (Alineado a la derecha, max 15 chars)
+            ctx.textAlign = 'right';
+            ctx.fillStyle = ACCENT;
+            let fullName = `${b.firstName} ${b.lastName}`.trim().toUpperCase();
+            if (fullName.length > 15) {
+                fullName = fullName.substring(0, 13) + '..';
+            }
+            ctx.fillText(fullName, W - PAD - 50, rowY);
+        });
 
-    // 7. FOOTER
-    ctx.fillStyle = '#34d399';
-    ctx.font = '900 50px Montserrat, sans-serif';
-    ctx.fillText('DOBLECEROVE.COM', W/2, 1840);
+        // 8. ÚLTIMA ACTUALIZACIÓN
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#6b7280';
+        ctx.font = 'italic 32px Montserrat, sans-serif';
+        const time = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        ctx.fillText(`Última actualización: hoy a las ${time}`, W/2, panelY + panelH - 100);
 
-    // DESCARGAR
-    const link = document.createElement('a');
-    link.download = `TopCompradores_${raffle.title.substring(0,5)}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+        // Footer (opcional)
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#9CA3AF';
+        ctx.font = 'bold 28px Montserrat, Arial, sans-serif';
+        ctx.fillText('doblecerove.com', W/2, H - 48);
+
+        // 10. DESCARGAR
+        const link = document.createElement('a');
+        link.download = `Top3_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Hubo un error al generar la imagen.");
+    }
 }
