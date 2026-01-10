@@ -21,25 +21,34 @@ const winnerSchema = new mongoose.Schema({
 const raffleSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
-  image: String,
-  priceBs: { type: Number, required: true },
-  priceUsd: { type: Number, default: 0 },
+  ticketPrice: { type: Number, required: true },
   drawDate: Date,
+  imageURL: String,
   totalNumbers: { type: Number, required: true },
-  minTickets: { type: Number, default: 1 }, // <-- AÑADIDO (TAREA 6)
-  numbersSold: [Number],
-  // ... después de numbersSold: [Number] ...
-  lotteryResultImages: [String], // Para las 2 capturas de Super Gana
-  isFinished: { type: Boolean, default: false }, // Para saber si ya pasó la rifa
-  isDelivered: { type: Boolean, default: false }, // Estatus del premio
-  // ...
-  numbersReserved: [Number],
-  prizes: [prizeSchema],
-  winners: [winnerSchema],                   // ← NUEVO
-  status: { type: String, default: 'activa' },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
   
+  // --- NUEVO: Configuración de botones aleatorios ---
+  randomButtons: {
+    type: [{
+        count: Number,   // Ej: 10
+        label: String,   // Ej: "Más Popular"
+        highlight: String // Ej: "Pop" o emoji (opcional)
+    }],
+    default: [ // Configuración por defecto si no pones nada
+        { count: 5, label: "Prueba suerte" },
+        { count: 10, label: "Más popular" },
+        { count: 25, label: "Experto" }
+    ]
+  },
+  // --------------------------------------------------
+
+  prizes: [{
+    title: String,
+    description: String,
+    imageURL: String
+  }],
+  numbersSold: [Number], 
+  numbersReserved: [Number],
+  createdAt: { type: Date, default: Date.now }
 });
 
 

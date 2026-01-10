@@ -354,60 +354,7 @@ function renderPrizesList() {
     });
 }
 
-// ========== CREAR/EDITAR RIFA ==========
-
-async function submitRaffleForm(e) {
-    e.preventDefault();
-    const id = document.getElementById('raffle-id').value;
-    const title = document.getElementById('raffle-title').value;
-    const description = document.getElementById('raffle-description').value;
-    const image = document.getElementById('raffle-image').value;
-    const priceBs = Number(document.getElementById('raffle-priceBs').value);
-    const priceUsd = Number(document.getElementById('raffle-priceUsd').value) || 0;
-    const drawDate = document.getElementById('raffle-date').value;
-    const totalNumbers = Number(document.getElementById('raffle-totalNumbers').value);
-    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1; // <-- AÑADIDO (TAREA 6)
-    const status = document.getElementById('raffle-status').value;
-    const resultImg1 = document.getElementById('raffle-resultImg1').value;
-    const resultImg2 = document.getElementById('raffle-resultImg2').value;
-    const isFinished = document.getElementById('raffle-isFinished').checked;
-    const isDelivered = document.getElementById('raffle-isDelivered').checked;
-
-    // Metemos las imágenes en un array si existen
-    const lotteryResultImages = [];
-    if (resultImg1) lotteryResultImages.push(resultImg1);
-    if (resultImg2) lotteryResultImages.push(resultImg2);
-
-    const prizes = currentPrizes.map((p, i) => ({
-        place: i + 1,
-        description: p.description,
-        image: p.image
-    }));
-
-const data = { title, description, image, priceBs, priceUsd, drawDate, totalNumbers, minTickets, prizes, status, lotteryResultImages, isFinished, isDelivered };
-
-try {
-        if (id) {
-            // Editar rifa existente
-            await fetchWithAuth(`${API}/api/raffles/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-        } else {
-            // Crear nueva rifa
-            await fetchWithAuth(`${API}/api/raffles`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-        }
-        closeRaffleForm();
-        loadRaffles();
-    } catch (err) {
-        alert('Error guardando rifa');
-    }
-}
+submitRaffleForm
 
 // ========== EDITAR Y ELIMINAR RIFA ==========
 
@@ -425,6 +372,14 @@ async function editRaffle(id) {
         document.getElementById('raffle-priceUsd').value = raffle.priceUsd || '';   
         document.getElementById('raffle-date').value = raffle.drawDate ? raffle.drawDate.split('T')[0] : '';
         document.getElementById('raffle-totalNumbers').value = raffle.totalNumbers;
+        // Cargar botones aleatorios (con valores por defecto si no existen)
+        const btns = raffle.randomButtons || [];
+        document.getElementById('btn1-count').value = btns[0]?.count || 3;
+        document.getElementById('btn1-label').value = btns[0]?.label || "Mínima";
+        document.getElementById('btn2-count').value = btns[1]?.count || 10;
+        document.getElementById('btn2-label').value = btns[1]?.label || "Popular";
+        document.getElementById('btn3-count').value = btns[2]?.count || 25;
+        document.getElementById('btn3-label').value = btns[2]?.label || "Avanzado";
         document.getElementById('raffle-minTickets').value = raffle.minTickets || 1; // <-- AÑADIDO (TAREA 6)
         document.getElementById('raffle-resultImg1').value = raffle.lotteryResultImages?.[0] || '';
         document.getElementById('raffle-resultImg2').value = raffle.lotteryResultImages?.[1] || '';
