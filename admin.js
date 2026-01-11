@@ -432,7 +432,7 @@ async function submitRaffleForm(e) {
             label: document.getElementById('btn3-label').value || "Para Ganar" 
         }
     ];
-
+    
     // 3. Recopilar premios
     const prizes = currentPrizes.map((p, i) => ({
         place: i + 1,

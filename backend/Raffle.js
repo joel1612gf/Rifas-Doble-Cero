@@ -25,15 +25,25 @@ const raffleSchema = new mongoose.Schema({
   drawDate: Date,
   imageURL: String,
   totalNumbers: { type: Number, required: true },
-  
-  // --- NUEVO: Configuración de botones aleatorios ---
+
+  // ✅ NUEVO: Estado de la rifa (activa, inactiva, finalizada)
+  status: { 
+    type: String, 
+    enum: ['activa', 'inactiva', 'finalizada'], 
+    default: 'activa' 
+  },
+
+  // ✅ NUEVO: Mínimo de tickets para comprar
+  minTickets: { type: Number, default: 1 },
+
+  // --- Configuración de botones aleatorios (Ya lo tienes) ---
   randomButtons: {
     type: [{
-        count: Number,   // Ej: 10
-        label: String,   // Ej: "Más Popular"
-        highlight: String // Ej: "Pop" o emoji (opcional)
+        count: Number,
+        label: String,
+        highlight: String
     }],
-    default: [ // Configuración por defecto si no pones nada
+    default: [
         { count: 5, label: "Prueba suerte" },
         { count: 10, label: "Más popular" },
         { count: 25, label: "Experto" }
