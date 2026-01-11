@@ -278,8 +278,8 @@ function renderSelectorContent() {
                 <span class="text-green-400 font-bold block mb-2"><i class="fas fa-trophy mr-1"></i> Premios:</span>
                 <ul class="space-y-1">
                     ${rifa.prizes.map(p => `
-                        <li class="text-gray-300 text-sm flex items-start gap-2">
-                            <span class="bg-green-500 text-black text-sm font-bold px-1.5 rounded">${p.place}°</span>
+                        <li class="text-gray-300 text-lg flex items-start gap-2">
+                            <span class="bg-green-500 text-black text-lg font-bold px-1.5 rounded">${p.place}°</span>
                             ${p.description}
                         </li>
                     `).join('')}
@@ -341,7 +341,7 @@ function renderSelectorContent() {
                     <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
                     <input 
                         type="text" 
-                        placeholder="Buscar número (ej: 04...)" 
+                        placeholder="Buscar número (ej: 0429)" 
                         class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:border-green-500 outline-none" 
                         value="${searchValue}" 
                         oninput="buscarNumero(this.value)">
@@ -1547,7 +1547,7 @@ function renderSelectorContent() {
                 <ul class="space-y-1">
                     ${rifa.prizes.map((p, i) => `
                         <li class="text-gray-300 text-sm flex items-start gap-2">
-                            <span class="bg-green-500 text-black text-xs font-bold px-1.5 rounded">
+                            <span class="bg-green-500 text-black text-sm font-bold px-1.5 rounded">
                                 ${p.place || (i + 1)}°
                             </span>
                             ${p.description}
@@ -1604,7 +1604,7 @@ function renderSelectorContent() {
             <div class="mb-3 animate-fade-in">
                 <div class="relative">
                     <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                    <input type="text" placeholder="Buscar número (ej: 04...)" 
+                    <input type="text" placeholder="Buscar número (ej: 0429)" 
                         class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:border-green-500 outline-none shadow-inner" 
                         value="${searchValue}" oninput="buscarNumero(this.value)">
                 </div>
@@ -1626,23 +1626,23 @@ function renderSelectorContent() {
 
         <div class="p-4 sm:p-6 -mt-8 relative bg-gray-800 rounded-t-3xl min-h-[500px] flex flex-col shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-gray-700">
             
-            <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-2 leading-tight">${rifa.title}</h2>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-green-400 mb-2 leading-tight">${rifa.title}</h2>
             <p class="text-gray-400 text-sm mb-4 line-clamp-2">${rifa.description}</p>
             
             ${premiosHtml}
 
             <div class="grid grid-cols-3 gap-2 mb-6 text-center bg-gray-900 rounded-xl p-3 border border-gray-700/50 shadow-inner">
                 <div class="p-1">
-                    <div class="text-[10px] text-gray-500 uppercase font-bold">Precio</div>
-                    <div class="text-green-400 font-bold text-lg">${rifa.priceBs} Bs</div>
+                    <div class="text-sm text-gray-500 uppercase font-bold">Precio</div>
+                    <div class="text-green-400 font-bold text-base">${rifa.priceBs} Bs</div>
                 </div>
                 <div class="p-1 border-l border-gray-700">
-                    <div class="text-[10px] text-gray-500 uppercase font-bold">Fecha</div>
-                    <div class="text-white font-bold text-xs sm:text-sm">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : 'Pronto'}</div>
+                    <div class="text-sm text-gray-500 uppercase font-bold">Fecha</div>
+                    <div class="text-white font-bold text-base">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : 'Pronto'}</div>
                 </div>
                 <div class="p-1 border-l border-gray-700">
-                    <div class="text-[10px] text-gray-500 uppercase font-bold">Quedan</div>
-                    <div class="text-white font-bold text-xs sm:text-sm">${disponiblesCount}</div>
+                    <div class="text-sm text-gray-500 uppercase font-bold">Quedan</div>
+                    <div class="text-white font-bold text-lg">${disponiblesCount}</div>
                 </div>
             </div>
 
