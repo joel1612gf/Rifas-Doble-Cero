@@ -28,6 +28,20 @@ const raffleSchema = new mongoose.Schema({
   totalNumbers: { type: Number, required: true },
   minTickets: { type: Number, default: 1 }, // <-- AÑADIDO (TAREA 6)
   numbersSold: [Number],
+   // --- Configuración de botones aleatorios (Ya lo tienes) ---
+  randomButtons: {
+    type: [{
+        count: Number,
+        label: String,
+        highlight: String
+    }],
+    default: [
+        { count: 5, label: "Prueba suerte" },
+        { count: 10, label: "Más popular" },
+        { count: 25, label: "Experto" }
+    ]
+  },
+  // --------------------------------------------------
   // ... después de numbersSold: [Number] ...
   lotteryResultImages: [String], // Para las 2 capturas de Super Gana
   isFinished: { type: Boolean, default: false }, // Para saber si ya pasó la rifa
