@@ -1520,25 +1520,247 @@ function seleccionarTodosDisponibles() {
 }
 // --- FIN DE CAMBIO ---
 
-// ==========================================
-// === NUEVA LÓGICA FASE 4 (PEGAR AL FINAL) ===
-// ==========================================
+// =========================================================
+// === NUEVA LÓGICA VISUAL (FASE 4) - REEMPLAZAR EN MAIN.JS ===
+// =========================================================
 
-let currentViewMode = 'random'; // 'random' | 'table'
+// Variable de estado para la vista (poner al inicio del archivo o aquí)
+// let currentViewMode = 'random'; // Asegúrate de que esta variable exista globalmente
 
-function cambiarModoVista(modo) {
-    currentViewMode = modo;
-    // Redibujamos el contenido del modal para reflejar el cambio
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+// 1. Renderizado Principal del Modal
+function renderSelectorContent() {
+    const rifa = rifaSeleccionada;
+    if (!rifa) return '';
+
+    // Datos básicos
+    const total = rifa.totalNumbers || 100;
+    const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
+    const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
+    const disponiblesCount = total - vendidos.length;
+    
+    // HTML de Premios (Corregido el "undefined°")
+    let premiosHtml = '';
+    if (rifa.prizes && rifa.prizes.length > 0) {
+        premiosHtml = `
+            <div class="mb-4 bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                <span class="text-green-400 font-bold block mb-2"><i class="fas fa-trophy mr-1"></i> Premios:</span>
+                <ul class="space-y-1">
+                    ${rifa.prizes.map((p, i) => `
+                        <li class="text-gray-300 text-sm flex items-start gap-2">
+                            <span class="bg-green-500 text-black text-xs font-bold px-1.5 rounded">
+                                ${p.place || (i + 1)}°
+                            </span>
+                            ${p.description}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>`;
+    }
+
+    // Configuración Botones (Backend o Default)
+    const btns = rifa.randomButtons && rifa.randomButtons.length > 0 
+        ? rifa.randomButtons 
+        : [
+            { count: 5, label: "Prueba" }, 
+            { count: 10, label: "Popular" }, 
+            { count: 25, label: "Para ganar" }
+        ];
+
+    // --- CONTENIDO CENTRAL (SWITCH) ---
+    let contenidoCentral = '';
+    
+    if (currentViewMode === 'random') {
+        // Vista AZAR (Input grande + Botones)
+        contenidoCentral = `
+            <div class="flex flex-col items-center py-6 animate-fade-in">
+                <div class="w-full max-w-xs mb-6">
+                    <label class="block text-gray-400 text-sm mb-2 text-center font-bold">Escribe una cantidad</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="input-cantidad-azar" placeholder="Ej: 50" 
+                            class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-center text-white text-xl font-bold focus:border-green-500 outline-none transition-colors"
+                            onkeydown="if(event.key === 'Enter') agregarDesdeInput()">
+                        <button onclick="agregarDesdeInput()" class="bg-gray-700 hover:bg-green-500 hover:text-black text-white px-4 rounded-lg transition-colors shadow-lg">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full mb-4">
+                     <p class="text-gray-500 text-xs text-center mb-3 uppercase tracking-wide font-bold">O elige una opción rápida</p>
+                     <div class="grid grid-cols-3 gap-3">
+                        ${btns.map(btn => `
+                            <button onclick="agregarAlAzar(${btn.count})" 
+                                class="flex flex-col items-center justify-center bg-gray-800 border-2 border-gray-700 hover:border-green-500 hover:bg-gray-700/80 text-white py-4 rounded-xl transition-all duration-200 active:scale-95 group shadow-md">
+                                <span class="text-2xl font-bold text-green-400 group-hover:text-green-300">${btn.count}</span>
+                                <span class="text-[10px] text-gray-400 uppercase mt-1 font-bold">${btn.label}</span>
+                            </button>
+                        `).join('')}
+                     </div>
+                </div>
+            </div>`;
+    } else {
+        // Vista TABLA (Buscador + Grid existente)
+        contenidoCentral = `
+            <div class="mb-3 animate-fade-in">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                    <input type="text" placeholder="Buscar número (ej: 04...)" 
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:border-green-500 outline-none shadow-inner" 
+                        value="${searchValue}" oninput="buscarNumero(this.value)">
+                </div>
+            </div>
+            <div id="grid-paginator-container">
+                ${renderGridAndPaginatorHTML()}
+            </div>`;
+    }
+
+    // --- HTML FINAL COMPLETO ---
+    return `
+        <div class="relative h-48 sm:h-64">
+            <img src="${rifa.image}" alt="${rifa.title}" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
+            <button onclick="cerrarModalSelector()" class="absolute top-4 right-4 bg-black/60 hover:bg-black text-white w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-md z-10 font-bold">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="p-4 sm:p-6 -mt-8 relative bg-gray-800 rounded-t-3xl min-h-[500px] flex flex-col shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-gray-700">
+            
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-2 leading-tight">${rifa.title}</h2>
+            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${rifa.description}</p>
+            
+            ${premiosHtml}
+
+            <div class="grid grid-cols-3 gap-2 mb-6 text-center bg-gray-900 rounded-xl p-3 border border-gray-700/50 shadow-inner">
+                <div class="p-1">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold">Precio</div>
+                    <div class="text-green-400 font-bold text-lg">${rifa.priceBs} Bs</div>
+                </div>
+                <div class="p-1 border-l border-gray-700">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold">Fecha</div>
+                    <div class="text-white font-bold text-xs sm:text-sm">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : 'Pronto'}</div>
+                </div>
+                <div class="p-1 border-l border-gray-700">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold">Quedan</div>
+                    <div class="text-white font-bold text-xs sm:text-sm">${disponiblesCount}</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 bg-gray-900/50 p-1 rounded-xl">
+                <button onclick="cambiarModoVista('random')" 
+                    class="flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all duration-200 border-2 
+                    ${currentViewMode === 'random' ? 'bg-gray-700 border-green-500 text-green-400 shadow-md' : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300'}">
+                    <i class="fas fa-dice"></i> Azar
+                </button>
+                <button onclick="cambiarModoVista('table')" 
+                    class="flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all duration-200 border-2 
+                    ${currentViewMode === 'table' ? 'bg-gray-700 border-green-500 text-green-400 shadow-md' : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300'}">
+                    <i class="fas fa-th"></i> Tabla
+                </button>
+            </div>
+
+            <div id="dynamic-content-area" class="flex-1">
+                ${contenidoCentral}
+            </div>
+
+            <div id="seleccionados-footer" class="mt-4">
+                ${generarHtmlFooterResumen()}
+            </div>
+        </div>
+    `;
 }
 
+// 2. Helper que genera SÓLO la parte de abajo (Píldoras + Total + Botón)
+function generarHtmlFooterResumen() {
+    const total = rifaSeleccionada.totalNumbers;
+    const seleccionadosCount = numerosSeleccionados.length;
+    const precio = rifaSeleccionada.priceBs; 
+    const totalPagar = (seleccionadosCount * precio).toLocaleString('es-VE');
+
+    // Generar píldoras (chips) con botón de borrar
+    let pillsHtml = '';
+    if (seleccionadosCount > 0) {
+        const numsSorted = [...numerosSeleccionados].sort((a,b) => a-b);
+        pillsHtml = `
+            <div class="bg-gray-900 p-3 rounded-xl border border-gray-700 mb-4 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-gray-400 uppercase font-bold">Tus Tickets (${seleccionadosCount})</span>
+                    <button onclick="limpiarNumeros()" class="text-red-400 text-xs hover:text-red-300 font-bold flex items-center gap-1 transition-colors">
+                        <i class="fas fa-trash-alt"></i> Borrar todos
+                    </button>
+                </div>
+                <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                    ${numsSorted.map(n => `
+                        <button onclick="toggleNumero(${n})" class="group bg-gray-800 border border-green-500/30 text-green-400 hover:bg-red-500/20 hover:border-red-500 hover:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1" title="Clic para eliminar">
+                            ${formatTicketNumber(n, total)}
+                            <i class="fas fa-times opacity-50 group-hover:opacity-100"></i>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Botón Continuar
+    const disabled = seleccionadosCount === 0;
+    const btnClass = disabled 
+        ? "bg-gray-700 text-gray-500 cursor-not-allowed opacity-50"
+        : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-black shadow-lg shadow-green-500/20 transform active:scale-95";
+
+    return `
+        ${pillsHtml}
+        <div class="pt-2 border-t border-gray-700 sticky bottom-0 bg-gray-800 z-20 pb-2">
+            <div class="flex justify-between items-end mb-3 px-1">
+                <div class="text-sm text-gray-400 font-medium">Total a pagar:</div>
+                <div class="text-2xl font-extrabold text-white tracking-tight">${totalPagar} Bs</div>
+            </div>
+            <button id="btn-continuar-compra" onclick="continuarCompra()" ${disabled ? 'disabled' : ''}
+                class="w-full py-4 rounded-xl font-extrabold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${btnClass}">
+                <span>${disabled ? 'Selecciona tickets' : 'Continuar Compra'}</span>
+                ${!disabled ? '<i class="fas fa-arrow-right"></i>' : ''}
+            </button>
+        </div>
+    `;
+}
+
+// 3. Logic: Toggle Número (Con actualización de footer)
+function toggleNumero(num, elementoBoton) {
+    // Si no pasaron el botón, intentamos buscarlo en el grid actual
+    if (!elementoBoton) {
+        elementoBoton = document.querySelector(`.numero-btn[data-numero="${num}"]`);
+    }
+
+    const idx = numerosSeleccionados.indexOf(num);
+    if (idx >= 0) {
+        // Deseleccionar
+        numerosSeleccionados.splice(idx, 1);
+        if (elementoBoton) {
+            elementoBoton.classList.remove('bg-green-400', 'text-gray-900', 'border-green-600');
+            elementoBoton.classList.add('bg-gray-700', 'text-gray-200', 'hover:bg-green-400', 'hover:text-gray-900');
+        }
+    } else {
+        // Seleccionar
+        numerosSeleccionados.push(num);
+        if (elementoBoton) {
+            elementoBoton.classList.add('bg-green-400', 'text-gray-900', 'border-green-600');
+            elementoBoton.classList.remove('bg-gray-700', 'text-gray-200', 'hover:bg-green-400', 'hover:text-gray-900');
+        }
+    }
+
+    // Actualizar solo el footer (para no redibujar toda la tabla y perder scroll)
+    const footer = document.getElementById('seleccionados-footer');
+    if (footer) {
+        footer.innerHTML = generarHtmlFooterResumen();
+    }
+}
+
+// 4. Logic: Agregar al Azar (Con Toast)
 function agregarAlAzar(cantidad) {
     const rifa = rifaSeleccionada;
     const total = rifa.totalNumbers || 100;
     const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
     const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
 
-    // Buscar disponibles que NO estén ya seleccionados
     const disponibles = [];
     for (let i = 1; i <= total; i++) {
         if (!vendidos.includes(i) && !numerosSeleccionados.includes(i)) {
@@ -1547,23 +1769,23 @@ function agregarAlAzar(cantidad) {
     }
 
     if (disponibles.length === 0) {
-        alert("No hay más números disponibles.");
+        alert("¡Ya no quedan más números disponibles!");
         return;
     }
 
+    let agregados = cantidad;
     if (disponibles.length < cantidad) {
-        alert(`Solo quedan ${disponibles.length} números disponibles.`);
-        cantidad = disponibles.length;
+        agregados = disponibles.length;
     }
 
-    // Mezclar y tomar la cantidad pedida
-    const seleccion = disponibles.sort(() => 0.5 - Math.random()).slice(0, cantidad);
-    
-    // Agregarlos al array global
+    const seleccion = disponibles.sort(() => 0.5 - Math.random()).slice(0, agregados);
     numerosSeleccionados.push(...seleccion);
 
-    // Actualizar vista
-    document.getElementById('selector-content').innerHTML = renderSelectorContent();
+    // Actualizar Footer
+    document.getElementById('seleccionados-footer').innerHTML = generarHtmlFooterResumen();
+    
+    // Toast de confirmación
+    showToast(`¡Se agregaron ${agregados} tickets! 🎟️`);
 }
 
 function agregarDesdeInput() {
@@ -1571,6 +1793,28 @@ function agregarDesdeInput() {
     const valor = parseInt(input.value);
     if (valor && valor > 0) {
         agregarAlAzar(valor);
-        input.value = ''; // Limpiar
+        input.value = '';
     }
+}
+
+// 5. Logic: Limpiar y Cambiar Vista
+function limpiarNumeros() {
+    numerosSeleccionados = [];
+    searchValue = '';
+    
+    // Si estamos en tabla, limpiamos visualmente los botones
+    if (currentViewMode === 'table') {
+        const btns = document.querySelectorAll('.numero-btn');
+        btns.forEach(btn => {
+            btn.classList.remove('bg-green-400', 'text-gray-900', 'border-green-600');
+            btn.classList.add('bg-gray-700', 'text-gray-200', 'hover:bg-green-400', 'hover:text-gray-900');
+        });
+    }
+    
+    document.getElementById('seleccionados-footer').innerHTML = generarHtmlFooterResumen();
+}
+
+function cambiarModoVista(modo) {
+    currentViewMode = modo;
+    document.getElementById('selector-content').innerHTML = renderSelectorContent();
 }
