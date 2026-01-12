@@ -237,6 +237,7 @@ function showSection(section) {
   if (section === 'raffles')  loadRaffles();
   if (section === 'payments') loadPayments('viewer');
   if (section === 'winners')  loadWinnersInit();
+  if (section === 'section-top') updateTopRaffleSelector(); // <-- CORREGIDO
   if (section === 'contacts') loadContacts(); // NUEVO
   if (section === 'stats')    cargarEstadisticas();    // NUEVO
 
@@ -287,10 +288,15 @@ async function loadRaffles() {
         });
         table += '</tbody></table></div>';
         wrapper.innerHTML = table;
+        
+        // Actualizamos todos los selectores que dependen de las rifas
+        rifasGlobal = raffles; 
+        updateTopRaffleSelector(); 
     } catch (err) {
         wrapper.innerHTML = '<div class="text-center text-red-400">Error cargando rifas.</div>';
     }
 }
+updateTopRaffleSelector();
 
 // (Los métodos openCreateRaffleForm, editRaffle, deleteRaffle los agregamos luego)
 // ========== FORMULARIO MODAL DE RIFA ==========
@@ -2002,5 +2008,72 @@ async function cargarEstadisticas() {
 
     } catch (err) {
         console.error("Error en estadísticas:", err);
+    }
+}
+
+// Cargar las rifas en el selector de la nueva sección
+function updateTopRaffleSelector() {
+    const select = document.getElementById('top-raffle-select');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Elige una rifa --</option>' + 
+        rifasGlobal.map(r => `<option value="${r._id}">${r.title}</option>`).join('');
+}
+
+// Cargar el Top 10 para el Admin
+async function loadAdminTop() {
+    const raffleId = document.getElementById('top-raffle-select').value;
+    const container = document.getElementById('admin-top-list');
+    if (!raffleId) return;
+
+    container.innerHTML = 'Cargando...';
+    const res = await fetch(`${API}/api/admin/top-buyers/${raffleId}`);
+    const buyers = await res.json();
+
+    container.innerHTML = buyers.map((b, i) => `
+        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-lg border border-white/5">
+            <span><b class="text-yellow-500 mr-2">#${i+1}</b> ${b.name}</span>
+            <span class="bg-green-500/10 text-green-400 px-2 py-1 rounded font-bold">${b.tickets} 🎟️</span>
+        </div>
+    `).join('') || 'No hay compras registradas.';
+}
+
+async function saveManualBuyer() {
+    const raffleId = document.getElementById('top-raffle-select').value;
+    const name = document.getElementById('manual-name').value.trim();
+    const tickets = parseInt(document.getElementById('manual-tickets').value);
+
+    if (!raffleId || !name || !tickets) {
+        alert("Por favor, selecciona una rifa y completa nombre y tickets.");
+        return;
+    }
+
+    try {
+        // 1. Buscamos la rifa para obtener los externos que ya tiene
+        const raffleRes = await fetch(`${API}/api/raffles/${raffleId}`);
+        const raffle = await raffleRes.json();
+        
+        let externalBuyers = raffle.externalBuyers || [];
+        
+        // 2. Agregamos el nuevo
+        externalBuyers.push({ name, tickets });
+
+        // 3. Guardamos usando fetchWithAuth (para que incluya el Token)
+        const saveRes = await fetchWithAuth(`${API}/api/raffles/${raffleId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ externalBuyers })
+        });
+
+        if (saveRes.ok) {
+            alert("¡Comprador inyectado correctamente!");
+            document.getElementById('manual-name').value = '';
+            document.getElementById('manual-tickets').value = '';
+            loadAdminTop(); // Refrescamos la lista de la derecha
+        } else {
+            alert("Error al guardar en el servidor.");
+        }
+    } catch (e) { 
+        console.error(e);
+        alert("Error de conexión al inyectar comprador."); 
     }
 }

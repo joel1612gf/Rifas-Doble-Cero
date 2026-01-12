@@ -49,6 +49,7 @@
               <button id="nav-raffles"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('raffles')">Rifas</button>
               <button id="nav-payments"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('payments')">Verificar pagos</button>
               <button id="nav-winners"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('winners')">Ganadores</button>
+              <button id="nav-topcompra"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('section-top')">Top Compradores</button>
               <button id="nav-stats"     class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('stats')">Estadísticas</button>
               <button id="nav-contacts"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('contacts')">Contactos</button>
               <button class="nav-link font-bold text-red-400" onclick="logoutAdmin()">Cerrar sesión</button>
@@ -422,6 +423,38 @@
     </div>
   </div>
 </section>
+
+<div id="section-top" class="admin-section hidden">
+    <h2 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
+        <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
+    </h2>
+
+    <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl mb-8">
+        <label class="block text-sm text-gray-400 mb-2 uppercase font-bold tracking-wider">Seleccionar Rifa</label>
+        <select id="top-raffle-select" onchange="loadAdminTop()" class="w-full bg-gray-900 text-white p-3 rounded-xl border border-gray-700 outline-none focus:border-yellow-500 transition">
+            </select>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5">
+            <h3 class="text-lg font-bold text-green-400 mb-4">Inyectar Comprador Externo</h3>
+            <div class="space-y-4">
+                <input type="text" id="manual-name" placeholder="Nombre completo" class="w-full bg-gray-900 text-white p-3 rounded-lg border border-gray-700">
+                <input type="number" id="manual-tickets" placeholder="Cantidad de tickets" class="w-full bg-gray-900 text-white p-3 rounded-lg border border-gray-700">
+                <button onclick="saveManualBuyer()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg transition">
+                    Agregar al Ranking
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5">
+            <h3 class="text-lg font-bold text-white mb-4">Top 10 Actual (Híbrido)</h3>
+            <div id="admin-top-list" class="space-y-2 text-sm text-gray-300">
+                <p class="text-gray-500">Selecciona una rifa para ver el ranking...</p>
+            </div>
+        </div>
+    </div>
+</div>
 
 <section id="section-contacts" class="hidden p-6 max-w-6xl mx-auto">
   <div class="flex items-center justify-between mb-4">

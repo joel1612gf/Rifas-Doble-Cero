@@ -888,3 +888,19 @@ app.listen(PORT, () => {
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
+app.get('/api/admin/top-buyers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // 1. Reales
+    const real = await Purchase.aggregate([
+      { $match: { raffleId: id, status: { $regex: /^aprobado|^aprobada/i } } },
+      { $group: { _id: "$phone", name: { $first: { $concat: ["$firstName", " ", "$lastName"] } }, tickets: { $sum: { $size: "$numbers" } } } }
+    ]);
+    // 2. Manuales
+    const raffle = await Raffle.findById(id);
+    const manual = raffle.externalBuyers || [];
+    // 3. Mezclar y enviar (Sin censura para el admin, queremos ver todo)
+    const all = [...real, ...manual].sort((a,b) => b.tickets - a.tickets).slice(0, 10);
+    res.json(all);
+  } catch (error) { res.status(500).json([]); }
+});

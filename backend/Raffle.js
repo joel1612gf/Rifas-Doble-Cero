@@ -41,6 +41,10 @@ const raffleSchema = new mongoose.Schema({
         { count: 25, label: "Experto" }
     ]
   },
+  externalBuyers: {
+    type: [{ name: String, tickets: Number }],
+    default: []
+},
   // --------------------------------------------------
   // ... después de numbersSold: [Number] ...
   lotteryResultImages: [String], // Para las 2 capturas de Super Gana
