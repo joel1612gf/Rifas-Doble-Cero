@@ -825,6 +825,59 @@ app.get('/api/raffles/:id/top-buyers', async (req, res) => {
 
 // ... (Aquí terminan tus rutas de /top-buyers y stats)
 
+// ==========================================
+// API: TOP 3 COMPRADORES (Automático DB)
+// ==========================================
+app.get('/api/top-buyers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const filterId = mongoose.Types.ObjectId.isValid(id) ? id : id;
+
+    // Buscamos compras REALES en la base de datos
+    const topBuyers = await Purchase.aggregate([
+      { 
+        $match: { 
+          raffleId: filterId, 
+          status: { $regex: /^aprobado|^aprobada/i } // Solo ventas aprobadas
+        } 
+      },
+      {
+        $group: {
+          _id: "$phone", // Agrupamos por teléfono (usuario único)
+          firstName: { $first: "$firstName" },
+          lastName: { $first: "$lastName" },
+          totalTickets: { $sum: { $size: "$numbers" } } // Sumamos sus tickets
+        }
+      },
+      { $sort: { totalTickets: -1 } }, // Orden descendente (el mayor arriba)
+      { $limit: 3 }, // Solo el Top 3
+      {
+        $project: {
+          name: { $concat: ["$firstName", " ", "$lastName"] },
+          tickets: "$totalTickets"
+        }
+      }
+    ]);
+
+    // Anonimizar nombres (Ej: Joel Garcia -> Joel G.)
+    const safeTop = topBuyers.map(b => {
+        let publicName = b.name || "Anónimo";
+        const parts = publicName.trim().split(' ');
+        if (parts.length > 1) {
+             const last = parts[parts.length - 1];
+             publicName = `${parts[0]} ${last.charAt(0)}.`;
+        }
+        return { name: publicName, tickets: b.tickets };
+    });
+
+    res.json(safeTop);
+
+  } catch (error) {
+    console.error('Error Top Buyers:', error);
+    res.status(500).json([]);
+  }
+});
+
 // === IMPORTANTE: ESTO ES LO QUE LE HABLA A RENDER ===
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

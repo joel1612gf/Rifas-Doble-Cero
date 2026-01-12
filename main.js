@@ -140,6 +140,11 @@ async function cargarRifas() {
                                 Participar <i class="fas fa-arrow-right ml-2"></i>
                             </a>
                         </div>
+                        <div class="mt-3">
+                        <a href="#" class="block w-full bg-gray-700 border border-green-500/100 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded text-center transition duration-300" onclick="abrirModalTop('${rifa._id}'); return false;">
+                            Top compradores <i class="fas fa-trophy ml-2 text-green-400"></i>
+                        </a>
+                    </div>
                     </div>
                 </div>
             `;
@@ -1860,4 +1865,72 @@ function limpiarNumeros() {
 function cambiarModoVista(modo) {
     currentViewMode = modo;
     document.getElementById('selector-content').innerHTML = renderSelectorContent();
+}
+
+// ==========================================
+// LÓGICA MODAL TOP COMPRADORES (FASE 5)
+// ==========================================
+
+async function abrirModalTop(raffleId) {
+    const modal = document.getElementById('modal-top-buyers');
+    const container = document.getElementById('top-buyers-list');
+    
+    // 1. Mostrar modal (estado de carga)
+    modal.classList.remove('hidden');
+    container.innerHTML = `<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-yellow-500 text-2xl"></i></div>`;
+
+    try {
+        // 2. Pedir datos al servidor
+        const res = await fetch(`${API}/api/top-buyers/${raffleId}`);
+        const buyers = await res.json();
+
+        // 3. Renderizar
+        if (!buyers || buyers.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-ghost text-gray-600 text-3xl mb-2"></i>
+                    <p class="text-gray-400 text-sm">Aún no hay líderes.<br>¡Sé el primero!</p>
+                </div>
+            `;
+        } else {
+            let html = '';
+            const medals = ['🥇', '🥈', '🥉'];
+            const styles = [
+                'bg-yellow-500/10 border-yellow-500/50 text-yellow-400', // Oro
+                'bg-gray-400/10 border-gray-400/50 text-gray-300',       // Plata
+                'bg-orange-500/10 border-orange-500/50 text-orange-400'  // Bronce
+            ];
+
+            buyers.forEach((b, i) => {
+                const medal = medals[i] || `#${i+1}`;
+                const style = styles[i] || 'bg-gray-800 border-gray-700 text-gray-400';
+                
+                html += `
+                <div class="flex items-center justify-between p-3 rounded-lg border ${style} backdrop-blur-md relative overflow-hidden group">
+                    <div class="flex items-center gap-3 relative z-10">
+                        <span class="text-2xl filter drop-shadow-lg">${medal}</span>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm tracking-wide text-white">${b.name}</span>
+                            <span class="text-[10px] opacity-80 uppercase">Líder #${i+1}</span>
+                        </div>
+                    </div>
+                    <div class="text-right relative z-10">
+                        <span class="block font-black text-lg leading-none">${b.tickets}</span>
+                        <span class="text-[10px] font-bold opacity-60">TICKETS</span>
+                    </div>
+                    <div class="absolute -right-4 -top-4 w-12 h-12 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition"></div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = `<div class="text-red-400 text-center text-sm">Error cargando el top.</div>`;
+    }
+}
+
+function cerrarModalTop() {
+    document.getElementById('modal-top-buyers').classList.add('hidden');
 }
