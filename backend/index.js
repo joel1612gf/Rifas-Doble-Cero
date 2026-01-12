@@ -828,29 +828,30 @@ app.get('/api/raffles/:id/top-buyers', async (req, res) => {
 // ==========================================
 // API: TOP 3 COMPRADORES (Automático DB)
 // ==========================================
+// ==========================================
+// API PÚBLICA: TOP 3 HÍBRIDO (Web + Manuales)
+// ==========================================
 app.get('/api/top-buyers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const filterId = mongoose.Types.ObjectId.isValid(id) ? id : id;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json([]);
 
-    // Buscamos compras REALES en la base de datos
-    const topBuyers = await Purchase.aggregate([
+    // 1. Obtener Compradores Reales (Ventas Web Aprobadas)
+    const realBuyers = await Purchase.aggregate([
       { 
         $match: { 
-          raffleId: filterId, 
-          status: { $regex: /^aprobado|^aprobada/i } // Solo ventas aprobadas
+          raffleId: id, 
+          status: { $regex: /^aprobado|^aprobada/i } 
         } 
       },
       {
         $group: {
-          _id: "$phone", // Agrupamos por teléfono (usuario único)
+          _id: "$phone",
           firstName: { $first: "$firstName" },
           lastName: { $first: "$lastName" },
-          totalTickets: { $sum: { $size: "$numbers" } } // Sumamos sus tickets
+          totalTickets: { $sum: { $size: "$numbers" } }
         }
       },
-      { $sort: { totalTickets: -1 } }, // Orden descendente (el mayor arriba)
-      { $limit: 3 }, // Solo el Top 3
       {
         $project: {
           name: { $concat: ["$firstName", " ", "$lastName"] },
@@ -859,21 +860,37 @@ app.get('/api/top-buyers/:id', async (req, res) => {
       }
     ]);
 
-    // Anonimizar nombres (Ej: Joel Garcia -> Joel G.)
-    const safeTop = topBuyers.map(b => {
-        let publicName = b.name || "Anónimo";
+    // 2. Obtener Compradores Externos (Inyectados desde el Admin)
+    const raffle = await Raffle.findById(id);
+    const externalBuyers = (raffle.externalBuyers || []).map(eb => ({
+        name: eb.name,
+        tickets: eb.tickets
+    }));
+
+    // 3. MEZCLA TOTAL
+    const allBuyers = [...realBuyers, ...externalBuyers];
+
+    // 4. ORDENAR (El que tenga más tickets arriba)
+    allBuyers.sort((a, b) => b.tickets - a.tickets);
+
+    // 5. ANONIMIZAR Nombres para el público (Juan Perez -> Juan P.)
+    const top3 = allBuyers.slice(0, 3).map(buyer => {
+        let publicName = buyer.name || "Anónimo";
         const parts = publicName.trim().split(' ');
         if (parts.length > 1) {
-             const last = parts[parts.length - 1];
-             publicName = `${parts[0]} ${last.charAt(0)}.`;
+            const lastPart = parts[parts.length - 1];
+            publicName = `${parts[0]} ${lastPart.charAt(0)}.`;
         }
-        return { name: publicName, tickets: b.tickets };
+        return {
+            name: publicName,
+            tickets: buyer.tickets
+        };
     });
 
-    res.json(safeTop);
+    res.json(top3);
 
   } catch (error) {
-    console.error('Error Top Buyers:', error);
+    console.error('Error en Top Híbrido:', error);
     res.status(500).json([]);
   }
 });
