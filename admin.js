@@ -204,43 +204,44 @@ function showSection(section) {
   const payments  = document.getElementById('section-payments');
   const winners   = document.getElementById('section-winners');
   const contacts  = document.getElementById('section-contacts');
-  const stats     = document.getElementById('section-stats'); // NUEVO
+  const stats     = document.getElementById('section-stats');
+  const top       = document.getElementById('section-top'); // NUEVO
 
   // Mostrar/Ocultar secciones
   if (raffles)  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
   if (payments) payments.style.display = (section === 'payments') ? 'block' : 'none';
   if (winners)  winners.style.display  = (section === 'winners')  ? 'block' : 'none';
-  if (contacts) contacts.style.display = (section === 'contacts') ? 'block' : 'none'; // NUEVO
-  if (stats)    stats.style.display    = (section === 'stats')    ? 'block' : 'none'; // NUEVO
+  if (contacts) contacts.style.display = (section === 'contacts') ? 'block' : 'none';
+  if (stats)    stats.style.display    = (section === 'stats')    ? 'block' : 'none';
+  if (top)      top.style.display      = (section === 'section-top') ? 'block' : 'none'; // NUEVO
 
   // Marcar activo en navbar
   const links = {
     raffles:   document.getElementById('nav-raffles'),
     payments:  document.getElementById('nav-payments'),
     winners:   document.getElementById('nav-winners'),
-    contacts:  document.getElementById('nav-contacts'), // NUEVO
-    stats:     document.getElementById('nav-stats')     // NUEVO
+    contacts:  document.getElementById('nav-contacts'),
+    stats:     document.getElementById('nav-stats'),
+    'section-top': document.getElementById('nav-section-top') // NUEVO
   };
+
   Object.entries(links).forEach(([key, el]) => {
     if (!el) return;
-    // reset
     el.classList.remove('text-green-400','border-green-400');
     el.classList.add('text-gray-300','border-transparent');
-    // activo
     if (key === section) {
       el.classList.remove('text-gray-300','border-transparent');
       el.classList.add('text-green-400','border-green-400');
     }
   });
 
-  // Cargas de datos
+  // Cargas de datos al entrar
   if (section === 'raffles')  loadRaffles();
   if (section === 'payments') loadPayments('viewer');
   if (section === 'winners')  loadWinnersInit();
-  if (section === 'section-top') updateTopRaffleSelector(); // <-- CORREGIDO
-  if (section === 'contacts') loadContacts(); // NUEVO
-  if (section === 'stats')    cargarEstadisticas();    // NUEVO
-
+  if (section === 'section-top') updateTopRaffleSelector(); // NUEVO
+  if (section === 'contacts') loadContacts();
+  if (section === 'stats')    cargarEstadisticas();
 }
 
 // ======== Cargar Rifas desde Backend ========
@@ -2015,8 +2016,23 @@ async function cargarEstadisticas() {
 function updateTopRaffleSelector() {
     const select = document.getElementById('top-raffle-select');
     if (!select) return;
-    select.innerHTML = '<option value="">-- Elige una rifa --</option>' + 
-        rifasGlobal.map(r => `<option value="${r._id}">${r.title}</option>`).join('');
+    
+    // Si no hay rifas cargadas, las buscamos primero
+    if (!window.rifasGlobal || window.rifasGlobal.length === 0) {
+        fetch(`${API}/api/raffles`)
+            .then(res => res.json())
+            .then(data => {
+                window.rifasGlobal = data;
+                renderSelectorOptions(select);
+            });
+    } else {
+        renderSelectorOptions(select);
+    }
+}
+
+function renderSelectorOptions(select) {
+    select.innerHTML = '<option value="">-- Selecciona una Rifa --</option>' + 
+        window.rifasGlobal.map(r => `<option value="${r._id}">${r.title}</option>`).join('');
 }
 
 // Cargar el Top 10 para el Admin

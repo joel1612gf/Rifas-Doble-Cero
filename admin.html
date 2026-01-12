@@ -424,6 +424,59 @@
   </div>
 </section>
 
+<div id="section-top" class="admin-section hidden p-4 sm:p-6">
+    <h2 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
+        <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
+    </h2>
+
+    <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl mb-8">
+        <label class="block text-sm text-gray-400 mb-2 uppercase font-bold tracking-wider italic">Paso 1: Elige la rifa a gestionar</label>
+        <select id="top-raffle-select" onchange="loadAdminTop()" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 outline-none focus:border-green-500 transition-all text-lg font-bold">
+            <option value="">Cargando rifas...</option>
+        </select>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
+            <div class="flex items-center gap-2 mb-6">
+                <div class="w-2 h-8 bg-green-500 rounded-full"></div>
+                <h3 class="text-xl font-bold text-white uppercase tracking-tight">Inyectar Venta Externa</h3>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold">Nombre del Comprador / Revendedor</label>
+                    <input type="text" id="manual-name" placeholder="Ej: Juan Garmendia" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold">Cantidad de Tickets (Peso en el Top)</label>
+                    <input type="number" id="manual-tickets" placeholder="Ej: 300" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
+                </div>
+                <button onclick="saveManualBuyer()" class="w-full bg-green-600 hover:bg-green-500 text-black font-black py-4 rounded-xl transition-all shadow-lg transform hover:scale-[1.01] active:scale-95 uppercase tracking-widest">
+                    Actualizar Ranking Público
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-8 bg-yellow-500 rounded-full"></div>
+                    <h3 class="text-xl font-bold text-white uppercase tracking-tight">Top 10 Actual</h3>
+                </div>
+                <span class="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full font-bold">HÍBRIDO</span>
+            </div>
+
+            <div id="admin-top-list" class="space-y-3">
+                <div class="text-center py-10">
+                    <i class="fas fa-mouse-pointer text-gray-600 text-4xl mb-3"></i>
+                    <p class="text-gray-500 text-sm">Selecciona una rifa para ver el ranking en tiempo real</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="section-top" class="admin-section hidden">
     <h2 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
         <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
@@ -471,6 +524,59 @@
     Tip: el botón WhatsApp abre el chat con el número en formato internacional.
   </p>
 </section>
+</div> 
+
+
+        <div id="section-top" class="admin-section hidden p-4 sm:p-6">
+            <h2 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
+                <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
+            </h2>
+
+            <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl mb-8">
+                <label class="block text-sm text-gray-400 mb-2 uppercase font-bold tracking-wider italic text-green-400">Selecciona la rifa para gestionar el Top</label>
+                <select id="top-raffle-select" onchange="loadAdminTop()" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 outline-none focus:border-green-500 transition-all text-lg font-bold">
+                    <option value="">Cargando rifas...</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="w-2 h-8 bg-green-500 rounded-full"></div>
+                        <h3 class="text-xl font-bold text-white uppercase tracking-tight">Inyectar Comprador Externo</h3>
+                    </div>
+                    
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold text-green-400/50">Nombre Completo</label>
+                            <input type="text" id="manual-name" placeholder="Ej: Juan Garmendia" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold text-green-400/50">Cantidad de Tickets</label>
+                            <input type="number" id="manual-tickets" placeholder="Ej: 300" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
+                        </div>
+                        <button onclick="saveManualBuyer()" class="w-full bg-green-600 hover:bg-green-500 text-black font-black py-4 rounded-xl transition-all shadow-lg transform hover:scale-[1.01] active:scale-95 uppercase tracking-widest">
+                            Actualizar Ranking
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-8 bg-yellow-500 rounded-full"></div>
+                            <h3 class="text-xl font-bold text-white uppercase tracking-tight">Vista Previa Top 10</h3>
+                        </div>
+                    </div>
+
+                    <div id="admin-top-list" class="space-y-3 min-h-[200px]">
+                        <div class="text-center py-10">
+                            <p class="text-gray-500 text-sm italic">Elige una rifa arriba para cargar los datos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 <section id="section-stats" class="hidden p-6">
     <h2 class="text-3xl font-extrabold text-green-400 mb-8 flex items-center gap-2">
         <i class="fas fa-chart-line"></i> Análisis de Negocio
