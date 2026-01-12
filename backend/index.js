@@ -841,7 +841,8 @@ app.get('/api/top-buyers/:id', async (req, res) => {
       { 
         $match: { 
           raffleId: id, 
-          status: { $regex: /^aprobado|^aprobada/i } 
+          // Cambiamos para que acepte tanto "Aprobado" como "Pendiente"
+          status: { $regex: /^aprobado|^aprobada|^pendiente/i } 
         } 
       },
       {
