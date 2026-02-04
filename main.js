@@ -1463,7 +1463,7 @@ document.addEventListener('keydown', (e) => {
 });
 // === Contacto por WhatsApp (sin backend) ===
 // Cambia este número si hace falta: en formato internacional SIN "+"
-const CONTACT_WA = '584129974035';
+const CONTACT_WA = '584241242291';
 
 function contactToWhatsApp() {
   const nameEl = document.getElementById('name');
