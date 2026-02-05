@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ganadores - Rifas Doble Cero</title>
     <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+    tailwind.config = {
+        theme: {
+        extend: {
+            colors: {
+            // Esto hará que cuando uses 'green-300' se vea como el nuevo logo
+            green: {
+                150: '#007b4e', // Verde oscuro (profesional)
+            },
+            }
+        }
+        }
+    }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
 </head>
@@ -13,10 +27,10 @@
     <nav class="bg-black py-4 px-6 shadow-lg mb-8">
         <div class="container mx-auto flex justify-between items-center">
             <a href="/" class="flex items-center gap-2">
-                <img src="img/logopngcolorweb2.png" alt="Logo" class="h-10 w-10">
-                <span class="text-xl font-extrabold text-green-400">Doble Cero</span>
+                <img src="img/logo00iso.png" alt="Logo" class="h-10 w-10">
+                <span class="text-xl font-extrabold text-green-150">Doble Cero</span>
             </a>
-            <a href="/" class="text-gray-300 hover:text-green-400 font-bold">Volver al Inicio</a>
+            <a href="/" class="text-gray-300 hover:text-green-150 font-bold">Volver al Inicio</a>
         </div>
     </nav>
 

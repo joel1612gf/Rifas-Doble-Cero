@@ -1188,7 +1188,7 @@ async function generateWinnerCanvasVertical() {
 
 
 // NUEVO
-const logoSrc = (document.querySelector('img[src*="logopngcolorweb2"]')?.src) || 'img/logopngcolorweb2.png';
+const logoSrc = (document.querySelector('img[src*="logo00iso"]')?.src) || 'img/logo00iso.png';
 
 // Normaliza enlaces comunes de “vista previa” a archivo directo
 function normalizeImageURL(raw) {
@@ -1759,7 +1759,7 @@ async function generarImagenTop3() {
 
         // 2. CARGAR IMÁGENES (Logo y Rifa)
         const logoImg = new Image();
-        logoImg.src = 'img/logopngcolorweb2.png';
+        logoImg.src = 'img/logo00iso.png';
 
         const raffleImg = new Image();
         raffleImg.crossOrigin = "anonymous";

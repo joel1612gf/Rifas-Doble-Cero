@@ -7,7 +7,21 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Tailwind CDN para pruebas, quítalo si ya tienes tu build! -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="icon" type="image/png" href="img/logopngcolorweb2.png">
+      <script>
+    tailwind.config = {
+        theme: {
+        extend: {
+            colors: {
+            // Esto hará que cuando uses 'green-300' se vea como el nuevo logo
+            green: {
+                150: '#007b4e', // Verde oscuro (profesional)
+            },
+            }
+        }
+        }
+    }
+    </script>
+    <link rel="icon" type="image/png" href="img/logo00iso.png">
     <!-- Font Awesome CDN para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
 </head>
@@ -17,13 +31,13 @@
     <header class="bg-black py-4 px-6 shadow-lg sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
-                <h1 class="text-lg sm:text-2xl font-extrabold text-green-400">Doble Cero</h1>
+                <img src="img/logo00iso.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
+                <h1 class="text-lg sm:text-2xl font-extrabold text-green-150">Doble Cero</h1>
             </div>
             
             <!-- Menú desktop -->
             <nav class="hidden md:flex space-x-6">
-                <a href="#" class="text-green-400 hover:text-green-300 font-medium">Inicio</a>
+                <a href="#" class="text-green-150 hover:text-green-300 font-medium">Inicio</a>
                 <a href="#como-funciona" class="text-gray-300 hover:text-green-300 font-medium">¿Cómo funciona?</a>
                 <a href="#contacto" class="text-gray-300 hover:text-green-300 font-medium">Contacto</a>
                 <a href="#" id="link-mis-numeros" class="text-gray-300 hover:text-green-300 font-medium">Mis números</a>
@@ -31,7 +45,7 @@
             </nav>
             
             <!-- Botón menú móvil -->
-            <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-green-400">
+            <button id="mobile-menu-button" class="md:hidden text-green-150 hover:text-green-400">
                 <i class="fas fa-bars text-2xl"></i>
             </button>
         </div>
@@ -39,11 +53,11 @@
         <!-- Menú móvil -->
         <div id="mobile-menu" class="mobile-menu md:hidden bg-gray-800 mt-2 rounded-lg">
             <div class="flex flex-col space-y-3 p-4">
-                <a href="#" class="text-green-400 hover:text-green-300 font-medium">Inicio</a>
-                <a href="#como-funciona" class="text-gray-300 hover:text-green-300 font-medium">¿Cómo funciona?</a>
-                <a href="#contacto" class="text-gray-300 hover:text-green-300 font-medium">Contacto</a>
-                <a href="ganadores" class="text-gray-300 hover:text-green-300 font-medium">Ganadores</a>
-                <a href="#" id="link-mis-numeros-mobile" class="text-gray-300 hover:text-green-300 font-medium">Mis números</a>
+                <a href="#" class="text-green-400 hover:text-green-150 font-medium">Inicio</a>
+                <a href="#como-funciona" class="text-gray-300 hover:text-green-150 font-medium">¿Cómo funciona?</a>
+                <a href="#contacto" class="text-gray-300 hover:text-green-150 font-medium">Contacto</a>
+                <a href="ganadores" class="text-gray-300 hover:text-green-150 font-medium">Ganadores</a>
+                <a href="#" id="link-mis-numeros-mobile" class="text-gray-300 hover:text-green-150 font-medium">Mis números</a>
             </div>
         </div>
     </header>
@@ -366,8 +380,8 @@
         <div class="container mx-auto">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center space-x-2 mb-4 md:mb-0">
-                    <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-12 w-12 rounded-md">
-                    <h2 class="text-xl font-extrabold text-green-400">Doble Cero</h2>
+                    <img src="img/logo00iso.png" alt="Logo Rifas Doble Cero" class="h-12 w-12 rounded-md">
+                    <h2 class="text-xl font-extrabold text-green-150">Doble Cero</h2>
                 </div>
                 
                 <div class="text-gray-400 text-center md:text-right">

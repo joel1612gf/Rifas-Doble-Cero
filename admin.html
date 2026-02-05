@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Panel Admin - Rifas Doble Cero</title>
     <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+    tailwind.config = {
+        theme: {
+        extend: {
+            colors: {
+            // Esto hará que cuando uses 'green-300' se vea como el nuevo logo
+            green: {
+                150: '#007b4e', // Verde oscuro (profesional)
+            },
+            }
+        }
+        }
+    }
+    </script>
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
 </head>
@@ -14,8 +29,8 @@
 <div id="admin-login" class="flex items-center justify-center min-h-screen">
   <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
     <div class="flex items-center gap-3 mb-6">
-      <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-9 w-9 rounded-md">
-      <h2 class="text-2xl font-extrabold text-green-400">Panel de Administración</h2>
+      <img src="img/logo00iso.png" alt="Logo Rifas Doble Cero" class="h-9 w-9 rounded-md">
+      <h2 class="text-2xl font-extrabold text-green-150">Panel de Administración</h2>
     </div>
 
     <label class="block text-sm text-gray-300 mb-1">Usuario</label>
@@ -29,7 +44,7 @@
                   focus:outline-none focus:ring-2 focus:ring-green-400">
 
     <button onclick="loginAdmin()"
-            class="w-full bg-green-400 text-gray-900 py-3 rounded-lg font-bold text-lg hover:bg-green-500 transition-all">
+            class="w-full bg-green-150 text-gray-900 py-3 rounded-lg font-bold text-lg hover:bg-green-500 transition-all">
       Iniciar sesión
     </button>
 
@@ -42,8 +57,8 @@
         <!-- Navbar -->
         <nav class="bg-black px-4 py-3 flex flex-wrap items-center justify-between shadow-lg">
               <div class="flex items-center space-x-2">
-                <img src="img/logopngcolorweb2.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
-                <h1 class="text-lg sm:text-2xl font-extrabold text-green-400">Doble Cero Admin</h1>
+                <img src="img/logo00iso.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
+                <h1 class="text-lg sm:text-2xl font-extrabold text-green-150">Doble Cero Admin</h1>
             </div>
             <div class="space-x-4 flex">
               <button id="nav-raffles"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('raffles')">Rifas</button>
