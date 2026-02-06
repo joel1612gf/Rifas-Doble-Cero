@@ -238,10 +238,16 @@ function renderGridAndPaginatorHTML() {
 
   const total = rifa.totalNumbers || 100;
   const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
-  const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
+  /* OPTIMIZACIÓN: Usar Sets para búsqueda O(1) */
+  const vendidosSet = new Set([...(rifa.numbersSold || []), ...reservados]);
 
   // TAREA 2: (Ya implementado) La lista base es solo de disponibles
-  let numerosFiltrados = Array.from({ length: total }, (_, i) => i + 1).filter(n => !vendidos.includes(n));
+  let numerosFiltrados = [];
+  for (let i = 1; i <= total; i++) {
+    if (!vendidosSet.has(i)) {
+      numerosFiltrados.push(i);
+    }
+  }
 
   // Aplicamos el filtro de búsqueda (searchValue es una variable global)
   if (searchValue && searchValue.length > 0) {
@@ -508,52 +514,7 @@ function renderSelectorContent() {
 // --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 
 // Lógica para seleccionar/deseleccionar número
-function toggleNumero(num, elementoBoton) {
-  const idx = numerosSeleccionados.indexOf(num);
-  if (idx >= 0) {
-    numerosSeleccionados.splice(idx, 1);
-  } else {
-    numerosSeleccionados.push(num);
-  }
-
-  // 1. Actualizar visualmente el botón que se tocó
-  const seleccionado = numerosSeleccionados.includes(num);
-  if (elementoBoton) { // elementoBoton es el 'this' que pasamos desde el onclick
-    if (seleccionado) {
-      elementoBoton.classList.add('bg-btn', 'text-btn-text', 'border-primary');
-      elementoBoton.classList.remove('bg-input', 'text-main', 'hover:bg-primary-light', 'hover:border-primary');
-    } else {
-      elementoBoton.classList.remove('bg-btn', 'text-btn-text', 'border-primary');
-      elementoBoton.classList.add('bg-input', 'text-main', 'hover:bg-primary-light', 'hover:border-primary');
-    }
-  }
-
-  // 2. Actualizar la lista de "Seleccionados"
-  const seleccionadosLabel = document.getElementById('seleccionados-label');
-  if (seleccionadosLabel) {
-    seleccionadosLabel.innerHTML = numerosSeleccionados.length > 0
-      ? numerosSeleccionados.map(n =>
-        // --- INICIO DE CAMBIO (TAREA "Quitar píldora") ---
-        `<button 
-                type="button"
-                title="Quitar ${n}"
-                onclick="toggleNumero(${n}, document.querySelector('.numero-btn[data-numero=\\'${n}\\']'))"
-                class="inline-block bg-green-500 text-black font-bold px-3 py-1 rounded-full text-sm hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
-            >
-                ${formatTicketNumber(n, rifaSeleccionada.totalNumbers)}
-            </button>`
-        // --- FIN DE CAMBIO ---
-      ).join('')
-      : '<span class="text-gray-400">Ninguno</span>';
-  }
-
-  // 3. Actualiza el botón continuar (deshabilitado si no hay nada)
-  const btnContinuar = document.getElementById('btn-continuar-compra');
-  if (btnContinuar) {
-    btnContinuar.disabled = (numerosSeleccionados.length === 0);
-    btnContinuar.style.opacity = (numerosSeleccionados.length === 0) ? 0.5 : 1;
-  }
-}
+// (Función toggleNumero antigua eliminada por duplicidad - Ver versión final abajo)
 // --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
 
 // --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
@@ -645,11 +606,16 @@ function numeroAlAzar() {
 function _seleccionarNumeroAlAzarInterno() {
   const rifa = rifaSeleccionada;
   const total = rifa.totalNumbers || 100;
-  const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
-  const vendidos = [...new Set([...(rifa.numbersSold || []), ...reservados])];
+  /* OPTIMIZACIÓN: Usar Sets para búsqueda O(1) en lugar de O(N) */
+  const vendidosSet = new Set([...(rifa.numbersSold || []), ...reservados]);
+  const seleccionadosSet = new Set(numerosSeleccionados);
 
-  let disponibles = Array.from({ length: total }, (_, i) => i + 1)
-    .filter(n => !vendidos.includes(n) && !numerosSeleccionados.includes(n));
+  let disponibles = [];
+  for (let i = 1; i <= total; i++) {
+    if (!vendidosSet.has(i) && !seleccionadosSet.has(i)) {
+      disponibles.push(i);
+    }
+  }
 
   if (disponibles.length === 0) return;
 
@@ -1989,98 +1955,8 @@ function cerrarModalTop() {
   document.getElementById('modal-top-buyers').classList.add('hidden');
 }
 
-// ============ 7. LÓGICA DE CARGA DE RIFAS (INICIO) ===============
-
-async function loadRaffles() {
-  try {
-    const res = await fetch(API + '/api/raffles');
-    if (!res.ok) throw new Error('Error al cargar rifas');
-    const raffles = await res.json();
-    rifasGlobal = raffles; // Actualizar variable global
-    renderRafflesLists(raffles);
-  } catch (error) {
-    console.error('Error loading raffles:', error);
-    const container = document.getElementById('rifas-container');
-    if (container) container.innerHTML = '<p class="text-center text-red-500">Error al cargar las rifas disponibles.</p>';
-  }
-}
-
-function renderRafflesLists(raffles) {
-  const container = document.getElementById('rifas-container');
-  if (!container) return;
-
-  // Filtrar solo activas (y opcionalmente ordenarlas)
-  const activeRaffles = raffles.filter(r => r.status === 'activa');
-
-  if (activeRaffles.length === 0) {
-    container.innerHTML = '<p class="text-center text-muted text-lg py-10">No hay rifas activas en este momento. ¡Vuelve pronto!</p>';
-    return;
-  }
-
-  let html = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">';
-
-  activeRaffles.forEach(r => {
-    // Precios y monedas
-    const price = r.priceBs + ' Bs';
-
-    // Progreso
-    const todas = r.totalNumbers || 100;
-    const vendidos = (r.numbersSold || []).length;
-    const reservados = (r.numbersReserved || []).length;
-    // OJO: calculamos disponibles reales
-    const ocupados = [...new Set([...(r.numbersSold || []), ...(r.numbersReserved || [])])].length;
-    const percent = Math.min(100, Math.round((ocupados / todas) * 100));
-
-    html += `
-      <div class="bg-card rounded-2xl overflow-hidden shadow-lg border border-border flex flex-col hover:transform hover:scale-[1.02] transition-all duration-300 group">
-        <!-- Imagen -->
-        <div class="relative h-48 sm:h-56 overflow-hidden">
-          <img src="${r.image || 'img/placeholder.jpg'}" alt="${r.title}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-          <div class="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-xs px-2 py-1 rounded font-bold border border-white/20">
-             ${r.drawDate ? 'Sortea: ' + new Date(r.drawDate).toLocaleDateString() : 'Fecha pendiente'}
-          </div>
-          ${r.isHot ? '<div class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded font-bold animate-pulse">🔥 POPULAR</div>' : ''}
-        </div>
-        
-        <!-- Info -->
-        <div class="p-5 flex-1 flex flex-col">
-          <h3 class="text-xl font-bold text-primary mb-2">${r.title}</h3>
-          <p class="text-sm text-muted mb-4 line-clamp-2">${r.description || 'Participa y gana increíbles premios.'}</p>
-          
-          <div class="mt-auto">
-             <!-- Barra de Progreso -->
-             <div class="flex justify-between items-center mb-1 text-sm font-medium">
-               <span class="text-muted text-xs uppercase tracking-wider">Tickets vendidos</span>
-               <span class="text-primary font-bold">${percent}%</span>
-             </div>
-             <div class="w-full bg-input rounded-full h-2.5 mb-4 overflow-hidden border border-border/50">
-                <div class="bg-gradient-to-r from-primary to-green-400 h-full rounded-full transition-all duration-1000 ease-out" style="width: ${percent}%"></div>
-             </div>
-             
-             <!-- Footer Card -->
-             <div class="flex justify-between items-center pt-2 border-t border-border">
-                <div class="flex flex-col">
-                   <span class="text-[10px] text-muted uppercase font-bold">Precio Ticket</span>
-                   <span class="text-2xl font-black text-primary">${price}</span>
-                </div>
-                <button onclick="abrirModalSelector('${r._id}')" 
-                  class="bg-btn hover:brightness-110 text-btn-text font-bold py-2.5 px-6 rounded-xl shadow-lg transition-transform active:scale-95 border border-white/10 flex items-center gap-2">
-                  <span>Participar</span>
-                  <i class="fas fa-ticket-alt"></i>
-                </button>
-             </div>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  html += '</div>';
-  container.innerHTML = html;
-}
-
 // Inicializar el tema y las rifas al cargar
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  loadRaffles();
+  cargarRifas();
 });
