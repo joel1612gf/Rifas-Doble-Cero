@@ -1,630 +1,740 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>Panel Admin - Rifas Doble Cero</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-      <script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Panel Admin - Rifas Doble Cero</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
     tailwind.config = {
-        theme: {
+      darkMode: 'class',
+      theme: {
         extend: {
-            colors: {
+          colors: {
             // Esto hará que cuando uses 'green-300' se vea como el nuevo logo
             green: {
-                150: '#007b4e', // Verde oscuro (profesional)
+              150: '#007b4e', // Verde oscuro (profesional)
             },
-            }
+          }
         }
-        }
+      }
     }
-    </script>
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+  </script>
+  <script src="theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen font-[Montserrat]">
 
-<!-- Login Admin -->
-<div id="admin-login" class="flex items-center justify-center min-h-screen">
-  <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
-    <div class="flex items-center gap-3 mb-6">
-      <img src="img/logo00iso.png" alt="Logo Rifas Doble Cero" class="h-9 w-9 rounded-md">
-      <h2 class="text-2xl font-extrabold text-green-150">Panel de Administración</h2>
-    </div>
+<body
+  class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-[Montserrat] transition-colors duration-300">
 
-    <label class="block text-sm text-gray-300 mb-1">Usuario</label>
-    <input id="admin-username" type="text" placeholder="Usuario"
-           class="w-full mb-4 px-4 py-2 rounded-lg bg-gray-700/70 border border-white/10 text-white
-                  focus:outline-none focus:ring-2 focus:ring-green-400">
-
-    <label class="block text-sm text-gray-300 mb-1">Contraseña</label>
-    <input id="admin-password" type="password" placeholder="Contraseña"
-           class="w-full mb-6 px-4 py-2 rounded-lg bg-gray-700/70 border border-white/10 text-white
-                  focus:outline-none focus:ring-2 focus:ring-green-400">
-
-    <button onclick="loginAdmin()"
-            class="w-full bg-green-150 text-gray-900 py-3 rounded-lg font-bold text-lg hover:bg-green-500 transition-all">
-      Iniciar sesión
-    </button>
-
-    <div id="login-error" class="text-red-400 mt-4 text-center hidden">Usuario o contraseña incorrectos</div>
-  </div>
-</div>
-
-    <!-- Panel principal admin (oculto al inicio) -->
-    <div id="admin-panel" class="hidden">
-        <!-- Navbar -->
-        <nav class="bg-black px-4 py-3 flex flex-wrap items-center justify-between shadow-lg">
-              <div class="flex items-center space-x-2">
-                <img src="img/logo00iso.png" alt="Logo Rifas Doble Cero" class="h-13 w-12 rounded-">
-                <h1 class="text-lg sm:text-2xl font-extrabold text-green-150">Doble Cero Admin</h1>
-            </div>
-            <div class="space-x-4 flex">
-              <button id="nav-raffles"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('raffles')">Rifas</button>
-              <button id="nav-payments"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('payments')">Verificar pagos</button>
-              <button id="nav-winners"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('winners')">Ganadores</button>
-              <button id="nav-topcompra"   class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('section-top')">Top Compradores</button>
-              <button id="nav-stats"     class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('stats')">Estadísticas</button>
-              <button id="nav-contacts"  class="nav-link font-bold text-gray-300 hover:text-green-400 px-2 py-1 border-b-2 border-transparent" onclick="showSection('contacts')">Contactos</button>
-              <button class="nav-link font-bold text-red-400" onclick="logoutAdmin()">Cerrar sesión</button>
-            </div>
-        </nav>
-        <!-- Sección Rifas (por defecto visible) -->
-        <section id="section-raffles" class="p-6 max-w-4xl mx-auto">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-green-400">Rifas</h2>
-                <button onclick="openCreateRaffleForm()" class="bg-green-400 text-gray-900 px-4 py-2 rounded font-bold hover:bg-green-500 transition-all">+ Nueva rifa</button>
-            </div>
-            <div id="raffles-table-wrapper">
-                <!-- Aquí se cargará la tabla de rifas con JS -->
-            </div>
-        </section>
-        <!-- (Las otras secciones las llenamos después) -->
-    </div>
-
-
-<!-- Formulario de Crear/Editar Rifa (oculto al inicio) -->
-<div id="raffle-form-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
-    <div class="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg relative"
-        style="max-height: 90vh; overflow-y: auto;">
-        <button onclick="closeRaffleForm()" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-2xl">&times;</button>
-        <h2 id="raffle-form-title" class="text-2xl font-bold text-green-400 mb-4">Crear Nueva Rifa</h2>
-            <form id="raffle-form" onsubmit="submitRaffleForm(event)" 
-                class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <input type="hidden" id="raffle-id">
-
-            <!-- Nombre -->
-            <div class="sm:col-span-2">
-                <label class="block font-bold mb-1 text-base">Nombre de la rifa</label>
-                <input type="text" id="raffle-title" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
-            </div>
-
-            <!-- Descripción -->
-            <div class="sm:col-span-2">
-                <label class="block font-bold mb-1 text-base">Descripción</label>
-                <textarea id="raffle-description" class="w-full px-3 py-2 rounded bg-gray-700 text-white" rows="3" required></textarea>
-            </div>
-
-            <!-- Imagen -->
-            <div class="sm:col-span-2">
-                <label class="block font-bold mb-1 text-base">Imagen (URL)</label>
-                <input type="url" id="raffle-image" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
-            </div>
-
-            <!-- Precios (dos columnas en ≥sm, apilado en móvil) -->
-            <div>
-                <label class="block font-bold mb-1 text-base">Precio en Bs</label>
-                <input type="number" id="raffle-priceBs" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
-            </div>
-            <div>
-                <label class="block font-bold mb-1 text-base">Precio en USDT</label>
-                <input type="number" id="raffle-priceUsd" min="0" step="0.01" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
-            </div>
-            <!-- Fecha -->
-            <div>
-            <label class="block font-bold mb-1 text-base">Fecha del sorteo</label>
-            <input type="date" id="raffle-date" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
-            </div>
-
-            <!-- Total de números -->
-            <div>
-                        <label class="block font-bold mb-1 text-base">Total de números</label>
-                        <input type="number" id="raffle-totalNumbers" min="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
-                        </div>
-
-                        <div>
-                        <label class="block font-bold mb-1 text-base">Mínimo de tickets</label>
-                        <input type="number" id="raffle-minTickets" min="1" value="1" class="w-full px-3 py-2 rounded bg-gray-700 text-white" required>
-                        </div>
-
-                        <div class="col-span-1 md:col-span-2 bg-gray-700/50 p-4 rounded-lg border border-gray-600 mt-4">
-                <h4 class="text-green-400 font-bold mb-3 text-sm flex items-center gap-2">
-                    <i class="fas fa-dice"></i> Configurar Botones de Compra Rápida
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-xs text-gray-400">Opción 1 (Cant. / Texto)</label>
-                        <div class="flex gap-2">
-                            <input type="number" id="btn1-count" placeholder="Ej. 3" class="w-16 bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none">
-                            <input type="text" id="btn1-label" placeholder="Ej. Mínima" class="flex-1 bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none">
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs text-gray-400">Opción 2 (Cant. / Texto)</label>
-                        <div class="flex gap-2">
-                            <input type="number" id="btn2-count" placeholder="Ej. 10" class="w-16 bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none">
-                            <input type="text" id="btn2-label" placeholder="Ej. Popular" class="flex-1 bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none">
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs text-gray-400">Opción 3 (Cant. / Texto)</label>
-                        <div class="flex gap-2">
-                            <input type="number" id="btn3-count" placeholder="Ej. 50" class="w-16 bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none">
-                            <input type="text" id="btn3-label" placeholder="Ej. Mayorista" class="flex-1 bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Premios (ocupa 2 columnas en ≥sm) -->
-            <div class="sm:col-span-2">
-            <label class="block font-bold mb-1 text-base">Premios</label>
-            <div id="prizes-list"></div>
-            <button type="button" onclick="addPrizeField()" 
-                    class="mt-2 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm sm:text-base">
-                + Agregar premio
-            </button>
-            </div>
-
-            <!-- Estado -->
-            <div class="sm:col-span-2 sm:max-w-xs">
-            <label class="block font-bold mb-1 text-base">Estado</label>
-            <select id="raffle-status" class="w-full px-3 py-2 rounded bg-gray-700 text-white">
-                <option value="activa">Activa</option>
-                <option value="inactiva">Inactiva</option>
-            </select>
-            </div>
-
-            <div class="col-span-full border-t border-gray-700 pt-4 mt-2">
-            <h3 class="text-green-400 font-bold mb-3">Gestión de Resultados (Ganadores)</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block font-bold mb-1 text-sm text-gray-400">Captura Resultado 1 (URL)</label>
-                    <input type="url" id="raffle-resultImg1" class="w-full px-3 py-2 rounded bg-gray-700 text-white placeholder-gray-500" placeholder="https://...">
-                </div>
-                <div>
-                    <label class="block font-bold mb-1 text-sm text-gray-400">Captura Resultado 2 (URL)</label>
-                    <input type="url" id="raffle-resultImg2" class="w-full px-3 py-2 rounded bg-gray-700 text-white placeholder-gray-500" placeholder="https://...">
-                </div>
-                <div class="flex items-center gap-4 mt-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="raffle-isFinished" class="w-5 h-5 accent-green-500">
-                        <span class="font-bold">Rifa Finalizada</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="raffle-isDelivered" class="w-5 h-5 accent-green-500">
-                        <span class="font-bold">Premio Entregado</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        
-            <!-- Guardar -->
-            <div class="sm:col-span-2">
-            <button type="submit" class="w-full bg-green-400 text-gray-900 py-3 rounded font-bold text-lg hover:bg-green-500 transition-all">
-                Guardar
-            </button>
-            </div>
-            </form>
-        </form>
-    </div>
-</div>
-<section id="section-payments" class="p-4 sm:p-6 max-w-6xl mx-auto hidden">
-
-  <!-- Header: título + modos -->
-  <div class="mb-3 sm:mb-4 flex items-center justify-between">
-    <h2 class="text-xl sm:text-2xl font-bold text-green-400">Verificar pagos</h2>
-    <div class="space-x-2">
-      <button id="btn-mode-table"  class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 font-bold text-sm">Tabla</button>
-      <button id="btn-mode-viewer" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 font-bold text-sm">Visor</button>
-    </div>
-  </div>
-
-  <!-- Filtros -->
-  <div id="payments-filters" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-    <div>
-      <label class="block text-xs text-gray-400 mb-1">Método de pago</label>
-      <select id="pay-filter-method" class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2">
-        <option value="">Todos</option>
-      </select>
-    </div>
-
-    <div>
-      <label class="block text-xs text-gray-400 mb-1">Desde</label>
-      <input type="date" id="pay-filter-from" class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2" />
-    </div>
-
-    <div>
-      <label class="block text-xs text-gray-400 mb-1">Hasta</label>
-      <input type="date" id="pay-filter-to" class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2" />
-    </div>
-
-    <div class="flex md:flex-col items-end gap-2">
-      <div class="flex-1 w-full">
-        <label class="block text-xs text-gray-400 mb-1">Referencia</label>
-        <input type="text" id="pay-filter-ref" placeholder="Ej: 1234"
-               class="w-full bg-gray-800 border border-white/10 rounded px-3 py-2" />
+  <!-- Login Admin -->
+  <div id="admin-login" class="flex items-center justify-center min-h-screen transition-colors duration-300">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
+      <div class="flex items-center gap-3 mb-6">
+        <img src="img/logo00iso.png" alt="Logo Rifas Doble Cero" class="h-9 w-9 rounded-md">
+        <h2 class="text-2xl font-extrabold text-green-150">Panel de Administración</h2>
       </div>
-      <button id="pay-filter-clear" class="bg-gray-700 hover:bg-gray-600 rounded px-3 py-2 text-sm font-bold">
-        Limpiar
+
+      <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Usuario</label>
+      <input id="admin-username" type="text" placeholder="Usuario" class="w-full mb-4 px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white
+                  focus:outline-none focus:ring-2 focus:ring-green-400 font-medium">
+
+      <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Contraseña</label>
+      <input id="admin-password" type="password" placeholder="Contraseña" class="w-full mb-6 px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white
+                  focus:outline-none focus:ring-2 focus:ring-green-400 font-medium">
+
+      <button onclick="loginAdmin()"
+        class="w-full bg-green-150 text-white dark:text-gray-900 py-3 rounded-lg font-bold text-lg hover:brightness-110 transition-all shadow-md">
+        Iniciar sesión
       </button>
-      <button id="btn-approve-all" class="bg-green-600 hover:bg-green-500 text-black rounded px-3 py-2 text-sm font-bold hidden">
-        Aprobar Todos
-      </button>
+
+      <div id="login-error" class="text-red-500 font-semibold mt-4 text-center hidden">Usuario o contraseña incorrectos
+      </div>
     </div>
   </div>
 
+  <!-- Panel principal admin (oculto al inicio) -->
+  <div id="admin-panel" class="hidden">
+    <!-- Navbar -->
+    <nav class="bg-white dark:bg-black px-4 py-3 shadow-lg sticky top-0 z-50 transition-colors duration-300">
+      <div class="container mx-auto flex items-center justify-between">
+        <!-- Logo -->
+        <div class="flex items-center space-x-2">
+          <img src="img/logo00iso.png" alt="Logo" class="h-10 w-10 rounded-md">
+          <h1 class="text-lg sm:text-2xl font-extrabold text-green-150">Admin</h1>
+        </div>
 
-  <!-- Header del visor -->
-  <div id="viewer-header" class="hidden flex items-center justify-center text-sm sm:text-base font-bold text-green-300 mb-3 sm:mb-4">
-    <button id="prev-payment" class="px-3 py-1 mr-3 rounded bg-gray-700 hover:bg-gray-600">&lt;</button>
-    <span id="viewer-counter">0/0</span>
-    <button id="next-payment" class="px-3 py-1 ml-3 rounded bg-gray-700 hover:bg-gray-600">&gt;</button>
-    <span id="viewer-pending" class="ml-4 sm:ml-6 text-xs sm:text-sm text-gray-400"></span>
-    <span id="viewer-hint" class="hidden sm:inline ml-auto text-xs text-gray-500">
-      Atajos: <b>A</b> aprobar · <b>R</b> rechazar · <b>W</b> esperar · <b>←/→</b> navegar
-    </span>
-  </div>
+        <!-- Desktop Menu -->
+        <div class="hidden lg:flex items-center gap-1">
+          <button id="nav-raffles"
+            class="nav-link font-bold text-gray-600 dark:text-gray-300 hover:text-green-500 px-3 py-2 rounded-lg transition-colors border-b-2 border-transparent"
+            onclick="showSection('raffles')">Rifas</button>
+          <button id="nav-payments"
+            class="nav-link font-bold text-gray-600 dark:text-gray-300 hover:text-green-500 px-3 py-2 rounded-lg transition-colors border-b-2 border-transparent"
+            onclick="showSection('payments')">Pagos</button>
+          <button id="nav-winners"
+            class="nav-link font-bold text-gray-600 dark:text-gray-300 hover:text-green-500 px-3 py-2 rounded-lg transition-colors border-b-2 border-transparent"
+            onclick="showSection('winners')">Ganadores</button>
+          <button id="nav-topcompra"
+            class="nav-link font-bold text-gray-600 dark:text-gray-300 hover:text-green-500 px-3 py-2 rounded-lg transition-colors border-b-2 border-transparent"
+            onclick="showSection('section-top')">Top</button>
+          <button id="nav-stats"
+            class="nav-link font-bold text-gray-600 dark:text-gray-300 hover:text-green-500 px-3 py-2 rounded-lg transition-colors border-b-2 border-transparent"
+            onclick="showSection('stats')">Estadísticas</button>
+          <button id="nav-contacts"
+            class="nav-link font-bold text-gray-600 dark:text-gray-300 hover:text-green-500 px-3 py-2 rounded-lg transition-colors border-b-2 border-transparent"
+            onclick="showSection('contacts')">Contactos</button>
 
-  <!-- Vista tabla -->
-  <div id="payments-table-wrapper"></div>
+          <!-- Theme Toggle Desktop -->
+          <button onclick="toggleTheme()"
+            class="ml-4 p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-yellow-400 hover:bg-gray-300 dark:hover:bg-gray-700 transition">
+            <i id="theme-toggle-icon" class="fas fa-sun"></i>
+          </button>
 
-  <!-- Vista visor -->
-  <div id="payments-viewer-wrapper" class="hidden">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
-      <!-- Comprobante -->
-      <div class="bg-gray-800 rounded-lg p-3 sm:p-4 shadow">
-        <!-- Altura en % de pantalla para móvil; más alta en pantallas grandes -->
-        <div id="proof-box" class="w-full h-[52vh] sm:h-[60vh] lg:h-[68vh] bg-gray-900 flex items-center justify-center rounded overflow-hidden">
-          <!-- aquí inyectamos <img> o <iframe> -->
+          <button class="ml-2 font-bold text-red-500 hover:text-red-600 px-3 py-2"
+            onclick="logoutAdmin()">Salir</button>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div class="flex items-center gap-3 lg:hidden">
+          <button onclick="toggleTheme()"
+            class="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-yellow-400">
+            <i id="theme-icon-mobile" class="fas fa-sun"></i>
+            <!-- Nota: JS actualizará el icono, usaremos theme-toggle-icon por consistencia si es único, o actualizaremos ambos -->
+          </button>
+          <button id="btn-mobile-menu" class="p-2 text-gray-800 dark:text-white focus:outline-none"
+            onclick="toggleAdminMenu()">
+            <i class="fas fa-bars text-2xl"></i>
+          </button>
         </div>
       </div>
-      <!-- Datos -->
-      <div class="bg-gray-800 rounded-lg p-4 sm:p-6 shadow">
-        <ul class="space-y-3 sm:space-y-4 text-base sm:text-lg lg:text-base leading-relaxed">
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Fecha:</span>
-                <span id="v-fecha" class="font-semibold text-gray-100"></span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Nombre:</span>
-                <span id="v-nombre" class="font-semibold text-gray-100"></span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Rifa:</span>
-                <span id="v-rifa" class="font-semibold text-gray-100"></span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Teléfono:</span>
-                <span id="v-telefono" class="font-semibold text-gray-100"></span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Números:</span>
-                <span id="v-numeros" class="font-semibold text-gray-100"></span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Método:</span>
-                <span id="v-metodo" class="font-semibold text-gray-100"></span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Referencia:</span>
-                <span id="v-ref" class="font-semibold text-gray-100"></span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="text-green-300 font-semibold min-w-[92px] sm:min-w-[110px]">Monto:</span>
-                <span id="v-monto" class="font-semibold text-gray-100"></span>
-            </li>
-            </ul>
 
-            <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <button id="btn-approve" class="w-full sm:flex-1 bg-green-600 hover:bg-green-500 py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">APROBAR</button>
-            <button id="btn-wait"    class="w-full sm:flex-1 bg-yellow-400 hover:bg-yellow-300 text-black py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">ESPERA</button>
-            <button id="btn-reject"  class="w-full sm:flex-1 bg-red-600 hover:bg-red-500 py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">RECHAZAR</button>
-            </div>
+      <!-- Mobile Menu Dropdown -->
+      <div id="mobile-menu"
+        class="hidden lg:hidden flex flex-col space-y-2 mt-3 pb-3 border-t border-gray-200 dark:border-gray-800 pt-2">
+        <button
+          class="nav-link-mobile text-left font-bold text-gray-700 dark:text-gray-300 px-4 py-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          onclick="showSection('raffles'); toggleAdminMenu()">Rifas</button>
+        <button
+          class="nav-link-mobile text-left font-bold text-gray-700 dark:text-gray-300 px-4 py-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          onclick="showSection('payments'); toggleAdminMenu()">Verificar pagos</button>
+        <button
+          class="nav-link-mobile text-left font-bold text-gray-700 dark:text-gray-300 px-4 py-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          onclick="showSection('winners'); toggleAdminMenu()">Ganadores</button>
+        <button
+          class="nav-link-mobile text-left font-bold text-gray-700 dark:text-gray-300 px-4 py-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          onclick="showSection('section-top'); toggleAdminMenu()">Top Compradores</button>
+        <button
+          class="nav-link-mobile text-left font-bold text-gray-700 dark:text-gray-300 px-4 py-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          onclick="showSection('stats'); toggleAdminMenu()">Estadísticas</button>
+        <button
+          class="nav-link-mobile text-left font-bold text-gray-700 dark:text-gray-300 px-4 py-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          onclick="showSection('contacts'); toggleAdminMenu()">Contactos</button>
+        <div class="border-t border-gray-200 dark:border-gray-800 my-2"></div>
+        <button class="nav-link-mobile text-left font-bold text-red-500 px-4 py-3 rounded hover:bg-red-50"
+          onclick="logoutAdmin()">Cerrar sesión</button>
       </div>
-    </div>
+    </nav>
+    <!-- Sección Rifas (por defecto visible) -->
+    <section id="section-raffles" class="p-6 max-w-4xl mx-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-green-400">Rifas</h2>
+        <button onclick="openCreateRaffleForm()"
+          class="bg-green-400 text-gray-900 px-4 py-2 rounded font-bold hover:bg-green-500 transition-all">+ Nueva
+          rifa</button>
+      </div>
+      <div id="raffles-table-wrapper">
+        <!-- Aquí se cargará la tabla de rifas con JS -->
+      </div>
+    </section>
+    <!-- (Las otras secciones las llenamos después) -->
   </div>
-</section>
 
-<section id="section-winners" class="hidden p-3 sm:px-4 sm:py-6">
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 items-start">
-    <!-- IZQUIERDA -->
-    <div class="bg-gray-800/60 rounded-2xl p-4 sm:p-6 shadow-xl min-w-0">
-      <div class="mb-3 sm:mb-4">
-        <label class="block text-green-400 font-extrabold text-sm sm:text-base mb-1">SELECCIONAR RIFA:</label>
-        <select id="winners-raffle-select" class="w-full bg-gray-900 border border-white/10 rounded-lg px-3 py-2 text-sm sm:text-base"></select>
-      </div>
 
-      <div class="bg-gray-900/70 rounded-xl aspect-[16/10] w-full flex items-center justify-center mb-3 sm:mb-4 overflow-hidden">
-        <img id="winners-image" src="" alt="Imagen de la rifa" class="h-full w-auto rounded-xl hidden">
-        <div id="winners-image-ph" class="text-xl sm:text-3xl font-extrabold text-orange-400 tracking-widest">IMAGEN DE LA RIFA</div>
-      </div>
+  <!-- Formulario de Crear/Editar Rifa (oculto al inicio) -->
+  <div id="raffle-form-modal"
+    class="fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/80 z-50 hidden backdrop-blur-sm transition-all">
+    <div
+      class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-lg relative transition-colors border border-gray-200 dark:border-gray-700"
+      style="max-height: 90vh; overflow-y: auto;">
+      <button onclick="closeRaffleForm()"
+        class="absolute top-4 right-4 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 text-2xl transition-colors">&times;</button>
+      <h2 id="raffle-form-title" class="text-2xl font-bold text-green-600 dark:text-green-400 mb-6">Crear Nueva Rifa
+      </h2>
+      <form id="raffle-form" onsubmit="submitRaffleForm(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <input type="hidden" id="raffle-id">
 
-      <div id="winners-title" class="text-center text-lg sm:text-2xl font-extrabold mb-4 sm:mb-6 break-words">TÍTULO DE LA RIFA</div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+        <!-- Nombre -->
         <div class="sm:col-span-2">
-          <label class="block text-green-400 font-extrabold text-sm sm:text-base mb-1">NÚMERO GANADOR</label>
-          <input id="winners-number-input" type="number" min="0" class="w-full bg-gray-900 border border-white/10 rounded-lg px-3 py-2 text-base" placeholder="Escribe el número">
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Nombre de la rifa</label>
+          <input type="text" id="raffle-title"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+            required>
+        </div>
+
+        <!-- Descripción -->
+        <div class="sm:col-span-2">
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Descripción</label>
+          <textarea id="raffle-description"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+            rows="3" required></textarea>
+        </div>
+
+        <!-- Imagen -->
+        <div class="sm:col-span-2">
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Imagen (URL)</label>
+          <input type="url" id="raffle-image"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+            required>
+        </div>
+
+        <!-- Precios (dos columnas en ≥sm, apilado en móvil) -->
+        <div>
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Precio en Bs</label>
+          <input type="number" id="raffle-priceBs" min="1"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+            required>
         </div>
         <div>
-          <label class="block text-green-400 font-extrabold text-sm sm:text-base mb-1">PREMIO</label>
-          <select id="winners-place-select" class="w-full bg-gray-900 border border-white/10 rounded-lg px-3 py-2 text-base"></select>
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Precio en USDT</label>
+          <input type="number" id="raffle-priceUsd" min="0" step="0.01"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors">
         </div>
-      </div>
-      <div id="top-buyers-section" class="mt-8 border-t border-gray-800 pt-6 hidden">
-            <h3 class="text-xl font-bold text-green-400 mb-4">🏆 Top Compradores</h3>
-            
-            <button id="btn-calc-top" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-bold mb-4 flex items-center gap-2">
-                <i class="fas fa-calculator"></i> Calcular Automático
-            </button>
+        <!-- Fecha -->
+        <div>
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Fecha del sorteo</label>
+          <input type="date" id="raffle-date"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+            required>
+        </div>
 
-            <div id="top-buyers-list" class="space-y-4">
-                <p class="text-gray-500 italic">Selecciona una rifa y haz clic en calcular.</p>
+        <!-- Total de números -->
+        <div>
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Total de números</label>
+          <input type="number" id="raffle-totalNumbers" min="1"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+            required>
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Mínimo de tickets</label>
+          <input type="number" id="raffle-minTickets" min="1" value="1"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+            required>
+        </div>
+
+        <div
+          class="col-span-1 md:col-span-2 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600 mt-4 transition-colors">
+          <h4 class="text-green-600 dark:text-green-400 font-bold mb-3 text-sm flex items-center gap-2">
+            <i class="fas fa-dice"></i> Configurar Botones de Compra Rápida
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="space-y-2">
+              <label class="text-xs text-gray-400">Opción 1 (Cant. / Texto)</label>
+              <div class="flex gap-2">
+                <input type="number" id="btn1-count" placeholder="Ej. 3"
+                  class="w-16 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none transition-colors">
+                <input type="text" id="btn1-label" placeholder="Ej. Mínima"
+                  class="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none transition-colors">
+              </div>
             </div>
-
-             <div id="top-buyers-actions" class="mt-4 hidden">
-                 <button id="btn-top-image" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded font-bold flex items-center gap-2">
-                    <i class="fas fa-image"></i> Generar Imagen Top 3
-                </button>
+            <div class="space-y-2">
+              <label class="text-xs text-gray-500 dark:text-gray-400">Opción 2 (Cant. / Texto)</label>
+              <div class="flex gap-2">
+                <input type="number" id="btn2-count" placeholder="Ej. 10"
+                  class="w-16 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none transition-colors">
+                <input type="text" id="btn2-label" placeholder="Ej. Popular"
+                  class="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none transition-colors">
+              </div>
             </div>
-        </div>
-      <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
-        <button id="btn-winner-lookup" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-black font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Buscar</button>
-        <button id="btn-winner-save"   class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Guardar ganador</button>
-        <button id="btn-winner-clear"  class="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-sm sm:text-base">Limpiar lugar</button>
-        <!-- NUEVOS -->
-        <button id="btn-export-winner"  class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500">Exportar imagen</button>
-        <button id="btn-share-whatsapp" class="px-4 py-2 rounded bg-green-500 hover:bg-green-400">Compartir WhatsApp</button>
-      </div>
-    </div>
-
-    <!-- DERECHA -->
-    <div class="bg-gray-800/60 rounded-2xl p-4 sm:p-6 shadow-xl min-w-0">
-      <div class="space-y-3">
-        <div class="flex items-center justify-between gap-4">
-          <div class="text-green-400 font-extrabold text-sm sm:text-base">NOMBRE:</div>
-          <div id="winners-name" class="text-right font-extrabold text-sm sm:text-base break-words">—</div>
-        </div>
-
-        <div class="flex items-center justify-between gap-4">
-          <div class="text-green-400 font-extrabold text-sm sm:text-base">TELÉFONO:</div>
-          <div class="flex items-center gap-2">
-            <span id="winners-phone" class="font-extrabold text-sm sm:text-base" data-full="" data-visible="0">—</span>
-            <button id="btn-toggle-phone" type="button" class="p-1.5 rounded hover:bg-white/10" title="Mostrar/ocultar">
-              <!-- Ojo abierto -->
-              <svg id="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                <path d="M12 5C6 5 2.5 9.55 1.27 11.44a1.5 1.5 0 0 0 0 1.12C2.5 14.45 6 19 12 19s9.5-4.55 10.73-6.44a1.5 1.5 0 0 0 0-1.12C21.5 9.55 18 5 12 5Zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/>
-              </svg>
-              <!-- Ojo cerrado -->
-              <svg id="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden">
-                <path d="M3.53 2.47 2.47 3.53l4 4A13.6 13.6 0 0 0 1.27 11.44a1.5 1.5 0 0 0 0 1.12C2.5 14.45 6 19 12 19c2.03 0 3.8-.45 5.29-1.18l3.18 3.18 1.06-1.06L3.53 2.47ZM12 7a4 4 0 0 1 3.95 4.58l2.06 2.06C20.32 12.39 21.5 10.9 22.73 9.56a1.5 1.5 0 0 0 0-1.12C21.5 6.55 18 2 12 2c-1.39 0-2.67.23-3.86.62l2.26 2.26C10.8 7.33 11.38 7 12 7Z"/>
-              </svg>
-            </button>
+            <div class="space-y-2">
+              <label class="text-xs text-gray-500 dark:text-gray-400">Opción 3 (Cant. / Texto)</label>
+              <div class="flex gap-2">
+                <input type="number" id="btn3-count" placeholder="Ej. 50"
+                  class="w-16 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none transition-colors">
+                <input type="text" id="btn3-label" placeholder="Ej. Mayorista"
+                  class="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg p-2 focus:border-green-500 focus:outline-none transition-colors">
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4">
-          <div class="text-green-400 font-extrabold text-sm sm:text-base">ESTATUS:</div>
-          <div id="winners-status" class="text-right font-extrabold text-sm sm:text-base">—</div>
+        <!-- Premios (ocupa 2 columnas en ≥sm) -->
+        <div class="sm:col-span-2">
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Premios</label>
+          <div id="prizes-list"></div>
+          <button type="button" onclick="addPrizeField()"
+            class="mt-2 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm sm:text-base">
+            + Agregar premio
+          </button>
         </div>
 
-        <div class="flex items-center justify-between gap-4">
-          <div class="text-green-400 font-extrabold text-sm sm:text-base">TICKET:</div>
-          <div id="winners-ticket" class="text-right font-extrabold text-sm sm:text-base">—</div>
+        <!-- Estado -->
+        <div class="sm:col-span-2 sm:max-w-xs">
+          <label class="block font-bold mb-1 text-base text-gray-700 dark:text-gray-300">Estado</label>
+          <select id="raffle-status"
+            class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors">
+            <option value="activa">Activa</option>
+            <option value="inactiva">Inactiva</option>
+          </select>
         </div>
 
-        <div class="flex items-center justify-between gap-4">
-          <div class="text-green-400 font-extrabold text-sm sm:text-base">FECHA DE COMPRA:</div>
-          <div id="winners-date" class="text-right text-sm sm:text-base">—</div>
+        <!-- Gestión de Resultados (Wrapper full width) -->
+        <div class="sm:col-span-2 mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <h3 class="text-green-600 dark:text-green-400 font-bold mb-3">Gestión de Resultados (Ganadores)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold mb-1 text-sm text-gray-500 dark:text-gray-400">Captura Resultado 1
+                (URL)</label>
+              <input type="url" id="raffle-resultImg1"
+                class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+                placeholder="https://...">
+            </div>
+            <div>
+              <label class="block font-bold mb-1 text-sm text-gray-500 dark:text-gray-400">Captura Resultado 2
+                (URL)</label>
+              <input type="url" id="raffle-resultImg2"
+                class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+                placeholder="https://...">
+            </div>
+            <div class="flex items-center gap-4 mt-2 col-span-full">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="raffle-isFinished" class="w-5 h-5 accent-green-500">
+                <span class="font-bold text-gray-700 dark:text-gray-300">Rifa Finalizada</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="raffle-isDelivered" class="w-5 h-5 accent-green-500">
+                <span class="font-bold text-gray-700 dark:text-gray-300">Premio Entregado</span>
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4">
-          <div class="text-green-400 font-extrabold text-sm sm:text-base">PREMIO:</div>
-          <div id="winners-prize" class="text-right font-extrabold text-sm sm:text-base break-words">—</div>
+        <!-- Guardar (dentro del grid) -->
+        <div class="sm:col-span-2 mt-4">
+          <button type="submit"
+            class="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-bold text-lg transition-all shadow-md">
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <section id="section-payments" class="p-4 sm:p-6 max-w-6xl mx-auto hidden">
+
+    <!-- Header: título + modos -->
+    <div class="mb-3 sm:mb-4 flex items-center justify-between">
+      <h2 class="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">Verificar pagos</h2>
+      <div class="flex space-x-2 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
+        <button id="btn-mode-table"
+          class="px-3 py-1 rounded-md bg-green-100 dark:bg-gray-700 text-green-800 dark:text-white font-bold text-sm hover:brightness-95 transition-colors">Tabla</button>
+        <button id="btn-mode-viewer"
+          class="px-3 py-1 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 font-bold text-sm transition-colors">Visor</button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div id="payments-filters"
+      class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
+      <div>
+        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Método de
+          pago</label>
+        <select id="pay-filter-method"
+          class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none transition-colors">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div>
+        <label
+          class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Desde</label>
+        <input type="date" id="pay-filter-from"
+          class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none transition-colors" />
+      </div>
+
+      <div>
+        <label
+          class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Hasta</label>
+        <input type="date" id="pay-filter-to"
+          class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none transition-colors" />
+      </div>
+
+      <div class="flex md:flex-col items-end gap-2">
+        <div class="flex-1 w-full">
+          <label
+            class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Referencia</label>
+          <input type="text" id="pay-filter-ref" placeholder="Ej: 1234"
+            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition-colors" />
+        </div>
+        <button id="pay-filter-clear"
+          class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm font-bold transition-colors shadow-sm">
+          Limpiar
+        </button>
+        <button id="btn-approve-all"
+          class="bg-green-600 hover:bg-green-500 text-black rounded px-3 py-2 text-sm font-bold hidden">
+          Aprobar Todos
+        </button>
+      </div>
+    </div>
+
+
+    <!-- Header del visor -->
+    <div id="viewer-header"
+      class="hidden flex items-center justify-center text-sm sm:text-base font-bold text-green-600 dark:text-green-300 mb-3 sm:mb-4">
+      <button id="prev-payment"
+        class="px-3 py-1 mr-3 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white transition-colors">&lt;</button>
+      <span id="viewer-counter" class="text-gray-900 dark:text-white">0/0</span>
+      <button id="next-payment"
+        class="px-3 py-1 ml-3 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white transition-colors">&gt;</button>
+      <span id="viewer-pending" class="ml-4 sm:ml-6 text-xs sm:text-sm text-gray-400"></span>
+      <span id="viewer-hint" class="hidden sm:inline ml-auto text-xs text-gray-500">
+        Atajos: <b>A</b> aprobar · <b>R</b> rechazar · <b>W</b> esperar · <b>←/→</b> navegar
+      </span>
+    </div>
+
+    <!-- Vista tabla -->
+    <div id="payments-table-wrapper"></div>
+
+    <!-- Vista visor -->
+    <div id="payments-viewer-wrapper" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+        <!-- Comprobante -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 shadow-xl border border-gray-200 dark:border-gray-700 transition-colors">
+          <!-- Altura en % de pantalla para móvil; más alta en pantallas grandes -->
+          <div id="proof-box"
+            class="w-full h-[52vh] sm:h-[60vh] lg:h-[68vh] bg-gray-100 dark:bg-gray-900 flex items-center justify-center rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600">
+            <!-- aquí inyectamos <img> o <iframe> -->
+          </div>
+        </div>
+        <!-- Datos -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl border border-gray-200 dark:border-gray-700 transition-colors">
+          <ul class="space-y-3 sm:space-y-4 text-base sm:text-lg lg:text-base leading-relaxed">
+            <li class="flex items-start gap-2">
+              <span class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Fecha:</span>
+              <span id="v-fecha" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span
+                class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Nombre:</span>
+              <span id="v-nombre" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Rifa:</span>
+              <span id="v-rifa" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span
+                class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Teléfono:</span>
+              <span id="v-telefono" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span
+                class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Números:</span>
+              <span id="v-numeros" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span
+                class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Método:</span>
+              <span id="v-metodo" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span
+                class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Referencia:</span>
+              <span id="v-ref" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-600 dark:text-green-400 font-semibold min-w-[92px] sm:min-w-[110px]">Monto:</span>
+              <span id="v-monto" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+            </li>
+          </ul>
+
+          <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <button id="btn-approve"
+              class="w-full sm:flex-1 bg-green-600 hover:bg-green-500 py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">APROBAR</button>
+            <button id="btn-wait"
+              class="w-full sm:flex-1 bg-yellow-400 hover:bg-yellow-300 text-black py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">ESPERA</button>
+            <button id="btn-reject"
+              class="w-full sm:flex-1 bg-red-600 hover:bg-red-500 py-3 sm:py-3 rounded font-extrabold text-base sm:text-base">RECHAZAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="section-winners" class="hidden p-3 sm:px-4 sm:py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 items-start">
+      <!-- IZQUIERDA -->
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl min-w-0 border border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="mb-3 sm:mb-4">
+          <label class="block text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base mb-1">SELECCIONAR
+            RIFA:</label>
+          <select id="winners-raffle-select"
+            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm sm:text-base text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none transition-colors"></select>
+        </div>
+
+        <div
+          class="bg-gray-100 dark:bg-gray-900 rounded-xl aspect-[16/10] w-full flex items-center justify-center mb-3 sm:mb-4 overflow-hidden border border-gray-200 dark:border-gray-700">
+          <img id="winners-image" src="" alt="Imagen de la rifa" class="h-full w-auto rounded-xl hidden">
+          <div id="winners-image-ph"
+            class="text-xl sm:text-3xl font-extrabold text-orange-400 dark:text-orange-400 tracking-widest text-center px-4">
+            IMAGEN
+            DE LA RIFA</div>
+        </div>
+
+        <div id="winners-title"
+          class="text-center text-lg sm:text-2xl font-extrabold mb-4 sm:mb-6 break-words text-gray-900 dark:text-white">
+          TÍTULO
+          DE LA RIFA</div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <div class="sm:col-span-2">
+            <label class="block text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base mb-1">NÚMERO
+              GANADOR</label>
+            <input id="winners-number-input" type="number" min="0"
+              class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
+              placeholder="Escribe el número">
+          </div>
+          <div>
+            <label
+              class="block text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base mb-1">PREMIO</label>
+            <select id="winners-place-select"
+              class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-base text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"></select>
+          </div>
+        </div>
+        <div id="top-buyers-section" class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6 hidden">
+          <h3 class="text-xl font-bold text-green-600 dark:text-green-400 mb-4">🏆 Top Compradores</h3>
+
+          <button id="btn-calc-top"
+            class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-bold mb-4 flex items-center gap-2 transition-all shadow-md">
+            <i class="fas fa-calculator"></i> Calcular Automático
+          </button>
+
+          <div id="top-buyers-list" class="space-y-4 text-gray-700 dark:text-gray-300">
+            <p class="text-gray-500 italic">Selecciona una rifa y haz clic en calcular.</p>
+          </div>
+
+          <div id="top-buyers-actions" class="mt-4 hidden">
+            <button id="btn-top-image"
+              class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded font-bold flex items-center gap-2 shadow-md transition-all">
+              <i class="fas fa-image"></i> Generar Imagen Top 3
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
+          <button id="btn-winner-lookup"
+            class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-lg text-sm sm:text-base shadow-md transition-all">Buscar</button>
+          <button id="btn-winner-save"
+            class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm sm:text-base shadow-md transition-all">Guardar
+            ganador</button>
+          <button id="btn-winner-clear"
+            class="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-sm sm:text-base shadow-md transition-all">Limpiar
+            lugar</button>
+          <!-- NUEVOS -->
+          <button id="btn-export-winner"
+            class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-all">Exportar
+            imagen</button>
+          <button id="btn-share-whatsapp"
+            class="px-4 py-2 rounded bg-green-500 hover:bg-green-400 text-white shadow-md transition-all">Compartir
+            WhatsApp</button>
+        </div>
+      </div>
+
+      <!-- DERECHA -->
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl min-w-0 border border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-4">
+            <div class="text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base">NOMBRE:</div>
+            <div id="winners-name"
+              class="text-right font-extrabold text-sm sm:text-base break-words text-gray-900 dark:text-white">—</div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <div class="text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base">TELÉFONO:</div>
+            <div class="flex items-center gap-2">
+              <span id="winners-phone" class="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white"
+                data-full="" data-visible="0">—</span>
+              <button id="btn-toggle-phone" type="button"
+                class="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400"
+                title="Mostrar/ocultar">
+                <!-- Ojo abierto -->
+                <svg id="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                  class="w-5 h-5">
+                  <path
+                    d="M12 5C6 5 2.5 9.55 1.27 11.44a1.5 1.5 0 0 0 0 1.12C2.5 14.45 6 19 12 19s9.5-4.55 10.73-6.44a1.5 1.5 0 0 0 0-1.12C21.5 9.55 18 5 12 5Zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" />
+                </svg>
+                <!-- Ojo cerrado -->
+                <svg id="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                  class="w-5 h-5 hidden">
+                  <path
+                    d="M3.53 2.47 2.47 3.53l4 4A13.6 13.6 0 0 0 1.27 11.44a1.5 1.5 0 0 0 0 1.12C2.5 14.45 6 19 12 19c2.03 0 3.8-.45 5.29-1.18l3.18 3.18 1.06-1.06L3.53 2.47ZM12 7a4 4 0 0 1 3.95 4.58l2.06 2.06C20.32 12.39 21.5 10.9 22.73 9.56a1.5 1.5 0 0 0 0-1.12C21.5 6.55 18 2 12 2c-1.39 0-2.67.23-3.86.62l2.26 2.26C10.8 7.33 11.38 7 12 7Z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <div class="text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base">ESTATUS:</div>
+            <div id="winners-status"
+              class="text-right font-extrabold text-sm sm:text-base text-gray-900 dark:text-white">—</div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <div class="text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base">TICKET:</div>
+            <div id="winners-ticket"
+              class="text-right font-extrabold text-sm sm:text-base text-gray-900 dark:text-white">—</div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <div class="text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base">FECHA DE COMPRA:</div>
+            <div id="winners-date" class="text-right text-sm sm:text-base text-gray-900 dark:text-white">—</div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <div class="text-green-600 dark:text-green-400 font-extrabold text-sm sm:text-base">PREMIO:</div>
+            <div id="winners-prize"
+              class="text-right font-extrabold text-sm sm:text-base break-words text-gray-900 dark:text-white">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+
+
+
+  <section id="section-contacts" class="hidden p-6 max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-2xl font-bold text-green-600 dark:text-green-400">Contactos (consentidos)</h2>
+      <div class="flex gap-2">
+        <input id="contacts-msg" type="text"
+          class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-white/10 rounded-lg px-3 py-2 w-72 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none transition-colors"
+          placeholder="Mensaje para WhatsApp (opcional)">
+        <button id="btn-contacts-export"
+          class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg px-3 py-2 font-bold transition-colors">Exportar
+          CSV</button>
+      </div>
+    </div>
+
+    <div id="contacts-table-wrapper" class="overflow-x-auto"></div>
+    <p class="text-xs text-gray-400 mt-3">
+      Tip: el botón WhatsApp abre el chat con el número en formato internacional.
+    </p>
+  </section>
+  </div>
+
+
+  <div id="section-top" class="admin-section hidden p-4 sm:p-6">
+    <h2 class="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 mb-4 flex items-center gap-3">
+      <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
+    </h2>
+
+    <div
+      class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-xl mb-8 transition-colors">
+      <label
+        class="block text-sm text-gray-500 dark:text-gray-400 mb-2 uppercase font-bold tracking-wider italic text-green-600 dark:text-green-400">Selecciona
+        la
+        rifa para gestionar el Top</label>
+      <select id="top-raffle-select" onchange="loadAdminTop()"
+        class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-300 dark:border-gray-700 outline-none focus:border-green-500 transition-all text-lg font-bold">
+        <option value="">Cargando rifas...</option>
+      </select>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-xl transition-colors">
+        <div class="flex items-center gap-2 mb-6">
+          <div class="w-2 h-8 bg-green-500 rounded-full"></div>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Inyectar Comprador
+            Externo</h3>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <label
+              class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold text-green-600 dark:text-green-400/50">Nombre
+              Completo</label>
+            <input type="text" id="manual-name" placeholder="Ej: Juan Garmendia"
+              class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-300 dark:border-gray-700 focus:border-green-500 outline-none transition-all">
+          </div>
+          <div>
+            <label
+              class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold text-green-600 dark:text-green-400/50">Cantidad
+              de
+              Tickets</label>
+            <input type="number" id="manual-tickets" placeholder="Ej: 300"
+              class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-300 dark:border-gray-700 focus:border-green-500 outline-none transition-all">
+          </div>
+          <button onclick="saveManualBuyer()"
+            class="w-full bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl transition-all shadow-lg transform hover:scale-[1.01] active:scale-95 uppercase tracking-widest">
+            Actualizar Ranking
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-xl transition-colors">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-8 bg-yellow-500 rounded-full"></div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Vista Previa Top 10
+            </h3>
+          </div>
+        </div>
+
+        <div id="admin-top-list" class="space-y-3 min-h-[200px]">
+          <div class="text-center py-10">
+            <p class="text-gray-500 text-sm italic">Elige una rifa arriba para cargar los datos</p>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</section>
-
-<div id="section-top" class="admin-section hidden p-4 sm:p-6">
-    <h2 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
-        <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
-    </h2>
-
-    <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl mb-8">
-        <label class="block text-sm text-gray-400 mb-2 uppercase font-bold tracking-wider italic">Paso 1: Elige la rifa a gestionar</label>
-        <select id="top-raffle-select" onchange="loadAdminTop()" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 outline-none focus:border-green-500 transition-all text-lg font-bold">
-            <option value="">Cargando rifas...</option>
-        </select>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
-            <div class="flex items-center gap-2 mb-6">
-                <div class="w-2 h-8 bg-green-500 rounded-full"></div>
-                <h3 class="text-xl font-bold text-white uppercase tracking-tight">Inyectar Venta Externa</h3>
-            </div>
-            
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold">Nombre del Comprador / Revendedor</label>
-                    <input type="text" id="manual-name" placeholder="Ej: Juan Garmendia" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold">Cantidad de Tickets (Peso en el Top)</label>
-                    <input type="number" id="manual-tickets" placeholder="Ej: 300" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
-                </div>
-                <button onclick="saveManualBuyer()" class="w-full bg-green-600 hover:bg-green-500 text-black font-black py-4 rounded-xl transition-all shadow-lg transform hover:scale-[1.01] active:scale-95 uppercase tracking-widest">
-                    Actualizar Ranking Público
-                </button>
-            </div>
-        </div>
-
-        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-8 bg-yellow-500 rounded-full"></div>
-                    <h3 class="text-xl font-bold text-white uppercase tracking-tight">Top 10 Actual</h3>
-                </div>
-                <span class="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full font-bold">HÍBRIDO</span>
-            </div>
-
-            <div id="admin-top-list" class="space-y-3">
-                <div class="text-center py-10">
-                    <i class="fas fa-mouse-pointer text-gray-600 text-4xl mb-3"></i>
-                    <p class="text-gray-500 text-sm">Selecciona una rifa para ver el ranking en tiempo real</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="section-top" class="admin-section hidden">
-    <h2 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
-        <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
-    </h2>
-
-    <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl mb-8">
-        <label class="block text-sm text-gray-400 mb-2 uppercase font-bold tracking-wider">Seleccionar Rifa</label>
-        <select id="top-raffle-select" onchange="loadAdminTop()" class="w-full bg-gray-900 text-white p-3 rounded-xl border border-gray-700 outline-none focus:border-yellow-500 transition">
-            </select>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5">
-            <h3 class="text-lg font-bold text-green-400 mb-4">Inyectar Comprador Externo</h3>
-            <div class="space-y-4">
-                <input type="text" id="manual-name" placeholder="Nombre completo" class="w-full bg-gray-900 text-white p-3 rounded-lg border border-gray-700">
-                <input type="number" id="manual-tickets" placeholder="Cantidad de tickets" class="w-full bg-gray-900 text-white p-3 rounded-lg border border-gray-700">
-                <button onclick="saveManualBuyer()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg transition">
-                    Agregar al Ranking
-                </button>
-            </div>
-        </div>
-
-        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5">
-            <h3 class="text-lg font-bold text-white mb-4">Top 10 Actual (Híbrido)</h3>
-            <div id="admin-top-list" class="space-y-2 text-sm text-gray-300">
-                <p class="text-gray-500">Selecciona una rifa para ver el ranking...</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<section id="section-contacts" class="hidden p-6 max-w-6xl mx-auto">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-2xl font-bold text-green-400">Contactos (consentidos)</h2>
-    <div class="flex gap-2">
-      <input id="contacts-msg" type="text" class="bg-gray-800 border border-white/10 rounded px-3 py-2 w-72"
-             placeholder="Mensaje para WhatsApp (opcional)">
-      <button id="btn-contacts-export" class="bg-gray-700 hover:bg-gray-600 rounded px-3 py-2 font-bold">Exportar CSV</button>
-    </div>
-  </div>
-
-  <div id="contacts-table-wrapper" class="overflow-x-auto"></div>
-  <p class="text-xs text-gray-400 mt-3">
-    Tip: el botón WhatsApp abre el chat con el número en formato internacional.
-  </p>
-</section>
-</div> 
-
-
-        <div id="section-top" class="admin-section hidden p-4 sm:p-6">
-            <h2 class="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
-                <i class="fas fa-trophy text-yellow-500"></i> Gestión de Ranking
-            </h2>
-
-            <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl mb-8">
-                <label class="block text-sm text-gray-400 mb-2 uppercase font-bold tracking-wider italic text-green-400">Selecciona la rifa para gestionar el Top</label>
-                <select id="top-raffle-select" onchange="loadAdminTop()" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 outline-none focus:border-green-500 transition-all text-lg font-bold">
-                    <option value="">Cargando rifas...</option>
-                </select>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
-                    <div class="flex items-center gap-2 mb-6">
-                        <div class="w-2 h-8 bg-green-500 rounded-full"></div>
-                        <h3 class="text-xl font-bold text-white uppercase tracking-tight">Inyectar Comprador Externo</h3>
-                    </div>
-                    
-                    <div class="space-y-5">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold text-green-400/50">Nombre Completo</label>
-                            <input type="text" id="manual-name" placeholder="Ej: Juan Garmendia" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1 ml-1 uppercase font-bold text-green-400/50">Cantidad de Tickets</label>
-                            <input type="number" id="manual-tickets" placeholder="Ej: 300" class="w-full bg-gray-900 text-white p-4 rounded-xl border border-gray-700 focus:border-green-500 outline-none transition-all">
-                        </div>
-                        <button onclick="saveManualBuyer()" class="w-full bg-green-600 hover:bg-green-500 text-black font-black py-4 rounded-xl transition-all shadow-lg transform hover:scale-[1.01] active:scale-95 uppercase tracking-widest">
-                            Actualizar Ranking
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-8 bg-yellow-500 rounded-full"></div>
-                            <h3 class="text-xl font-bold text-white uppercase tracking-tight">Vista Previa Top 10</h3>
-                        </div>
-                    </div>
-
-                    <div id="admin-top-list" class="space-y-3 min-h-[200px]">
-                        <div class="text-center py-10">
-                            <p class="text-gray-500 text-sm italic">Elige una rifa arriba para cargar los datos</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-<section id="section-stats" class="hidden p-6">
-    <h2 class="text-3xl font-extrabold text-green-400 mb-8 flex items-center gap-2">
-        <i class="fas fa-chart-line"></i> Análisis de Negocio
+  <section id="section-stats" class="hidden p-6">
+    <h2 class="text-3xl font-extrabold text-green-600 dark:text-green-400 mb-8 flex items-center gap-2">
+      <i class="fas fa-chart-line"></i> Análisis de Negocio
     </h2>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
-            <h3 class="text-white font-bold mb-4">Ventas de los últimos días</h3>
-            <div class="h-64 w-full">
-                <canvas id="chart-ventas-dias"></canvas>
-            </div>
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-xl transition-colors">
+        <h3 class="text-gray-900 dark:text-white font-bold mb-4">Ventas de los últimos días</h3>
+        <div class="h-64 w-full">
+          <canvas id="chart-ventas-dias"></canvas>
         </div>
+      </div>
 
-        <div class="bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
-            <h3 class="text-white font-bold mb-4">Actividad por hora (Peak Hours)</h3>
-            <div class="h-64 w-full">
-                <canvas id="chart-horas"></canvas>
-            </div>
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-xl transition-colors">
+        <h3 class="text-gray-900 dark:text-white font-bold mb-4">Actividad por hora (Peak Hours)</h3>
+        <div class="h-64 w-full">
+          <canvas id="chart-horas"></canvas>
         </div>
-        </div> <div class="mt-8 bg-gray-800 p-6 rounded-2xl border border-white/5 shadow-xl">
-        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-            <i class="fas fa-trophy text-yellow-400"></i> Rendimiento por Rifa (Tickets Vendidos)
-        </h3>
-        <div class="h-80 w-full">
-            <canvas id="chart-rifas-ranking"></canvas>
-        </div>
+      </div>
     </div>
-  </div>
-</section>
-<script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
-<!-- Librería para exportar a imagen -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="config.js"></script>
-<script src="admin.js"></script>
+    <div
+      class="mt-8 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-xl transition-colors">
+      <h3 class="text-gray-900 dark:text-white font-bold mb-4 flex items-center gap-2">
+        <i class="fas fa-trophy text-yellow-400"></i> Rendimiento por Rifa (Tickets Vendidos)
+      </h3>
+      <div class="h-80 w-full">
+        <canvas id="chart-rifas-ranking"></canvas>
+      </div>
+    </div>
+    </div>
+  </section>
+  <script src="https://kit.fontawesome.com/7bb2e929f1.js" crossorigin="anonymous"></script>
+  <!-- Librería para exportar a imagen -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
 
 </body>
+
 </html>

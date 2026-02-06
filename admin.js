@@ -10,16 +10,23 @@ const currentHost = location.hostname;
 
 // 2. Revisa si estamos en el dominio de PRODUCCIÓN
 if (currentHost.includes(PROD_HOST) || currentHost.includes('www.' + PROD_HOST)) {
-    // SÍ: Conectar al Backend EN VIVO
-    API = PROD_API;
+  // SÍ: Conectar al Backend EN VIVO
+  API = PROD_API;
 } else {
-    // NO: Conectar al Backend DE PRUEBAS
-    // (Esto aplica para 'staging.rifas-doble-cero.pages.dev' Y para '127.0.0.1' de Live Server)
-    API = STAGING_API;
+  // NO: Conectar al Backend DE PRUEBAS
+  // (Esto aplica para 'staging.rifas-doble-cero.pages.dev' Y para '127.0.0.1' de Live Server)
+  API = STAGING_API;
 }
 
 console.log('API conectada a:', API); // (Para que podamos verificar)
 // --- Fin de la lógica de entornos ---
+
+function toggleAdminMenu() {
+  const menu = document.getElementById('mobile-menu');
+  if (menu) {
+    menu.classList.toggle('hidden');
+  }
+}
 
 function showLogin() {
   const login = document.getElementById('admin-login');
@@ -98,7 +105,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (isLoggedIn()) showApp(); else showLogin();
   const u = document.getElementById('admin-username');
   const p = document.getElementById('admin-password');
-  [u,p].forEach(el => el && el.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); }));
+  [u, p].forEach(el => el && el.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); }));
 });
 
 // Helper para peticiones protegidas
@@ -178,7 +185,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (isLoggedIn()) showApp(); else showLogin();
   const u = document.getElementById('admin-username');
   const p = document.getElementById('admin-password');
-  [u,p].forEach(el => el && el.addEventListener('keydown', e => {
+  [u, p].forEach(el => el && el.addEventListener('keydown', e => {
     if (e.key === 'Enter') loginAdmin();
   }));
 });
@@ -200,102 +207,106 @@ async function fetchWithAuth(url, options = {}) {
 // 1
 // Navegación
 function showSection(section) {
-  const raffles   = document.getElementById('section-raffles');
-  const payments  = document.getElementById('section-payments');
-  const winners   = document.getElementById('section-winners');
-  const contacts  = document.getElementById('section-contacts');
-  const stats     = document.getElementById('section-stats');
-  const top       = document.getElementById('section-top'); // NUEVO
+  const raffles = document.getElementById('section-raffles');
+  const payments = document.getElementById('section-payments');
+  const winners = document.getElementById('section-winners');
+  const contacts = document.getElementById('section-contacts');
+  const stats = document.getElementById('section-stats');
+  const top = document.getElementById('section-top'); // NUEVO
 
   // Mostrar/Ocultar secciones
-  if (raffles)  raffles.style.display  = (section === 'raffles')  ? 'block' : 'none';
+  if (raffles) raffles.style.display = (section === 'raffles') ? 'block' : 'none';
   if (payments) payments.style.display = (section === 'payments') ? 'block' : 'none';
-  if (winners)  winners.style.display  = (section === 'winners')  ? 'block' : 'none';
+  if (winners) winners.style.display = (section === 'winners') ? 'block' : 'none';
   if (contacts) contacts.style.display = (section === 'contacts') ? 'block' : 'none';
-  if (stats)    stats.style.display    = (section === 'stats')    ? 'block' : 'none';
-  if (top)      top.style.display      = (section === 'section-top') ? 'block' : 'none'; // NUEVO
+  if (stats) stats.style.display = (section === 'stats') ? 'block' : 'none';
+  if (top) top.style.display = (section === 'section-top') ? 'block' : 'none'; // NUEVO
 
   // Marcar activo en navbar
   const links = {
-    raffles:   document.getElementById('nav-raffles'),
-    payments:  document.getElementById('nav-payments'),
-    winners:   document.getElementById('nav-winners'),
-    contacts:  document.getElementById('nav-contacts'),
-    stats:     document.getElementById('nav-stats'),
+    raffles: document.getElementById('nav-raffles'),
+    payments: document.getElementById('nav-payments'),
+    winners: document.getElementById('nav-winners'),
+    contacts: document.getElementById('nav-contacts'),
+    stats: document.getElementById('nav-stats'),
     'section-top': document.getElementById('nav-section-top') // NUEVO
   };
 
   Object.entries(links).forEach(([key, el]) => {
     if (!el) return;
-    el.classList.remove('text-green-400','border-green-400');
-    el.classList.add('text-gray-300','border-transparent');
+    el.classList.remove('text-green-400', 'border-green-400');
+    el.classList.add('text-gray-300', 'border-transparent');
     if (key === section) {
-      el.classList.remove('text-gray-300','border-transparent');
-      el.classList.add('text-green-400','border-green-400');
+      el.classList.remove('text-gray-300', 'border-transparent');
+      el.classList.add('text-green-400', 'border-green-400');
     }
   });
 
   // Cargas de datos al entrar
-  if (section === 'raffles')  loadRaffles();
+  if (section === 'raffles') loadRaffles();
   if (section === 'payments') loadPayments('viewer');
-  if (section === 'winners')  loadWinnersInit();
+  if (section === 'winners') loadWinnersInit();
   if (section === 'section-top') updateTopRaffleSelector(); // NUEVO
   if (section === 'contacts') loadContacts();
-  if (section === 'stats')    cargarEstadisticas();
+  if (section === 'stats') cargarEstadisticas();
 }
 
 // ======== Cargar Rifas desde Backend ========
 async function loadRaffles() {
-    const wrapper = document.getElementById('raffles-table-wrapper');
-    wrapper.innerHTML = '<div class="text-center text-gray-400">Cargando rifas...</div>';
-    try {
-        const res = await fetch(`${API}/api/raffles`);
-        const raffles = await res.json();
-        if (raffles.length === 0) {
-            wrapper.innerHTML = '<div class="text-center text-gray-400">No hay rifas registradas.</div>';
-            return;
-        }
-        let table = `
-            <div class="overflow-x-auto">
-            <table class="w-full text-left rounded-lg bg-gray-900 shadow-lg">
+  const wrapper = document.getElementById('raffles-table-wrapper');
+  wrapper.innerHTML = '<div class="text-center text-gray-400">Cargando rifas...</div>';
+  try {
+    const res = await fetch(`${API}/api/raffles`);
+    const raffles = await res.json();
+    if (raffles.length === 0) {
+      wrapper.innerHTML = '<div class="text-center text-gray-400">No hay rifas registradas.</div>';
+      return;
+    }
+    let table = `
+            <div class="overflow-x-auto shadow-md rounded-lg">
+            <table class="w-full text-left bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                 <thead>
-                    <tr class="bg-gray-800 text-green-400">
-                        <th class="py-2 px-4">Imagen</th>
-                        <th class="py-2 px-4">Nombre</th>
-                        <th class="py-2 px-4">Precio</th>
-                        <th class="py-2 px-4">Fecha</th>
-                        <th class="py-2 px-4">Números</th>
-                        <th class="py-2 px-4">Estado</th>
-                        <th class="py-2 px-4">Acciones</th>
+                    <tr class="bg-gray-100 dark:bg-gray-800 text-green-600 dark:text-green-400 uppercase text-xs sm:text-sm leading-normal">
+                        <th class="py-3 px-4">Imagen</th>
+                        <th class="py-3 px-4">Nombre</th>
+                        <th class="py-3 px-4">Precio</th>
+                        <th class="py-3 px-4">Fecha</th>
+                        <th class="py-3 px-4">Números</th>
+                        <th class="py-3 px-4">Estado</th>
+                        <th class="py-3 px-4">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="text-sm">
         `;
-        raffles.forEach(rifa => {
-            table += `
-                <tr class="border-b border-gray-800 hover:bg-gray-800">
-                    <td class="py-2 px-4"><img src="${rifa.image || ''}" alt="Imagen" class="h-12 w-12 rounded object-cover"></td>
-                    <td class="py-2 px-4 font-bold">${rifa.title}</td>
-                    <td class="py-2 px-4">${rifa.priceBs} Bs</td>
-                    <td class="py-2 px-4">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : ''}</td>
-                    <td class="py-2 px-4">${rifa.totalNumbers}</td>
-                    <td class="py-2 px-4">${rifa.status}</td>
-                    <td class="py-2 px-4 space-x-2">
-                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold" onclick="editRaffle('${rifa._id}')">Editar</button>
-                        <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-bold" onclick="deleteRaffle('${rifa._id}')">Eliminar</button>
+    raffles.forEach(rifa => {
+      table += `
+                <tr class="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <td class="py-3 px-4"><img src="${rifa.image || ''}" alt="Imagen" class="h-12 w-12 rounded object-cover shadow-sm"></td>
+                    <td class="py-3 px-4 font-bold text-gray-800 dark:text-gray-100">${rifa.title}</td>
+                    <td class="py-3 px-4 font-medium">${rifa.priceBs} Bs</td>
+                    <td class="py-3 px-4">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : ''}</td>
+                    <td class="py-3 px-4">${rifa.totalNumbers}</td>
+                    <td class="py-3 px-4">
+                        <span class="${rifa.status === 'activa' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'} py-1 px-3 rounded-full text-xs font-bold">
+                            ${rifa.status}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 space-x-2">
+                        <button class="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded text-xs font-bold transition-colors" onclick="editRaffle('${rifa._id}')">Editar</button>
+                        <button class="bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 px-3 py-1 rounded text-xs font-bold transition-colors" onclick="deleteRaffle('${rifa._id}')">Eliminar</button>
                     </td>
                 </tr>
             `;
-        });
-        table += '</tbody></table></div>';
-        wrapper.innerHTML = table;
-        
-        // Actualizamos todos los selectores que dependen de las rifas
-        rifasGlobal = raffles; 
-        updateTopRaffleSelector(); 
-    } catch (err) {
-        wrapper.innerHTML = '<div class="text-center text-red-400">Error cargando rifas.</div>';
-    }
+    });
+    table += '</tbody></table></div>';
+    wrapper.innerHTML = table;
+
+    // Actualizamos todos los selectores que dependen de las rifas
+    rifasGlobal = raffles;
+    updateTopRaffleSelector();
+  } catch (err) {
+    wrapper.innerHTML = '<div class="text-center text-red-400">Error cargando rifas.</div>';
+  }
 }
 updateTopRaffleSelector();
 
@@ -306,59 +317,59 @@ let editingRaffleId = null;
 let currentPrizes = [];
 
 function openCreateRaffleForm() {
-    editingRaffleId = null;
-    document.getElementById('raffle-form-title').textContent = 'Crear Nueva Rifa';
-    document.getElementById('raffle-form').reset();
-    document.getElementById('raffle-id').value = '';
-    document.getElementById('raffle-minTickets').value = 1; // <-- AÑADIDO (TAREA 6)
-    currentPrizes = [];
-    renderPrizesList();
-    document.getElementById('raffle-form-modal').classList.remove('hidden');
-    document.getElementById('raffle-resultImg1').value = '';
-    document.getElementById('raffle-resultImg2').value = '';
-    document.getElementById('raffle-isFinished').checked = false;
-    document.getElementById('raffle-isDelivered').checked = false;
+  editingRaffleId = null;
+  document.getElementById('raffle-form-title').textContent = 'Crear Nueva Rifa';
+  document.getElementById('raffle-form').reset();
+  document.getElementById('raffle-id').value = '';
+  document.getElementById('raffle-minTickets').value = 1; // <-- AÑADIDO (TAREA 6)
+  currentPrizes = [];
+  renderPrizesList();
+  document.getElementById('raffle-form-modal').classList.remove('hidden');
+  document.getElementById('raffle-resultImg1').value = '';
+  document.getElementById('raffle-resultImg2').value = '';
+  document.getElementById('raffle-isFinished').checked = false;
+  document.getElementById('raffle-isDelivered').checked = false;
 }
 
 function closeRaffleForm() {
-    document.getElementById('raffle-form-modal').classList.add('hidden');
+  document.getElementById('raffle-form-modal').classList.add('hidden');
 }
 
 function addPrizeField(prize = {}) {
-    if (currentPrizes.length >= 3) return;
-    currentPrizes.push({ 
-        place: prize.place || currentPrizes.length + 1, 
-        description: prize.description || '', 
-        image: prize.image || '' 
-    });
-    renderPrizesList();
+  if (currentPrizes.length >= 3) return;
+  currentPrizes.push({
+    place: prize.place || currentPrizes.length + 1,
+    description: prize.description || '',
+    image: prize.image || ''
+  });
+  renderPrizesList();
 }
 
 function removePrizeField(index) {
-    currentPrizes.splice(index, 1);
-    renderPrizesList();
+  currentPrizes.splice(index, 1);
+  renderPrizesList();
 }
 
 function renderPrizesList() {
-    const prizesList = document.getElementById('prizes-list');
-    prizesList.innerHTML = '';
-    currentPrizes.forEach((prize, i) => {
-        prizesList.innerHTML += `
+  const prizesList = document.getElementById('prizes-list');
+  prizesList.innerHTML = '';
+  currentPrizes.forEach((prize, i) => {
+    prizesList.innerHTML += `
         <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 mb-2">
-            <span class="font-bold text-green-400 sm:w-10 sm:text-center">${prize.place}°</span>
+            <span class="font-bold text-green-600 dark:text-green-400 sm:w-10 sm:text-center">${prize.place}°</span>
             <input type="text" placeholder="Descripción" value="${prize.description}"
-                class="w-full sm:flex-1 px-2 py-2 rounded bg-gray-700 text-white"
+                class="w-full sm:flex-1 px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
                 onchange="currentPrizes[${i}].description = this.value">
             <input type="url" placeholder="Imagen (opcional)" value="${prize.image || ''}"
-                class="w-full sm:flex-1 px-2 py-2 rounded bg-gray-700 text-white"
+                class="w-full sm:flex-1 px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition-colors"
                 onchange="currentPrizes[${i}].image = this.value">
             <button type="button" onclick="removePrizeField(${i})"
-                    class="self-start sm:self-auto px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-red-300 hover:text-red-400 font-bold">
+                    class="self-start sm:self-auto px-3 py-1 rounded-lg bg-red-100 dark:bg-gray-700 hover:bg-red-200 dark:hover:bg-gray-600 text-red-600 dark:text-red-400 font-bold transition-colors">
             &times;
             </button>
         </div>
         `;
-    });
+  });
 }
 
 submitRaffleForm
@@ -366,138 +377,138 @@ submitRaffleForm
 // ========== EDITAR Y ELIMINAR RIFA ==========
 
 async function editRaffle(id) {
-    try {
-        const res = await fetchWithAuth(`${API}/api/raffles/${id}`);
-        const raffle = await res.json();
-        editingRaffleId = id;
-        document.getElementById('raffle-form-title').textContent = 'Editar Rifa';
-        document.getElementById('raffle-id').value = raffle._id;
-        document.getElementById('raffle-title').value = raffle.title;
-        document.getElementById('raffle-description').value = raffle.description;
-        document.getElementById('raffle-image').value = raffle.image;
-        document.getElementById('raffle-priceBs').value = raffle.priceBs || '';
-        document.getElementById('raffle-priceUsd').value = raffle.priceUsd || '';   
-        document.getElementById('raffle-date').value = raffle.drawDate ? raffle.drawDate.split('T')[0] : '';
-        document.getElementById('raffle-totalNumbers').value = raffle.totalNumbers;
-        // Cargar botones aleatorios (con valores por defecto si no existen)
-        const btns = raffle.randomButtons || [];
-        document.getElementById('btn1-count').value = btns[0]?.count || 3;
-        document.getElementById('btn1-label').value = btns[0]?.label || "Mínima";
-        document.getElementById('btn2-count').value = btns[1]?.count || 10;
-        document.getElementById('btn2-label').value = btns[1]?.label || "Popular";
-        document.getElementById('btn3-count').value = btns[2]?.count || 25;
-        document.getElementById('btn3-label').value = btns[2]?.label || "Avanzado";
-        document.getElementById('raffle-minTickets').value = raffle.minTickets || 1; // <-- AÑADIDO (TAREA 6)
-        document.getElementById('raffle-resultImg1').value = raffle.lotteryResultImages?.[0] || '';
-        document.getElementById('raffle-resultImg2').value = raffle.lotteryResultImages?.[1] || '';
-        document.getElementById('raffle-isFinished').checked = raffle.isFinished || false;
-        document.getElementById('raffle-isDelivered').checked = raffle.isDelivered || false;
-        document.getElementById('raffle-status').value = raffle.status || 'activa';
-        currentPrizes = (raffle.prizes || []).map((p, i) => ({
-            place: p.place || (i + 1),
-            description: p.description || '',
-            image: p.image || ''
-        }));
-        renderPrizesList();
-        document.getElementById('raffle-form-modal').classList.remove('hidden');
-    } catch (err) {
-        alert('Error cargando datos de la rifa');
-    }
+  try {
+    const res = await fetchWithAuth(`${API}/api/raffles/${id}`);
+    const raffle = await res.json();
+    editingRaffleId = id;
+    document.getElementById('raffle-form-title').textContent = 'Editar Rifa';
+    document.getElementById('raffle-id').value = raffle._id;
+    document.getElementById('raffle-title').value = raffle.title;
+    document.getElementById('raffle-description').value = raffle.description;
+    document.getElementById('raffle-image').value = raffle.image;
+    document.getElementById('raffle-priceBs').value = raffle.priceBs || '';
+    document.getElementById('raffle-priceUsd').value = raffle.priceUsd || '';
+    document.getElementById('raffle-date').value = raffle.drawDate ? raffle.drawDate.split('T')[0] : '';
+    document.getElementById('raffle-totalNumbers').value = raffle.totalNumbers;
+    // Cargar botones aleatorios (con valores por defecto si no existen)
+    const btns = raffle.randomButtons || [];
+    document.getElementById('btn1-count').value = btns[0]?.count || 3;
+    document.getElementById('btn1-label').value = btns[0]?.label || "Mínima";
+    document.getElementById('btn2-count').value = btns[1]?.count || 10;
+    document.getElementById('btn2-label').value = btns[1]?.label || "Popular";
+    document.getElementById('btn3-count').value = btns[2]?.count || 25;
+    document.getElementById('btn3-label').value = btns[2]?.label || "Avanzado";
+    document.getElementById('raffle-minTickets').value = raffle.minTickets || 1; // <-- AÑADIDO (TAREA 6)
+    document.getElementById('raffle-resultImg1').value = raffle.lotteryResultImages?.[0] || '';
+    document.getElementById('raffle-resultImg2').value = raffle.lotteryResultImages?.[1] || '';
+    document.getElementById('raffle-isFinished').checked = raffle.isFinished || false;
+    document.getElementById('raffle-isDelivered').checked = raffle.isDelivered || false;
+    document.getElementById('raffle-status').value = raffle.status || 'activa';
+    currentPrizes = (raffle.prizes || []).map((p, i) => ({
+      place: p.place || (i + 1),
+      description: p.description || '',
+      image: p.image || ''
+    }));
+    renderPrizesList();
+    document.getElementById('raffle-form-modal').classList.remove('hidden');
+  } catch (err) {
+    alert('Error cargando datos de la rifa');
+  }
 }
 
 // EN: admin.js -> Busca "async function submitRaffleForm(e)" y REEMPLÁZALA TODA:
 
 async function submitRaffleForm(e) {
-    e.preventDefault();
-    
-    // 1. Recopilar datos básicos
-    const id = document.getElementById('raffle-id').value;
-    const title = document.getElementById('raffle-title').value;
-    const description = document.getElementById('raffle-description').value;
-    const image = document.getElementById('raffle-image').value;
-    const priceBs = Number(document.getElementById('raffle-priceBs').value);
-    const priceUsd = Number(document.getElementById('raffle-priceUsd').value) || 0;
-    const drawDate = document.getElementById('raffle-date').value;
-    const totalNumbers = Number(document.getElementById('raffle-totalNumbers').value);
-    const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1;
-    const status = document.getElementById('raffle-status').value;
-    const isFinished = document.getElementById('raffle-isFinished').checked;
-    const isDelivered = document.getElementById('raffle-isDelivered').checked;
+  e.preventDefault();
 
-    // 2. Recopilar configuración de Botones Aleatorios (¡ESTO FALTABA!)
-    const randomButtons = [
-        { 
-            count: parseInt(document.getElementById('btn1-count').value) || 5, 
-            label: document.getElementById('btn1-label').value || "Prueba" 
-        },
-        { 
-            count: parseInt(document.getElementById('btn2-count').value) || 10, 
-            label: document.getElementById('btn2-label').value || "Popular" 
-        },
-        { 
-            count: parseInt(document.getElementById('btn3-count').value) || 25, 
-            label: document.getElementById('btn3-label').value || "Para Ganar" 
-        }
-    ];
-    
-    // 3. Recopilar premios
-    const prizes = currentPrizes.map((p, i) => ({
-        place: i + 1,
-        description: p.description,
-        image: p.image
-    }));
+  // 1. Recopilar datos básicos
+  const id = document.getElementById('raffle-id').value;
+  const title = document.getElementById('raffle-title').value;
+  const description = document.getElementById('raffle-description').value;
+  const image = document.getElementById('raffle-image').value;
+  const priceBs = Number(document.getElementById('raffle-priceBs').value);
+  const priceUsd = Number(document.getElementById('raffle-priceUsd').value) || 0;
+  const drawDate = document.getElementById('raffle-date').value;
+  const totalNumbers = Number(document.getElementById('raffle-totalNumbers').value);
+  const minTickets = Number(document.getElementById('raffle-minTickets').value) || 1;
+  const status = document.getElementById('raffle-status').value;
+  const isFinished = document.getElementById('raffle-isFinished').checked;
+  const isDelivered = document.getElementById('raffle-isDelivered').checked;
 
-    // 4. Imágenes de resultados
-    const resultImg1 = document.getElementById('raffle-resultImg1').value;
-    const resultImg2 = document.getElementById('raffle-resultImg2').value;
-    const lotteryResultImages = [];
-    if (resultImg1) lotteryResultImages.push(resultImg1);
-    if (resultImg2) lotteryResultImages.push(resultImg2);
-
-    // 5. Construir el objeto DATA completo
-    const data = { 
-        title, description, image, priceBs, priceUsd, drawDate, 
-        totalNumbers, minTickets, prizes, status, 
-        lotteryResultImages, isFinished, isDelivered,
-        randomButtons // <--- Importante: enviamos los botones
-    };
-
-    try {
-        let url = `${API}/api/raffles`;
-        let method = 'POST';
-
-        if (id) {
-            url = `${API}/api/raffles/${id}`;
-            method = 'PUT';
-        }
-
-        const res = await fetchWithAuth(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (!res.ok) throw new Error('Error en la petición');
-        
-        alert('Rifa guardada correctamente.');
-        closeRaffleForm();
-        loadRaffles();
-    } catch (err) {
-        console.error(err);
-        alert('Error guardando rifa: ' + err.message);
+  // 2. Recopilar configuración de Botones Aleatorios (¡ESTO FALTABA!)
+  const randomButtons = [
+    {
+      count: parseInt(document.getElementById('btn1-count').value) || 5,
+      label: document.getElementById('btn1-label').value || "Prueba"
+    },
+    {
+      count: parseInt(document.getElementById('btn2-count').value) || 10,
+      label: document.getElementById('btn2-label').value || "Popular"
+    },
+    {
+      count: parseInt(document.getElementById('btn3-count').value) || 25,
+      label: document.getElementById('btn3-label').value || "Para Ganar"
     }
+  ];
+
+  // 3. Recopilar premios
+  const prizes = currentPrizes.map((p, i) => ({
+    place: i + 1,
+    description: p.description,
+    image: p.image
+  }));
+
+  // 4. Imágenes de resultados
+  const resultImg1 = document.getElementById('raffle-resultImg1').value;
+  const resultImg2 = document.getElementById('raffle-resultImg2').value;
+  const lotteryResultImages = [];
+  if (resultImg1) lotteryResultImages.push(resultImg1);
+  if (resultImg2) lotteryResultImages.push(resultImg2);
+
+  // 5. Construir el objeto DATA completo
+  const data = {
+    title, description, image, priceBs, priceUsd, drawDate,
+    totalNumbers, minTickets, prizes, status,
+    lotteryResultImages, isFinished, isDelivered,
+    randomButtons // <--- Importante: enviamos los botones
+  };
+
+  try {
+    let url = `${API}/api/raffles`;
+    let method = 'POST';
+
+    if (id) {
+      url = `${API}/api/raffles/${id}`;
+      method = 'PUT';
+    }
+
+    const res = await fetchWithAuth(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (!res.ok) throw new Error('Error en la petición');
+
+    alert('Rifa guardada correctamente.');
+    closeRaffleForm();
+    loadRaffles();
+  } catch (err) {
+    console.error(err);
+    alert('Error guardando rifa: ' + err.message);
+  }
 }
 
 async function deleteRaffle(id) {
-    if (!confirm('¿Seguro que deseas eliminar esta rifa?')) return;
-    try {
-        await fetchWithAuth(`${API}/api/raffles/${id}`, {
-            method: 'DELETE'
-        });
-        loadRaffles();
-    } catch (err) {
-        alert('Error eliminando rifa');
-    }
+  if (!confirm('¿Seguro que deseas eliminar esta rifa?')) return;
+  try {
+    await fetchWithAuth(`${API}/api/raffles/${id}`, {
+      method: 'DELETE'
+    });
+    loadRaffles();
+  } catch (err) {
+    alert('Error eliminando rifa');
+  }
 }
 
 // =================== PAGOS (Tabla | Visor) ===================
@@ -576,46 +587,48 @@ function renderPaymentsTable(pagos) {
   }
 
   let table = `
-    <div class="overflow-x-auto -mx-2 sm:mx-0">
-      <table class="min-w-[920px] w-full text-left rounded-lg bg-gray-900 shadow-lg text-xs sm:text-sm">
+    <div class="overflow-x-auto shadow-md rounded-lg mx-0 sm:mx-0">
+      <table class="min-w-[920px] w-full text-left bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-xs sm:text-sm">
         <thead>
-            <tr class="bg-gray-800 text-green-400">
-                <th class="py-2 px-4">Fecha</th>
-                <th class="py-2 px-4">Nombre</th>
-                <th class="py-2 px-4">Rifa</th>
-                <th class="py-2 px-4">Teléfono</th>
-                <th class="py-2 px-4">Números</th>
-                <th class="py-2 px-4">Pago</th>
-                <th class="py-2 px-4">Referencia</th>
-                <th class="py-2 px-4">Monto</th>
-                <th class="py-2 px-4">Email</th>
-                <th class="py-2 px-4">Acciones</th>
+            <tr class="bg-gray-100 dark:bg-gray-800 text-green-600 dark:text-green-400 uppercase leading-normal">
+                <th class="py-3 px-4">Fecha</th>
+                <th class="py-3 px-4">Nombre</th>
+                <th class="py-3 px-4">Rifa</th>
+                <th class="py-3 px-4">Teléfono</th>
+                <th class="py-3 px-4">Números</th>
+                <th class="py-3 px-4">Pago</th>
+                <th class="py-3 px-4">Referencia</th>
+                <th class="py-3 px-4">Monto</th>
+                <th class="py-3 px-4">Email</th>
+                <th class="py-3 px-4">Acciones</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody class="text-sm">
   `;
 
   pagos.forEach(pago => {
     const monto = (pago && pago.amount != null && pago.currency)
-    ? `${pago.currency}${pago.amount}`
-    : '-';
+      ? `${pago.currency}${pago.amount}`
+      : '-';
     const rifaNombre = (pago && pago.raffleTitle) ? pago.raffleTitle : '-';
     const email = pago?.email || '-'; // <-- NUEVA VARIABLE
 
     table += `
-    <tr class="border-b border-gray-800 hover:bg-gray-800">
-        <td class="py-2 px-4">${pago?.createdAt ? new Date(pago.createdAt).toLocaleString() : '-'}</td>
-        <td class="py-2 px-4 font-bold">${(pago?.firstName || '')} ${(pago?.lastName || '')}</td>
-        <td class="py-2 px-4">${rifaNombre}</td>
-        <td class="py-2 px-4">${pago?.phone || '-'}</td>
-        <td class="py-2 px-4">${Array.isArray(pago?.numbers) ? pago.numbers.map(n => formatTicketNumber(n, pago.totalNumbers)).join(', ') : '-'}</td>
-        <td class="py-2 px-4">${pago?.paymentMethod || '-'}</td>
-        <td class="py-2 px-4">${pago?.paymentReference || '-'}</td>
-        <td class="py-2 px-4">${monto}</td>
-        <td class="py-2 px-4">${email}</td>
-        <td class="py-2 px-4 space-x-2">
-        <button class="bg-green-500 hover:bg-green-400 px-3 py-1 rounded font-bold" onclick="approvePayment('${pago?._id}')">Aprobar</button>
-        <button class="bg-red-500 hover:bg-red-400 px-3 py-1 rounded font-bold" onclick="rejectPayment('${pago?._id}')">Rechazar</button>
+    <tr class="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        <td class="py-3 px-4 whitespace-nowrap">${pago?.createdAt ? new Date(pago.createdAt).toLocaleString() : '-'}</td>
+        <td class="py-3 px-4 font-bold text-gray-800 dark:text-gray-100">${(pago?.firstName || '')} ${(pago?.lastName || '')}</td>
+        <td class="py-3 px-4">${rifaNombre}</td>
+        <td class="py-3 px-4 whitespace-nowrap">${pago?.phone || '-'}</td>
+        <td class="py-3 px-4 max-w-xs truncate" title="${Array.isArray(pago?.numbers) ? pago.numbers.map(n => formatTicketNumber(n, pago.totalNumbers)).join(', ') : '-'}">
+           ${Array.isArray(pago?.numbers) ? pago.numbers.map(n => formatTicketNumber(n, pago.totalNumbers)).join(', ') : '-'}
+        </td>
+        <td class="py-3 px-4">${pago?.paymentMethod || '-'}</td>
+        <td class="py-3 px-4 font-bold font-mono">${pago?.paymentReference || '-'}</td>
+        <td class="py-3 px-4 font-semibold text-green-600 dark:text-green-400">${monto}</td>
+        <td class="py-3 px-4 max-w-[150px] truncate" title="${email}">${email}</td>
+        <td class="py-3 px-4 space-x-2 whitespace-nowrap">
+        <button class="bg-green-100 dark:bg-green-600 text-green-700 dark:text-white hover:bg-green-200 dark:hover:bg-green-500 px-3 py-1 rounded font-bold transition-colors shadow-sm" onclick="approvePayment('${pago?._id}')">Aprobar</button>
+        <button class="bg-red-100 dark:bg-red-600 text-red-700 dark:text-white hover:bg-red-200 dark:hover:bg-red-500 px-3 py-1 rounded font-bold transition-colors shadow-sm" onclick="rejectPayment('${pago?._id}')">Rechazar</button>
         </td>
     </tr>
     `;
@@ -645,7 +658,7 @@ function populatePaymentMethodOptions(list) {
   const current = sel.value;
   sel.innerHTML = `<option value="">Todos</option>` +
     Array.from(map.entries())
-      .sort((a,b) => a[1].localeCompare(b[1]))
+      .sort((a, b) => a[1].localeCompare(b[1]))
       .map(([k, label]) => `<option value="${k}">${label}</option>`)
       .join('');
   if (map.has(current)) sel.value = current;
@@ -656,16 +669,16 @@ function setupPaymentFilters() {
   if (!box || box.dataset.ready) return; // evitar listeners duplicados
   box.dataset.ready = '1';
 
-  const sel  = document.getElementById('pay-filter-method');
-  const ref  = document.getElementById('pay-filter-ref');
+  const sel = document.getElementById('pay-filter-method');
+  const ref = document.getElementById('pay-filter-ref');
   const from = document.getElementById('pay-filter-from');
-  const to   = document.getElementById('pay-filter-to');
+  const to = document.getElementById('pay-filter-to');
 
   const trigger = () => {
     payFilters.method = (sel?.value || '').toLowerCase();
-    payFilters.ref    = (ref?.value || '').trim().toLowerCase();
-    payFilters.from   = from?.value ? new Date(from.value + 'T00:00:00') : null;
-    payFilters.to     = to?.value ? new Date(to.value + 'T23:59:59') : null;
+    payFilters.ref = (ref?.value || '').trim().toLowerCase();
+    payFilters.from = from?.value ? new Date(from.value + 'T00:00:00') : null;
+    payFilters.to = to?.value ? new Date(to.value + 'T23:59:59') : null;
     renderPaymentsTable(applyPaymentsFilters(payments));
   };
 
@@ -675,10 +688,10 @@ function setupPaymentFilters() {
   ref?.addEventListener('input', debounce(trigger, 200));
 
   document.getElementById('pay-filter-clear')?.addEventListener('click', () => {
-    if (sel)  sel.value  = '';
-    if (ref)  ref.value  = '';
+    if (sel) sel.value = '';
+    if (ref) ref.value = '';
     if (from) from.value = '';
-    if (to)   to.value   = '';
+    if (to) to.value = '';
     payFilters = { method: '', from: null, to: null, ref: '' };
     renderPaymentsTable(payments);
   });
@@ -719,7 +732,7 @@ function renderViewer(idx) {
   document.getElementById('viewer-counter').textContent = `${currentIdx + 1}/${paymentsPending.length}`;
 
   const box = document.getElementById('proof-box');
-  
+
   // Como ya no hay comprobante, mostramos un mensaje en el visor
   box.innerHTML = `
     <div class="flex flex-col items-center justify-center h-full text-gray-400">
@@ -733,9 +746,9 @@ function renderViewer(idx) {
 }
 
 function renderViewerDetails(pago) {
-  const set = (id, val='-') => (document.getElementById(id).textContent = val);
+  const set = (id, val = '-') => (document.getElementById(id).textContent = val);
   if (!pago) {
-    ['v-fecha','v-nombre','v-rifa','v-telefono','v-numeros','v-metodo','v-ref','v-monto'].forEach(id => set(id, '-'));
+    ['v-fecha', 'v-nombre', 'v-rifa', 'v-telefono', 'v-numeros', 'v-metodo', 'v-ref', 'v-monto'].forEach(id => set(id, '-'));
     return;
   }
   set('v-fecha', new Date(pago.createdAt).toLocaleString());
@@ -766,7 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ----- Acciones -----
 async function approvePayment(id) {
   try {
-    const res = await fetchWithAuth(`${API}/api/purchases/${id}/approve`, { method:'PUT' });
+    const res = await fetchWithAuth(`${API}/api/purchases/${id}/approve`, { method: 'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -777,7 +790,7 @@ async function approvePayment(id) {
 
 async function rejectPayment(id) {
   try {
-    const res = await fetchWithAuth(`${API}/api/purchases/${id}/reject`,  { method:'PUT' });
+    const res = await fetchWithAuth(`${API}/api/purchases/${id}/reject`, { method: 'PUT' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     await refreshAfterAction();
   } catch (e) {
@@ -893,10 +906,10 @@ async function loadWinnersInit() {
     }
 
     // botones
-  document.getElementById('btn-winner-lookup').onclick = lookupWinner;
-  document.getElementById('btn-winner-save').onclick   = saveWinner;
-  document.getElementById('btn-winner-clear').onclick  = clearWinner;
-  document.getElementById('btn-toggle-phone').onclick  = togglePhoneVisibility;
+    document.getElementById('btn-winner-lookup').onclick = lookupWinner;
+    document.getElementById('btn-winner-save').onclick = saveWinner;
+    document.getElementById('btn-winner-clear').onclick = clearWinner;
+    document.getElementById('btn-toggle-phone').onclick = togglePhoneVisibility;
   } catch (e) {
     console.error(e);
   }
@@ -909,7 +922,7 @@ async function onChangeRaffleWinners() {
 
   // Imagen y título
   const img = document.getElementById('winners-image');
-  const ph  = document.getElementById('winners-image-ph');
+  const ph = document.getElementById('winners-image-ph');
   if (r?.image) {
     img.src = r.image;
     img.classList.remove('hidden');
@@ -921,7 +934,7 @@ async function onChangeRaffleWinners() {
   document.getElementById('winners-title').textContent = r ? r.title : '—';
 
   // ---- Select de PREMIO según cantidad de premios
-  const selPlace  = document.getElementById('winners-place-select');
+  const selPlace = document.getElementById('winners-place-select');
   const prizesLen = (r && Array.isArray(r.prizes) && r.prizes.length) ? r.prizes.length : 1;
 
   if (prizesLen === 1) {
@@ -930,7 +943,7 @@ async function onChangeRaffleWinners() {
     selPlace.disabled = true;
   } else {
     // Varios premios -> 1er/2do/3er...
-    const labels = ['1er premio','2do premio','3er premio','4to premio','5to premio'];
+    const labels = ['1er premio', '2do premio', '3er premio', '4to premio', '5to premio'];
     selPlace.innerHTML = Array.from({ length: prizesLen }, (_, i) =>
       `<option value="${i + 1}">${labels[i] || `${i + 1}° premio`}</option>`
     ).join('');
@@ -944,16 +957,16 @@ async function onChangeRaffleWinners() {
   setWinnerDetails(null, winnersState.selectedRaffle);
 
   // --- INICIO TAREA 3: Mostrar Sección Top ---
-    const topSection = document.getElementById('top-buyers-section');
-    const topList = document.getElementById('top-buyers-list');
-    const topActions = document.getElementById('top-buyers-actions');
-    
-    if (topSection) {
-        topSection.classList.remove('hidden');
-        if (topList) topList.innerHTML = '<p class="text-gray-500 italic">Haz clic en "Calcular Automático" para ver el ranking.</p>';
-        if (topActions) topActions.classList.add('hidden');
-    }
-    // --- FIN TAREA 3 ---
+  const topSection = document.getElementById('top-buyers-section');
+  const topList = document.getElementById('top-buyers-list');
+  const topActions = document.getElementById('top-buyers-actions');
+
+  if (topSection) {
+    topSection.classList.remove('hidden');
+    if (topList) topList.innerHTML = '<p class="text-gray-500 italic">Haz clic en "Calcular Automático" para ver el ranking.</p>';
+    if (topActions) topActions.classList.add('hidden');
+  }
+  // --- FIN TAREA 3 ---
 }
 
 
@@ -999,8 +1012,8 @@ function setWinnerDetails(lookup, raffle) {
   const phone = src ? (src.phone || '') : '';
   const masked = maskPhone(phone);
 
-  document.getElementById('winners-name').textContent   = name || '—';
-  document.getElementById('winners-phone').textContent  = masked || '—';
+  document.getElementById('winners-name').textContent = name || '—';
+  document.getElementById('winners-phone').textContent = masked || '—';
   document.getElementById('winners-phone').dataset.full = phone || '';
   document.getElementById('winners-status').textContent = (src && src.status) ? src.status.toUpperCase() : '—';
   document.getElementById('winners-ticket').textContent = (src && src.ticket) ? formatTicketNumber(src.ticket, raffle ? raffle.totalNumbers : null) : '—';
@@ -1024,11 +1037,11 @@ function setWinnerDetails(lookup, raffle) {
 
 function maskPhone(phone) {
   if (!phone) return '';
-  const s = String(phone).replace(/\D/g,'');
+  const s = String(phone).replace(/\D/g, '');
   if (s.length <= 4) return '*'.repeat(s.length);
-  const head = s.slice(0,4);
+  const head = s.slice(0, 4);
   const tail = s.slice(-4);
-  return `${head}${'*'.repeat(Math.max(0, s.length-8))}${tail}`;
+  return `${head}${'*'.repeat(Math.max(0, s.length - 8))}${tail}`;
 }
 
 function togglePhoneVisibility() {
@@ -1053,10 +1066,10 @@ function formatDateVE(date) {
 
 async function lookupWinner() {
   const raffleId = document.getElementById('winners-raffle-select').value;
-  const number   = Number(document.getElementById('winners-number-input').value);
+  const number = Number(document.getElementById('winners-number-input').value);
   if (!raffleId || !number) { alert('Selecciona la rifa y escribe el número'); return; }
 
-  const res  = await fetch(`${API}/api/raffles/${raffleId}/lookup-winner?number=${number}`);
+  const res = await fetch(`${API}/api/raffles/${raffleId}/lookup-winner?number=${number}`);
   const data = await res.json(); // puede ser null
 
   // Si el número no fue vendido (no hay compra aprobada), marcamos "no hay ganador"
@@ -1067,8 +1080,8 @@ async function lookupWinner() {
 
 async function saveWinner() {
   const raffleId = document.getElementById('winners-raffle-select').value;
-  const place    = Number(document.getElementById('winners-place-select').value);
-  const number   = Number(document.getElementById('winners-number-input').value);
+  const place = Number(document.getElementById('winners-place-select').value);
+  const number = Number(document.getElementById('winners-number-input').value);
   if (!raffleId || !place || !number) { alert('Completa rifa, premio y número'); return; }
 
   const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
@@ -1089,7 +1102,7 @@ async function saveWinner() {
 
 async function clearWinner() {
   const raffleId = document.getElementById('winners-raffle-select').value;
-  const place    = Number(document.getElementById('winners-place-select').value);
+  const place = Number(document.getElementById('winners-place-select').value);
   if (!raffleId || !place) return;
 
   if (!confirm('¿Seguro que deseas limpiar este premio?')) return;
@@ -1137,7 +1150,7 @@ async function exportWinnerImage() {
     const canvas = await generateWinnerCanvasVertical();
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0,10);
+    const date = new Date().toISOString().slice(0, 10);
     a.href = dataUrl;
     a.download = `ganador_${date}.png`;
     a.click();
@@ -1174,10 +1187,10 @@ async function generateWinnerCanvasVertical() {
   const PAD = 60;
 
   // Recoger datos de la UI
-  const title  = (document.getElementById('winners-title')?.textContent || '').trim();
-  const prize  = (document.getElementById('winners-prize')?.textContent || '').trim() || title || '—';
+  const title = (document.getElementById('winners-title')?.textContent || '').trim();
+  const prize = (document.getElementById('winners-prize')?.textContent || '').trim() || title || '—';
 
-  const name   = (document.getElementById('winners-name')?.textContent || '—').trim();
+  const name = (document.getElementById('winners-name')?.textContent || '—').trim();
   const phoneEl = document.getElementById('winners-phone');
   const phoneFull = phoneEl?.dataset?.full || phoneEl?.textContent || '';
   const phoneMasked = (typeof maskPhone === 'function') ? maskPhone(phoneFull) : (phoneFull || '—');
@@ -1187,79 +1200,79 @@ async function generateWinnerCanvasVertical() {
   const purchaseDate = (document.getElementById('winners-date')?.textContent || '—').trim();
 
 
-// NUEVO
-const logoSrc = (document.querySelector('img[src*="logo00iso"]')?.src) || 'img/logo00iso.png';
+  // NUEVO
+  const logoSrc = (document.querySelector('img[src*="logo00iso"]')?.src) || 'img/logo00iso.png';
 
-// Normaliza enlaces comunes de “vista previa” a archivo directo
-function normalizeImageURL(raw) {
-  try {
-    if (!raw) return '';
-    // Google Drive: /file/d/ID/view  -> uc?export=view&id=ID
-    const m1 = raw.match(/drive\.google\.com\/file\/d\/([^/]+)\//i);
-    if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
-    // Google Drive: open?id=ID  o uc?id=ID
-    const m2 = raw.match(/[?&](?:id|fileId)=([^&]+)/i);
-    if (m2 && /drive\.google\.com/i.test(raw)) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
-    // Dropbox: dl=0 -> dl=1
-    if (/dropbox\.com/i.test(raw)) return raw.replace('dl=0', 'dl=1');
-    // GitHub blob -> raw.githubusercontent.com
-    if (/github\.com\/.+\/blob\//i.test(raw)) {
-      return raw.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/');
-    }
-    return raw;
-  } catch { return raw; }
-}
-
-async function getRaffleImageSrcRaw() {
-  const el = document.getElementById('winners-image');
-  if (el && el.src) {
-    if (!el.complete) await new Promise(res => el.addEventListener('load', res, { once: true }));
-    return el.src;
+  // Normaliza enlaces comunes de “vista previa” a archivo directo
+  function normalizeImageURL(raw) {
+    try {
+      if (!raw) return '';
+      // Google Drive: /file/d/ID/view  -> uc?export=view&id=ID
+      const m1 = raw.match(/drive\.google\.com\/file\/d\/([^/]+)\//i);
+      if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+      // Google Drive: open?id=ID  o uc?id=ID
+      const m2 = raw.match(/[?&](?:id|fileId)=([^&]+)/i);
+      if (m2 && /drive\.google\.com/i.test(raw)) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+      // Dropbox: dl=0 -> dl=1
+      if (/dropbox\.com/i.test(raw)) return raw.replace('dl=0', 'dl=1');
+      // GitHub blob -> raw.githubusercontent.com
+      if (/github\.com\/.+\/blob\//i.test(raw)) {
+        return raw.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/');
+      }
+      return raw;
+    } catch { return raw; }
   }
-  if (window.winnersState?.selectedRaffle?.image) return winnersState.selectedRaffle.image;
-  return '';
-}
 
-// Descarga vía backend y devuelve un objectURL blob:
-async function getRaffleImageObjectURL() {
-  const raw = normalizeImageURL(await getRaffleImageSrcRaw());
-  if (!raw) return '';
-  if (/^(data:|blob:)/i.test(raw)) return raw; // ya sirve
-
-  try {
-    const res = await fetch(`${API}/api/proxy-image?url=${encodeURIComponent(raw)}`);
-    if (!res.ok) throw new Error('proxy error');
-    const blob = await res.blob();
-    return URL.createObjectURL(blob);
-  } catch {
+  async function getRaffleImageSrcRaw() {
+    const el = document.getElementById('winners-image');
+    if (el && el.src) {
+      if (!el.complete) await new Promise(res => el.addEventListener('load', res, { once: true }));
+      return el.src;
+    }
+    if (window.winnersState?.selectedRaffle?.image) return winnersState.selectedRaffle.image;
     return '';
   }
-}
 
-const [logoImg, raffleImg] = await Promise.all([
-  loadImageSafe(logoSrc),
-  loadImageSafe(await getRaffleImageObjectURL(), /*isBlob=*/true)
-]);
+  // Descarga vía backend y devuelve un objectURL blob:
+  async function getRaffleImageObjectURL() {
+    const raw = normalizeImageURL(await getRaffleImageSrcRaw());
+    if (!raw) return '';
+    if (/^(data:|blob:)/i.test(raw)) return raw; // ya sirve
 
-function loadImageSafe(src, isBlob = false) {
-  return new Promise(resolve => {
-    if (!src) return resolve(null);
-    const img = new Image();
-    if (!isBlob) { // para blob: no hace falta CORS
-      img.crossOrigin = 'anonymous';
-      img.referrerPolicy = 'no-referrer';
+    try {
+      const res = await fetch(`${API}/api/proxy-image?url=${encodeURIComponent(raw)}`);
+      if (!res.ok) throw new Error('proxy error');
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    } catch {
+      return '';
     }
-    img.onload = () => {
-      // liberar memoria si viene de blob:
-      if (isBlob && /^blob:/.test(src)) {
-        setTimeout(() => { try { URL.revokeObjectURL(src); } catch {} }, 0);
+  }
+
+  const [logoImg, raffleImg] = await Promise.all([
+    loadImageSafe(logoSrc),
+    loadImageSafe(await getRaffleImageObjectURL(), /*isBlob=*/true)
+  ]);
+
+  function loadImageSafe(src, isBlob = false) {
+    return new Promise(resolve => {
+      if (!src) return resolve(null);
+      const img = new Image();
+      if (!isBlob) { // para blob: no hace falta CORS
+        img.crossOrigin = 'anonymous';
+        img.referrerPolicy = 'no-referrer';
       }
-      resolve(img);
-    };
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
-}
+      img.onload = () => {
+        // liberar memoria si viene de blob:
+        if (isBlob && /^blob:/.test(src)) {
+          setTimeout(() => { try { URL.revokeObjectURL(src); } catch { } }, 0);
+        }
+        resolve(img);
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
 
 
   // Canvas base
@@ -1295,8 +1308,8 @@ function loadImageSafe(src, isBlob = false) {
 
   // "GANADOR:" + fecha (momento del click)
   const now = new Date();
-  const dd = String(now.getDate()).padStart(2,'0');
-  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
   const yyyy = now.getFullYear();
   const dateLabel = `${dd}/${mm}/${yyyy}`;
 
@@ -1314,7 +1327,7 @@ function loadImageSafe(src, isBlob = false) {
 
 
   // Imagen principal de la rifa (16:9 en marco redondeado)
-  const imgW = W - PAD*2;                 // 960
+  const imgW = W - PAD * 2;                 // 960
   const imgH = Math.round(imgW * 9 / 16); // 540
   const imgX = PAD;
   const imgY = PAD + logoSize + 140;
@@ -1330,7 +1343,7 @@ function loadImageSafe(src, isBlob = false) {
     ctx.fillStyle = ACCENT;
     ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('IMAGEN DE LA RIFA', imgX + imgW/2, imgY + imgH/2 - 24);
+    ctx.fillText('IMAGEN DE LA RIFA', imgX + imgW / 2, imgY + imgH / 2 - 24);
     ctx.textAlign = 'left';
   }
   ctx.restore();
@@ -1339,7 +1352,7 @@ function loadImageSafe(src, isBlob = false) {
   ctx.fillStyle = TEXT;
   ctx.font = 'bold 44px Montserrat, Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(prize || title || '—', W/2, imgY + imgH + 32);
+  ctx.fillText(prize || title || '—', W / 2, imgY + imgH + 32);
   ctx.textAlign = 'left';
 
   // === Panel de detalles (alineación vertical perfecta) ===
@@ -1356,7 +1369,7 @@ function loadImageSafe(src, isBlob = false) {
 
   // Geometría del panel
   const panelX = PAD;
-  const panelW = W - PAD*2;
+  const panelW = W - PAD * 2;
   const panelY = imgY + imgH + 160;
   const ROW_LH = 96;         // alto de cada fila
   const PANEL_PAD_Y = 36;    // padding superior/inferior
@@ -1368,7 +1381,7 @@ function loadImageSafe(src, isBlob = false) {
 
   const labelColor = ACCENT;
   const valueColor = TEXT;
-  const leftX  = panelX + 28;
+  const leftX = panelX + 28;
   const rightX = panelX + panelW - 28;
 
   // Centrado vertical por fila
@@ -1415,14 +1428,14 @@ function loadImageSafe(src, isBlob = false) {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#9CA3AF';
   ctx.font = 'bold 28px Montserrat, Arial, sans-serif';
-  ctx.fillText('doblecerove.com', W/2, H - 48);
+  ctx.fillText('doblecerove.com', W / 2, H - 48);
 
   return canvas;
 }
 
 // Helpers
 function drawRoundedRect(ctx, x, y, w, h, r) {
-  const radius = Math.min(r, w/2, h/2);
+  const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.arcTo(x + w, y, x + w, y + h, radius);
@@ -1477,13 +1490,13 @@ document.addEventListener('keydown', (e) => {
 
   // Evitar interferir cuando se escribe en inputs
   const tag = (e.target && e.target.tagName) || '';
-  if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
 
   const p = window.paymentsPending[window.currentIdx || 0];
   if (!p) return;
 
   if (e.key === 'ArrowRight') { e.preventDefault(); return renderViewer((window.currentIdx || 0) + 1); }
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); return renderViewer((window.currentIdx || 0) - 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); return renderViewer((window.currentIdx || 0) - 1); }
 
   const k = e.key.toLowerCase();
   if (k === 'a') { e.preventDefault(); approvePayment(p._id); }
@@ -1499,7 +1512,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function toWhatsAppInternational(phoneVE) {
   // 04XXXXXXXXX -> 58 4XXXXXXXXX (sin '+', sin espacios para wa.me)
-  const s = String(phoneVE || '').replace(/\D/g,'');
+  const s = String(phoneVE || '').replace(/\D/g, '');
   if (!s) return '';
   if (s.startsWith('0')) return '58' + s.slice(1);
   if (s.startsWith('58')) return s;
@@ -1528,7 +1541,7 @@ async function loadContacts() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `contacts_${new Date().toISOString().slice(0,10)}.csv`;
+        a.download = `contacts_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1542,15 +1555,16 @@ async function loadContacts() {
 
     // Tabla
     let html = `
-      <table class="min-w-[820px] w-full text-left rounded-lg bg-gray-900 shadow-lg text-sm">
+      <div class="overflow-x-auto shadow-md rounded-lg">
+      <table class="min-w-[820px] w-full text-left bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm transition-colors">
         <thead>
-          <tr class="bg-gray-800 text-green-400">
-            <th class="py-2 px-4">Nombre</th>
-            <th class="py-2 px-4">Teléfono</th>
-            <th class="py-2 px-4">Email</th>
-            <th class="py-2 px-4">Consentimiento</th>
-            <th class="py-2 px-4">Fecha consentimiento</th>
-            <th class="py-2 px-4">Acciones</th>
+          <tr class="bg-gray-100 dark:bg-gray-800 text-green-600 dark:text-green-400 uppercase font-bold text-xs sm:text-sm">
+            <th class="py-3 px-4">Nombre</th>
+            <th class="py-3 px-4">Teléfono</th>
+            <th class="py-3 px-4">Email</th>
+            <th class="py-3 px-4">Consentimiento</th>
+            <th class="py-3 px-4">Fecha cosentimiento</th>
+            <th class="py-3 px-4">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -1559,29 +1573,33 @@ async function loadContacts() {
     list.forEach(c => {
       const fullName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || '—';
       const tel = c.phone || '—';
-      const ok  = c.consent ? 'Sí' : 'No';
-      const dt  = c.consentAt ? new Date(c.consentAt).toLocaleString('es-VE') : '—';
-      const wa  = toWhatsAppInternational(tel);
+      const ok = c.consent ? 'Sí' : 'No';
+      const dt = c.consentAt ? new Date(c.consentAt).toLocaleString('es-VE') : '—';
+      const wa = toWhatsAppInternational(tel);
       const msg = encodeURIComponent(document.getElementById('contacts-msg')?.value || '');
 
       html += `
-        <tr class="border-b border-gray-800 hover:bg-gray-800">
-          <td class="py-2 px-4 font-bold">${fullName}</td>
-          <td class="py-2 px-4">${tel}</td>
-          <td class="py-2 px-4">${c.email || '—'}</td>
-          <td class="py-2 px-4">${ok}</td>
-          <td class="py-2 px-4">${dt}</td>
-          <td class="py-2 px-4">
+        <tr class="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          <td class="py-3 px-4 font-bold text-gray-800 dark:text-gray-100">${fullName}</td>
+          <td class="py-3 px-4">${tel}</td>
+          <td class="py-3 px-4">${c.email || '—'}</td>
+          <td class="py-3 px-4">
+            <span class="${c.consent ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'} px-2 py-1 rounded text-xs font-bold">
+              ${ok}
+            </span>
+          </td>
+          <td class="py-3 px-4">${dt}</td>
+          <td class="py-3 px-4">
             <a href="https://wa.me/${wa}?text=${msg}" target="_blank"
-               class="inline-block bg-green-600 hover:bg-green-500 text-black px-3 py-1 rounded font-bold">
-              WhatsApp
+               class="inline-block bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg font-bold text-xs transition-colors shadow-sm">
+              <i class="fab fa-whatsapp"></i> Chat
             </a>
           </td>
         </tr>
       `;
     });
 
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     box.innerHTML = html;
   } catch (e) {
     console.error(e);
@@ -1596,49 +1614,49 @@ let currentTopBuyers = [];
 
 // 1. Función principal: Llamar al backend y renderizar
 async function calcularTopCompradores() {
-    const raffleId = winnersState.selectedRaffle?._id;
-    if (!raffleId) {
-        alert("Selecciona una rifa primero.");
-        return;
+  const raffleId = winnersState.selectedRaffle?._id;
+  if (!raffleId) {
+    alert("Selecciona una rifa primero.");
+    return;
+  }
+
+  const listContainer = document.getElementById('top-buyers-list');
+  listContainer.innerHTML = '<div class="text-gray-400">Calculando...</div>';
+
+  try {
+    // Llamada al nuevo endpoint del backend
+    const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/top-buyers?limit=5`);
+    if (!res.ok) throw new Error('Error al calcular');
+
+    currentTopBuyers = await res.json();
+
+    if (currentTopBuyers.length === 0) {
+      listContainer.innerHTML = '<div class="text-gray-500">No hay compras aprobadas para esta rifa.</div>';
+      document.getElementById('top-buyers-actions').classList.add('hidden');
+      return;
     }
 
-    const listContainer = document.getElementById('top-buyers-list');
-    listContainer.innerHTML = '<div class="text-gray-400">Calculando...</div>';
+    renderTopBuyersList();
+    document.getElementById('top-buyers-actions').classList.remove('hidden');
 
-    try {
-        // Llamada al nuevo endpoint del backend
-        const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/top-buyers?limit=5`);
-        if (!res.ok) throw new Error('Error al calcular');
-        
-        currentTopBuyers = await res.json();
-
-        if (currentTopBuyers.length === 0) {
-            listContainer.innerHTML = '<div class="text-gray-500">No hay compras aprobadas para esta rifa.</div>';
-            document.getElementById('top-buyers-actions').classList.add('hidden');
-            return;
-        }
-
-        renderTopBuyersList();
-        document.getElementById('top-buyers-actions').classList.remove('hidden');
-
-    } catch (error) {
-        console.error(error);
-        listContainer.innerHTML = '<div class="text-red-400">Error al calcular el top.</div>';
-    }
+  } catch (error) {
+    console.error(error);
+    listContainer.innerHTML = '<div class="text-red-400">Error al calcular el top.</div>';
+  }
 }
 
 function renderTopBuyersList() {
-    const listContainer = document.getElementById('top-buyers-list');
-    listContainer.innerHTML = '';
+  const listContainer = document.getElementById('top-buyers-list');
+  listContainer.innerHTML = '';
 
-    // TAREA: Solo mostramos los 5 primeros para que no sea una lista infinita
-    const buyersToShow = currentTopBuyers.slice(0, 5);
+  // TAREA: Solo mostramos los 5 primeros para que no sea una lista infinita
+  const buyersToShow = currentTopBuyers.slice(0, 5);
 
-    buyersToShow.forEach((buyer, index) => {
-        const place = index + 1;
-        const medalColor = place === 1 ? 'text-yellow-400' : (place === 2 ? 'text-gray-300' : (place === 3 ? 'text-orange-400' : 'text-gray-500'));
-        
-        listContainer.innerHTML += `
+  buyersToShow.forEach((buyer, index) => {
+    const place = index + 1;
+    const medalColor = place === 1 ? 'text-yellow-400' : (place === 2 ? 'text-gray-300' : (place === 3 ? 'text-orange-400' : 'text-gray-500'));
+
+    listContainer.innerHTML += `
             <div class="bg-gray-800 p-3 rounded-lg flex flex-col sm:flex-row gap-2 items-start sm:items-center border border-gray-700 relative" data-index="${index}">
                 <div class="font-bold text-lg ${medalColor} w-8 text-center shrink-0">#${place}</div>
                 <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
@@ -1663,433 +1681,433 @@ function renderTopBuyersList() {
                  ` : ''}
             </div>
         `;
-    });
+  });
 }
 
 // 3. Función para actualizar los datos en memoria cuando editas un input
 function updateTopBuyerData(index, field, value) {
-    if (field === 'totalTickets') {
-        currentTopBuyers[index][field] = Number(value);
-    } else if (field === 'name') {
-        // Separar nombre y apellido si es posible
-        const parts = value.trim().split(' ');
-        currentTopBuyers[index].firstName = parts[0] || '';
-        currentTopBuyers[index].lastName = parts.slice(1).join(' ') || '';
-    } else {
-        currentTopBuyers[index][field] = value;
-    }
-    console.log('Top actualizado:', currentTopBuyers[index]);
+  if (field === 'totalTickets') {
+    currentTopBuyers[index][field] = Number(value);
+  } else if (field === 'name') {
+    // Separar nombre y apellido si es posible
+    const parts = value.trim().split(' ');
+    currentTopBuyers[index].firstName = parts[0] || '';
+    currentTopBuyers[index].lastName = parts.slice(1).join(' ') || '';
+  } else {
+    currentTopBuyers[index][field] = value;
+  }
+  console.log('Top actualizado:', currentTopBuyers[index]);
 }
 
 // 4. Conectar los listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // Conectar el botón de calcular
-    document.getElementById('btn-calc-top')?.addEventListener('click', calcularTopCompradores);
-    
-    // ... tus otros listeners ...
+  // Conectar el botón de calcular
+  document.getElementById('btn-calc-top')?.addEventListener('click', calcularTopCompradores);
+
+  // ... tus otros listeners ...
 });
 
 // 1. Guardar Ganador (Corregido)
 async function guardarTop1ComoGanador() {
-    if (!currentTopBuyers || currentTopBuyers.length === 0) return;
-    
-    const top1 = currentTopBuyers[0];
-    const raffleId = winnersState.selectedRaffle?._id;
+  if (!currentTopBuyers || currentTopBuyers.length === 0) return;
 
-    if (!confirm(`¿Deseas guardar a ${top1.firstName} ${top1.lastName} como ganador del 2do Premio?`)) return;
+  const top1 = currentTopBuyers[0];
+  const raffleId = winnersState.selectedRaffle?._id;
 
-    try {
-        const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                place: 2, 
-                firstName: top1.firstName,
-                lastName: top1.lastName,
-                phone: top1.phone,
-                number: Number(top1.totalTickets), // Aseguramos que sea un número
-                status: 'aprobada'
-            })
-        });
+  if (!confirm(`¿Deseas guardar a ${top1.firstName} ${top1.lastName} como ganador del 2do Premio?`)) return;
 
-        if (res.ok) {
-            alert('¡Ganador del 2do Premio guardado!');
-            await onChangeRaffleWinners(); 
-        }
-    } catch (e) { alert('Error al guardar'); }
+  try {
+    const res = await fetchWithAuth(`${API}/api/raffles/${raffleId}/winners`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        place: 2,
+        firstName: top1.firstName,
+        lastName: top1.lastName,
+        phone: top1.phone,
+        number: Number(top1.totalTickets), // Aseguramos que sea un número
+        status: 'aprobada'
+      })
+    });
+
+    if (res.ok) {
+      alert('¡Ganador del 2do Premio guardado!');
+      await onChangeRaffleWinners();
+    }
+  } catch (e) { alert('Error al guardar'); }
 }
 
 // 2. Botón de Imagen (Fijado para que siempre descargue)
 document.addEventListener('DOMContentLoaded', () => {
-    // Usamos una forma más robusta de conectar el botón
-    const btnTopImg = document.getElementById('btn-top-image');
-    if (btnTopImg) {
-        btnTopImg.onclick = (e) => {
-            e.preventDefault();
-            generarImagenTop3();
-        };
-    }
+  // Usamos una forma más robusta de conectar el botón
+  const btnTopImg = document.getElementById('btn-top-image');
+  if (btnTopImg) {
+    btnTopImg.onclick = (e) => {
+      e.preventDefault();
+      generarImagenTop3();
+    };
+  }
 });
 
 // --- GENERADOR DE IMAGEN TOP 3 (DISEÑO FINAL PULIDO) ---
 async function generarImagenTop3() {
-    if (!currentTopBuyers || currentTopBuyers.length < 1) {
-        alert("Primero calcula el top de compradores.");
-        return;
+  if (!currentTopBuyers || currentTopBuyers.length < 1) {
+    alert("Primero calcula el top de compradores.");
+    return;
+  }
+
+  const raffle = winnersState.selectedRaffle;
+  const buyers = currentTopBuyers.slice(0, 3); // Tomamos solo el Top 3
+
+  const W = 1080, H = 1920;
+  const PAD = 60;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const BG = '#0b1220';
+  const PANEL = '#1f2937';
+  const ACCENT = '#34d399';
+  const TEXT = '#E5E7EB';
+
+  try {
+    // 1. FONDO
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, W, H);
+
+    // 2. CARGAR IMÁGENES (Logo y Rifa)
+    const logoImg = new Image();
+    logoImg.src = 'img/logo00iso.png';
+
+    const raffleImg = new Image();
+    raffleImg.crossOrigin = "anonymous";
+    if (raffle.image && !raffle.image.startsWith('img/')) {
+      raffleImg.src = 'https://corsproxy.io/?' + encodeURIComponent(raffle.image);
+    } else {
+      raffleImg.src = (raffle.image || '') + '?t=' + Date.now();
     }
 
-    const raffle = winnersState.selectedRaffle;
-    const buyers = currentTopBuyers.slice(0, 3); // Tomamos solo el Top 3
+    await Promise.all([
+      new Promise(res => { logoImg.onload = res; logoImg.onerror = res; }),
+      new Promise(res => { raffleImg.onload = res; raffleImg.onerror = res; })
+    ]);
 
-    const W = 1080, H = 1920; 
-    const PAD = 60;
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-
-    const BG = '#0b1220';
-    const PANEL = '#1f2937';
-    const ACCENT = '#34d399'; 
-    const TEXT = '#E5E7EB';   
-
-    try {
-        // 1. FONDO
-        ctx.fillStyle = BG;
-        ctx.fillRect(0, 0, W, H);
-
-        // 2. CARGAR IMÁGENES (Logo y Rifa)
-        const logoImg = new Image();
-        logoImg.src = 'img/logo00iso.png';
-
-        const raffleImg = new Image();
-        raffleImg.crossOrigin = "anonymous";
-        if (raffle.image && !raffle.image.startsWith('img/')) {
-            raffleImg.src = 'https://corsproxy.io/?' + encodeURIComponent(raffle.image);
-        } else {
-            raffleImg.src = (raffle.image || '') + '?t=' + Date.now();
-        }
-
-        await Promise.all([
-            new Promise(res => { logoImg.onload = res; logoImg.onerror = res; }),
-            new Promise(res => { raffleImg.onload = res; raffleImg.onerror = res; })
-        ]);
-
-        // 3. HEADER: Logo + Marca
-        const logoSize = 130;
-        if (logoImg.complete && logoImg.naturalWidth > 0) {
-            ctx.save();
-            drawRoundedRect(ctx, PAD, PAD, logoSize, logoSize, 24);
-            ctx.clip();
-            ctx.drawImage(logoImg, PAD, PAD, logoSize, logoSize);
-            ctx.restore();
-        }
-
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = TEXT;
-        ctx.font = 'bold 64px Montserrat, Arial, sans-serif';
-        ctx.fillText('DOBLE CERO', PAD + logoSize + 24, PAD + 24);
-
-        // 4. SUBHEADER: Top + Fecha
-        const now = new Date();
-        const dateLabel = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-        ctx.fillStyle = ACCENT;
-        ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
-        ctx.fillText('TOP COMPRADORES:', PAD, PAD + logoSize + 48);
-
-        ctx.textAlign = 'right';
-        ctx.fillStyle = TEXT;
-        ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
-        ctx.fillText(dateLabel, W - PAD, PAD + logoSize + 48);
-
-        // 5. IMAGEN RIFA (16:9)
-        const imgW = W - PAD*2;
-        const imgH = Math.round(imgW * 9 / 16);
-        const imgX = PAD;
-        const imgY = PAD + logoSize + 140;
-
-        ctx.save();
-        drawRoundedRect(ctx, imgX, imgY, imgW, imgH, 28);
-        ctx.clip();
-        if (raffleImg.complete && raffleImg.naturalWidth > 0) {
-            drawImageCover(ctx, raffleImg, imgX, imgY, imgW, imgH);
-        } else {
-            ctx.fillStyle = '#111827';
-            ctx.fillRect(imgX, imgY, imgW, imgH);
-        }
-        ctx.restore();
-
-        // 6. PREMIO
-        ctx.textAlign = 'center';
-        ctx.fillStyle = TEXT;
-        ctx.font = 'bold 50px Montserrat, sans-serif';
-        const premioDesc = raffle.prizes.find(p => p.place === 2)?.description || "PREMIO TOP COMPRADOR";
-        ctx.fillText(`PREMIO: ${premioDesc.toUpperCase()}`, W/2, imgY + imgH + 80);
-
-        // 7. PANEL DE POSICIONES
-        const panelY = imgY + imgH + 180;
-        const panelH = 650;
-        ctx.fillStyle = PANEL;
-        drawRoundedRect(ctx, PAD, panelY, imgW, panelH, 30);
-        ctx.fill();
-
-        // --- TÍTULO POSICIONES (CENTRADO) ---
-        ctx.textAlign = 'center'; // Centramos el texto
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 45px Montserrat, sans-serif';
-        ctx.fillText('POSICIONES', W/2, panelY + 70);
-
-        // --- LISTADO DE COMPRADORES ---
-        buyers.forEach((b, i) => {
-            const rowY = panelY + 170 + (i * 120);
-            
-            // Lado Izquierdo: N°1: 710 TICKETS (Alineado a la izquierda)
-            ctx.textAlign = 'left'; 
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 45px Montserrat, sans-serif';
-            const rankingTxt = `N°${i+1}: ${b.totalTickets} TICKETS`;
-            ctx.fillText(rankingTxt, PAD + 50, rowY);
-            
-            // Lado Derecho: NOMBRE (Alineado a la derecha, max 15 chars)
-            ctx.textAlign = 'right';
-            ctx.fillStyle = ACCENT;
-            let fullName = `${b.firstName} ${b.lastName}`.trim().toUpperCase();
-            if (fullName.length > 15) {
-                fullName = fullName.substring(0, 13) + '..';
-            }
-            ctx.fillText(fullName, W - PAD - 50, rowY);
-        });
-
-        // 8. ÚLTIMA ACTUALIZACIÓN
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#6b7280';
-        ctx.font = 'italic 32px Montserrat, sans-serif';
-        const time = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-        ctx.fillText(`Última actualización: hoy a las ${time}`, W/2, panelY + panelH - 100);
-
-        // Footer (opcional)
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#9CA3AF';
-        ctx.font = 'bold 28px Montserrat, Arial, sans-serif';
-        ctx.fillText('doblecerove.com', W/2, H - 48);
-
-        // 10. DESCARGAR
-        const link = document.createElement('a');
-        link.download = `Top3_${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-    } catch (error) {
-        console.error("Error:", error);
-        alert("Hubo un error al generar la imagen.");
+    // 3. HEADER: Logo + Marca
+    const logoSize = 130;
+    if (logoImg.complete && logoImg.naturalWidth > 0) {
+      ctx.save();
+      drawRoundedRect(ctx, PAD, PAD, logoSize, logoSize, 24);
+      ctx.clip();
+      ctx.drawImage(logoImg, PAD, PAD, logoSize, logoSize);
+      ctx.restore();
     }
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = TEXT;
+    ctx.font = 'bold 64px Montserrat, Arial, sans-serif';
+    ctx.fillText('DOBLE CERO', PAD + logoSize + 24, PAD + 24);
+
+    // 4. SUBHEADER: Top + Fecha
+    const now = new Date();
+    const dateLabel = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    ctx.fillStyle = ACCENT;
+    ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
+    ctx.fillText('TOP COMPRADORES:', PAD, PAD + logoSize + 48);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = TEXT;
+    ctx.font = 'bold 48px Montserrat, Arial, sans-serif';
+    ctx.fillText(dateLabel, W - PAD, PAD + logoSize + 48);
+
+    // 5. IMAGEN RIFA (16:9)
+    const imgW = W - PAD * 2;
+    const imgH = Math.round(imgW * 9 / 16);
+    const imgX = PAD;
+    const imgY = PAD + logoSize + 140;
+
+    ctx.save();
+    drawRoundedRect(ctx, imgX, imgY, imgW, imgH, 28);
+    ctx.clip();
+    if (raffleImg.complete && raffleImg.naturalWidth > 0) {
+      drawImageCover(ctx, raffleImg, imgX, imgY, imgW, imgH);
+    } else {
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(imgX, imgY, imgW, imgH);
+    }
+    ctx.restore();
+
+    // 6. PREMIO
+    ctx.textAlign = 'center';
+    ctx.fillStyle = TEXT;
+    ctx.font = 'bold 50px Montserrat, sans-serif';
+    const premioDesc = raffle.prizes.find(p => p.place === 2)?.description || "PREMIO TOP COMPRADOR";
+    ctx.fillText(`PREMIO: ${premioDesc.toUpperCase()}`, W / 2, imgY + imgH + 80);
+
+    // 7. PANEL DE POSICIONES
+    const panelY = imgY + imgH + 180;
+    const panelH = 650;
+    ctx.fillStyle = PANEL;
+    drawRoundedRect(ctx, PAD, panelY, imgW, panelH, 30);
+    ctx.fill();
+
+    // --- TÍTULO POSICIONES (CENTRADO) ---
+    ctx.textAlign = 'center'; // Centramos el texto
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 45px Montserrat, sans-serif';
+    ctx.fillText('POSICIONES', W / 2, panelY + 70);
+
+    // --- LISTADO DE COMPRADORES ---
+    buyers.forEach((b, i) => {
+      const rowY = panelY + 170 + (i * 120);
+
+      // Lado Izquierdo: N°1: 710 TICKETS (Alineado a la izquierda)
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 45px Montserrat, sans-serif';
+      const rankingTxt = `N°${i + 1}: ${b.totalTickets} TICKETS`;
+      ctx.fillText(rankingTxt, PAD + 50, rowY);
+
+      // Lado Derecho: NOMBRE (Alineado a la derecha, max 15 chars)
+      ctx.textAlign = 'right';
+      ctx.fillStyle = ACCENT;
+      let fullName = `${b.firstName} ${b.lastName}`.trim().toUpperCase();
+      if (fullName.length > 15) {
+        fullName = fullName.substring(0, 13) + '..';
+      }
+      ctx.fillText(fullName, W - PAD - 50, rowY);
+    });
+
+    // 8. ÚLTIMA ACTUALIZACIÓN
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#6b7280';
+    ctx.font = 'italic 32px Montserrat, sans-serif';
+    const time = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    ctx.fillText(`Última actualización: hoy a las ${time}`, W / 2, panelY + panelH - 100);
+
+    // Footer (opcional)
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = 'bold 28px Montserrat, Arial, sans-serif';
+    ctx.fillText('doblecerove.com', W / 2, H - 48);
+
+    // 10. DESCARGAR
+    const link = document.createElement('a');
+    link.download = `Top3_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Hubo un error al generar la imagen.");
+  }
 }
 
 
 
 // === FUNCIÓN CORREGIDA Y COMPLETA ===
 async function cargarEstadisticas() {
-    console.log("Iniciando carga de estadísticas..."); 
-    try {
-        const res = await fetchWithAuth(`${API}/api/admin/stats`);
-        if (!res.ok) throw new Error('Error al obtener datos');
-        
-        const data = await res.json();
-        console.log("Datos recibidos:", data); 
+  console.log("Iniciando carga de estadísticas...");
+  try {
+    const res = await fetchWithAuth(`${API}/api/admin/stats`);
+    if (!res.ok) throw new Error('Error al obtener datos');
 
-        // 1. Gráfico de Línea (Ventas por Día)
-        const ctxV = document.getElementById('chart-ventas-dias');
-        if (chartVentas) {
-            chartVentas.destroy();
-        }
-        
-        const diasLabels = Object.keys(data.ventasPorDia || {}).sort();
-        const diasValues = diasLabels.map(label => data.ventasPorDia[label]);
+    const data = await res.json();
+    console.log("Datos recibidos:", data);
 
-        chartVentas = new Chart(ctxV, {
-            type: 'line',
-            data: {
-                labels: diasLabels.length ? diasLabels : ['Sin datos'],
-                datasets: [{
-                    label: 'Tickets Vendidos',
-                    data: diasValues.length ? diasValues : [0],
-                    borderColor: '#34d399', 
-                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#ffffff',
-                    pointRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
-                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
-                }
-            }
-        });
-
-        // 2. Gráfico de Barras (Horas Pico)
-        const ctxH = document.getElementById('chart-horas');
-        if (chartHoras) {
-            chartHoras.destroy();
-        }
-
-        const horasLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
-        const horasData = Array.isArray(data.horasPico) ? data.horasPico : Array(24).fill(0);
-        
-        chartHoras = new Chart(ctxH, {
-            type: 'bar',
-            data: {
-                labels: horasLabels,
-                datasets: [{
-                    label: 'Ventas',
-                    data: horasData,
-                    backgroundColor: '#fbbf24', 
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
-                    x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 12 } }
-                }
-            }
-        });
-
-        // 3. NUEVO: Gráfico de Barras Horizontales (Rifas) - ¡AHORA SÍ ESTÁ DENTRO!
-        const ctxRifas = document.getElementById('chart-rifas-ranking');
-        // Verificamos que el canvas exista en el HTML para evitar errores
-        if (ctxRifas) {
-            if (chartRifas) {
-                chartRifas.destroy();
-            }
-
-            // Ordenamos las rifas de mayor a menor venta
-            const rifasEntries = Object.entries(data.rifasMasVendidas || {})
-                .sort(([,a], [,b]) => b - a); 
-            
-            const rifasLabels = rifasEntries.map(([key]) => key);
-            const rifasValues = rifasEntries.map(([,val]) => val);
-
-            chartRifas = new Chart(ctxRifas, {
-                type: 'bar',
-                data: {
-                    labels: rifasLabels.length ? rifasLabels : ['Sin ventas aún'],
-                    datasets: [{
-                        label: 'Tickets Vendidos',
-                        data: rifasValues.length ? rifasValues : [0],
-                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                        borderWidth: 0,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', // Barras horizontales
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
-                        y: { grid: { display: false }, ticks: { color: '#e5e7eb', font: { weight: 'bold' } } }
-                    }
-                }
-            });
-        }
-
-    } catch (err) {
-        console.error("Error en estadísticas:", err);
+    // 1. Gráfico de Línea (Ventas por Día)
+    const ctxV = document.getElementById('chart-ventas-dias');
+    if (chartVentas) {
+      chartVentas.destroy();
     }
+
+    const diasLabels = Object.keys(data.ventasPorDia || {}).sort();
+    const diasValues = diasLabels.map(label => data.ventasPorDia[label]);
+
+    chartVentas = new Chart(ctxV, {
+      type: 'line',
+      data: {
+        labels: diasLabels.length ? diasLabels : ['Sin datos'],
+        datasets: [{
+          label: 'Tickets Vendidos',
+          data: diasValues.length ? diasValues : [0],
+          borderColor: '#34d399',
+          backgroundColor: 'rgba(52, 211, 153, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#ffffff',
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
+          x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+        }
+      }
+    });
+
+    // 2. Gráfico de Barras (Horas Pico)
+    const ctxH = document.getElementById('chart-horas');
+    if (chartHoras) {
+      chartHoras.destroy();
+    }
+
+    const horasLabels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+    const horasData = Array.isArray(data.horasPico) ? data.horasPico : Array(24).fill(0);
+
+    chartHoras = new Chart(ctxH, {
+      type: 'bar',
+      data: {
+        labels: horasLabels,
+        datasets: [{
+          label: 'Ventas',
+          data: horasData,
+          backgroundColor: '#fbbf24',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
+          x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 12 } }
+        }
+      }
+    });
+
+    // 3. NUEVO: Gráfico de Barras Horizontales (Rifas) - ¡AHORA SÍ ESTÁ DENTRO!
+    const ctxRifas = document.getElementById('chart-rifas-ranking');
+    // Verificamos que el canvas exista en el HTML para evitar errores
+    if (ctxRifas) {
+      if (chartRifas) {
+        chartRifas.destroy();
+      }
+
+      // Ordenamos las rifas de mayor a menor venta
+      const rifasEntries = Object.entries(data.rifasMasVendidas || {})
+        .sort(([, a], [, b]) => b - a);
+
+      const rifasLabels = rifasEntries.map(([key]) => key);
+      const rifasValues = rifasEntries.map(([, val]) => val);
+
+      chartRifas = new Chart(ctxRifas, {
+        type: 'bar',
+        data: {
+          labels: rifasLabels.length ? rifasLabels : ['Sin ventas aún'],
+          datasets: [{
+            label: 'Tickets Vendidos',
+            data: rifasValues.length ? rifasValues : [0],
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+            borderWidth: 0,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y', // Barras horizontales
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
+            y: { grid: { display: false }, ticks: { color: '#e5e7eb', font: { weight: 'bold' } } }
+          }
+        }
+      });
+    }
+
+  } catch (err) {
+    console.error("Error en estadísticas:", err);
+  }
 }
 
 // Cargar las rifas en el selector de la nueva sección
 function updateTopRaffleSelector() {
-    const select = document.getElementById('top-raffle-select');
-    if (!select) return;
-    
-    // Si no hay rifas cargadas, las buscamos primero
-    if (!window.rifasGlobal || window.rifasGlobal.length === 0) {
-        fetch(`${API}/api/raffles`)
-            .then(res => res.json())
-            .then(data => {
-                window.rifasGlobal = data;
-                renderSelectorOptions(select);
-            });
-    } else {
+  const select = document.getElementById('top-raffle-select');
+  if (!select) return;
+
+  // Si no hay rifas cargadas, las buscamos primero
+  if (!window.rifasGlobal || window.rifasGlobal.length === 0) {
+    fetch(`${API}/api/raffles`)
+      .then(res => res.json())
+      .then(data => {
+        window.rifasGlobal = data;
         renderSelectorOptions(select);
-    }
+      });
+  } else {
+    renderSelectorOptions(select);
+  }
 }
 
 function renderSelectorOptions(select) {
-    select.innerHTML = '<option value="">-- Selecciona una Rifa --</option>' + 
-        window.rifasGlobal.map(r => `<option value="${r._id}">${r.title}</option>`).join('');
+  select.innerHTML = '<option value="">-- Selecciona una Rifa --</option>' +
+    window.rifasGlobal.map(r => `<option value="${r._id}">${r.title}</option>`).join('');
 }
 
 // Cargar el Top 10 para el Admin
 async function loadAdminTop() {
-    const raffleId = document.getElementById('top-raffle-select').value;
-    const container = document.getElementById('admin-top-list');
-    if (!raffleId) return;
+  const raffleId = document.getElementById('top-raffle-select').value;
+  const container = document.getElementById('admin-top-list');
+  if (!raffleId) return;
 
-    container.innerHTML = 'Cargando...';
-    const res = await fetch(`${API}/api/admin/top-buyers/${raffleId}`);
-    const buyers = await res.json();
+  container.innerHTML = 'Cargando...';
+  const res = await fetch(`${API}/api/admin/top-buyers/${raffleId}`);
+  const buyers = await res.json();
 
-    container.innerHTML = buyers.map((b, i) => `
+  container.innerHTML = buyers.map((b, i) => `
         <div class="flex justify-between items-center bg-gray-900 p-3 rounded-lg border border-white/5">
-            <span><b class="text-yellow-500 mr-2">#${i+1}</b> ${b.name}</span>
+            <span><b class="text-yellow-500 mr-2">#${i + 1}</b> ${b.name}</span>
             <span class="bg-green-500/10 text-green-400 px-2 py-1 rounded font-bold">${b.tickets} 🎟️</span>
         </div>
     `).join('') || 'No hay compras registradas.';
 }
 
 async function saveManualBuyer() {
-    const raffleId = document.getElementById('top-raffle-select').value;
-    const name = document.getElementById('manual-name').value.trim();
-    const tickets = parseInt(document.getElementById('manual-tickets').value);
+  const raffleId = document.getElementById('top-raffle-select').value;
+  const name = document.getElementById('manual-name').value.trim();
+  const tickets = parseInt(document.getElementById('manual-tickets').value);
 
-    if (!raffleId || !name || !tickets) {
-        alert("Por favor, selecciona una rifa y completa nombre y tickets.");
-        return;
+  if (!raffleId || !name || !tickets) {
+    alert("Por favor, selecciona una rifa y completa nombre y tickets.");
+    return;
+  }
+
+  try {
+    // 1. Buscamos la rifa para obtener los externos que ya tiene
+    const raffleRes = await fetch(`${API}/api/raffles/${raffleId}`);
+    const raffle = await raffleRes.json();
+
+    let externalBuyers = raffle.externalBuyers || [];
+
+    // 2. Agregamos el nuevo
+    externalBuyers.push({ name, tickets });
+
+    // 3. Guardamos usando fetchWithAuth (para que incluya el Token)
+    const saveRes = await fetchWithAuth(`${API}/api/raffles/${raffleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ externalBuyers })
+    });
+
+    if (saveRes.ok) {
+      alert("¡Comprador inyectado correctamente!");
+      document.getElementById('manual-name').value = '';
+      document.getElementById('manual-tickets').value = '';
+      loadAdminTop(); // Refrescamos la lista de la derecha
+    } else {
+      alert("Error al guardar en el servidor.");
     }
-
-    try {
-        // 1. Buscamos la rifa para obtener los externos que ya tiene
-        const raffleRes = await fetch(`${API}/api/raffles/${raffleId}`);
-        const raffle = await raffleRes.json();
-        
-        let externalBuyers = raffle.externalBuyers || [];
-        
-        // 2. Agregamos el nuevo
-        externalBuyers.push({ name, tickets });
-
-        // 3. Guardamos usando fetchWithAuth (para que incluya el Token)
-        const saveRes = await fetchWithAuth(`${API}/api/raffles/${raffleId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ externalBuyers })
-        });
-
-        if (saveRes.ok) {
-            alert("¡Comprador inyectado correctamente!");
-            document.getElementById('manual-name').value = '';
-            document.getElementById('manual-tickets').value = '';
-            loadAdminTop(); // Refrescamos la lista de la derecha
-        } else {
-            alert("Error al guardar en el servidor.");
-        }
-    } catch (e) { 
-        console.error(e);
-        alert("Error de conexión al inyectar comprador."); 
-    }
+  } catch (e) {
+    console.error(e);
+    alert("Error de conexión al inyectar comprador.");
+  }
 }
