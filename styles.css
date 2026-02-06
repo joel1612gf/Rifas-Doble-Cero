@@ -1,3 +1,56 @@
+/* === Variables Globales de Color (Theming) === */
+:root {
+    /* Light Mode (Claro) - Default */
+    --bg-main: #f9fafb;     /* gray-50 */
+    --bg-card: #ffffff;     /* white */
+    --bg-header: #ffffff;   /* white */
+    --bg-input: #f3f4f6;    /* gray-100 */
+    --bg-hover: #e5e7eb;    /* gray-200 */
+    
+
+    --text-main: #111827;   /* gray-900 */
+    --text-muted: #4b5563;  /* gray-600 */
+    --text-inverted: #ffffff; 
+
+    /* Brand Colors (Verde) */
+    --primary: #16a34a;      /* green-600 (Más oscuro para leerse bien en blanco) */
+    --primary-hover: #15803d; /* green-700 */
+    --primary-light: #dcfce7; /* green-100 (fondos suaves) */
+    --primary-btn: #22c55e;   /* green-500 (Botones vibrantes) */
+    --primary-btn-text: #000000;
+
+    --border-color: #e5e7eb; /* gray-200 */
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+    /* Dark Mode (Oscuro) - Original */
+    --bg-main: #111827;     /* gray-900 */
+    --bg-card: #1f2937;     /* gray-800 */
+    --bg-header: #000000;   /* black */
+    --bg-input: #374151;    /* gray-700 */
+    --bg-hover: #4b5563;    /* gray-600 */
+
+    --text-main: #f3f4f6;   /* gray-100 */
+    --text-muted: #d1d5db;  /* gray-300 */
+    --text-inverted: #000000;
+
+    /* Brand Colors */
+    --primary: #4ade80;      /* green-400 (Vibrante sobre negro) */
+    --primary-hover: #22c55e; /* green-500 */
+    --primary-light: rgba(74, 222, 128, 0.2);
+    --primary-btn: #4ade80;  /* green-400 */
+    --primary-btn-text: #000000;
+
+    --border-color: #374151; /* gray-700 */
+    --shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Transiciones suaves de color */
+body, div, nav, header, section, p, h1, h2, h3, span, input, button {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 /* Estilos personalizados adicionales */
         .number-grid {
             display: grid;
