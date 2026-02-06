@@ -3,24 +3,44 @@
 // === Lógica de Tema (Light/Dark) ===
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
-  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const systemQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-  if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+  // 1. Determinar si debemos usar modo oscuro
+  const shouldUseDark = savedTheme === 'dark' || (!savedTheme && systemQuery.matches);
+
+  // 2. Aplicar la clase
+  if (shouldUseDark) {
     document.documentElement.classList.add('dark');
     updateThemeIcon(true);
   } else {
     document.documentElement.classList.remove('dark');
     updateThemeIcon(false);
   }
+
+  // 3. (NUEVO) Escuchar cambios en la configuración del sistema en tiempo real
+  // Solo reacciona si el usuario NO ha guardado una preferencia manual en esta sesión/browser
+  systemQuery.addEventListener('change', (e) => {
+    if (!localStorage.getItem('theme')) {
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+        updateThemeIcon(true);
+      } else {
+        document.documentElement.classList.remove('dark');
+        updateThemeIcon(false);
+      }
+    }
+  });
 }
 
 function toggleTheme() {
   const html = document.documentElement;
+  // Si tiene 'dark', pasamos a light
   if (html.classList.contains('dark')) {
     html.classList.remove('dark');
     localStorage.setItem('theme', 'light');
     updateThemeIcon(false);
   } else {
+    // Si es light, pasamos a dark
     html.classList.add('dark');
     localStorage.setItem('theme', 'dark');
     updateThemeIcon(true);
@@ -31,13 +51,14 @@ function updateThemeIcon(isDark) {
   const icon = document.getElementById('theme-toggle-icon');
   if (!icon) return;
   if (isDark) {
-    icon.className = 'fas fa-moon text-main'; // Ahora es luna en modo oscuro (estado activo)
+    icon.className = 'fas fa-moon text-main'; // Luna
   } else {
-    icon.className = 'fas fa-sun text-yellow-500'; // Sol en modo claro
+    icon.className = 'fas fa-sun text-yellow-500'; // Sol
   }
 }
 
 // Ejecutar al inicio
+// document.addEventListener('DOMContentLoaded', initTheme); // Se llama abajo en el DOMContentLoaded general o explicito
 initTheme();
 
 
