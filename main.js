@@ -206,26 +206,21 @@ async function abrirModalSelector(raffleId) {
   searchValue = "";
   currentViewMode = 'random'; // <--- NUEVO: Empezar en modo aleatorio por defecto
 
-  // DEBUG: Log current theme state
-  console.log('=== MODAL OPENING DEBUG ===');
-  console.log('HTML has dark class:', document.documentElement.classList.contains('dark'));
-  console.log('localStorage theme:', localStorage.getItem('theme'));
-  console.log('System prefers dark:', window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  // FORCE REMOVE dark class temporarily for testing
-  const wasDark = document.documentElement.classList.contains('dark');
-  document.documentElement.classList.remove('dark');
-  console.log('Removed dark class, was dark:', wasDark);
+  // Aplicar el fondo del modal según el tema actual
+  const isDark = document.documentElement.classList.contains('dark');
+  const modalInner = document.getElementById('modal-selector-inner');
+  if (modalInner) {
+    modalInner.style.backgroundColor = isDark ? '#1f2937' : '#ffffff';
+    modalInner.style.borderColor = isDark ? '#374151' : '#e5e7eb';
+    modalInner.style.border = `1px solid ${isDark ? '#374151' : '#e5e7eb'}`;
+  }
 
   document.getElementById('selector-content').innerHTML = renderSelectorContent();
   const overlaySel = document.getElementById('modal-selector');
   overlaySel.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-
-  // Log final modal element
-  console.log('Modal element:', overlaySel);
-  console.log('Modal computed background:', window.getComputedStyle(overlaySel.querySelector('div')).backgroundColor);
 }
+
 function cerrarModalSelector() {
   const overlay = document.getElementById('modal-selector');
   overlay.classList.add('hidden');
@@ -319,6 +314,18 @@ function renderGridAndPaginatorHTML() {
 function renderSelectorContent() {
   const rifa = rifaSeleccionada;
 
+  // DETECCION DE TEMA EXPLICITA
+  const isDark = document.documentElement.classList.contains('dark');
+
+  const colors = {
+    bgCard: isDark ? '#1f2937' : '#ffffff',
+    bgInput: isDark ? '#374151' : '#f3f4f6',
+    textMain: isDark ? '#f3f4f6' : '#111827',
+    textMuted: isDark ? '#d1d5db' : '#6b7280',
+    border: isDark ? '#374151' : '#e5e7eb',
+    btnHover: isDark ? '#4b5563' : '#e5e7eb'
+  };
+
   // --- 1. Calcular Datos ---
   const total = rifa.totalNumbers || 100;
   const reservados = Array.isArray(rifa.numbersReserved) ? rifa.numbersReserved : [];
@@ -334,13 +341,13 @@ function renderSelectorContent() {
   let premiosHtml = '';
   if (rifa.prizes && rifa.prizes.length > 0) {
     premiosHtml = `
-      <div style="background: #f3f4f6 !important; padding: 12px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+      <div style="background: ${colors.bgInput} !important; padding: 12px; border-radius: 8px; margin-bottom: 16px; border: 1px solid ${colors.border};">
         <div style="color: #16a34a; font-weight: bold; margin-bottom: 8px;">
           <i class="fas fa-trophy"></i> Premios:
         </div>
         <ul style="list-style: none; padding: 0;">
           ${rifa.prizes.map(p => `
-            <li style="color: #111827 !important; margin: 4px 0; display: flex; gap: 8px;">
+            <li style="color: ${colors.textMain} !important; margin: 4px 0; display: flex; gap: 8px;">
               <span style="background: #22c55e !important; color: #000 !important; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${p.place}°</span>
               ${p.description}
             </li>
@@ -367,25 +374,25 @@ function renderSelectorContent() {
     contenidoCentral = `
       <div style="display: flex; flex-direction: column; align-items: center; padding: 24px 0;">
         <div style="width: 100%; max-width: 320px; margin-bottom: 24px;">
-          <label style="display: block; color: #6b7280; font-size: 14px; margin-bottom: 8px; text-align: center;">Escribe una cantidad</label>
+          <label style="display: block; color: ${colors.textMuted}; font-size: 14px; margin-bottom: 8px; text-align: center;">Escribe una cantidad</label>
           <div style="display: flex; gap: 8px;">
             <input type="number" id="input-cantidad-azar" placeholder="Ej: 50" 
-              style="flex: 1; background: #f3f4f6 !important; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; text-align: center; color: #111827 !important; font-size: 20px; font-weight: bold;"
+              style="flex: 1; background: ${colors.bgInput} !important; border: 1px solid ${colors.border}; border-radius: 8px; padding: 12px; text-align: center; color: ${colors.textMain} !important; font-size: 20px; font-weight: bold;"
               onkeydown="if(event.key === 'Enter') agregarDesdeInput()">
-            <button onclick="agregarDesdeInput()" style="background: #f3f4f6 !important; color: #111827 !important; padding: 0 16px; border-radius: 8px; cursor: pointer; border: 1px solid #d1d5db;">
+            <button onclick="agregarDesdeInput()" style="background: ${colors.bgInput} !important; color: ${colors.textMain} !important; padding: 0 16px; border-radius: 8px; cursor: pointer; border: 1px solid ${colors.border};">
               <i class="fas fa-plus"></i>
             </button>
           </div>
         </div>
         
         <div style="width: 100%;">
-          <p style="color: #6b7280; font-size: 12px; text-align: center; margin-bottom: 12px; text-transform: uppercase;">O elige una opción rápida</p>
+          <p style="color: ${colors.textMuted}; font-size: 12px; text-align: center; margin-bottom: 12px; text-transform: uppercase;">O elige una opción rápida</p>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             ${botonesConfig.map(btn => `
               <button onclick="agregarAlAzar(${btn.count})" 
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f3f4f6 !important; border: 2px solid #d1d5db; padding: 16px; border-radius: 12px; cursor: pointer; color: #111827 !important;">
+                style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${colors.bgInput} !important; border: 2px solid ${colors.border}; padding: 16px; border-radius: 12px; cursor: pointer; color: ${colors.textMain} !important;">
                 <span style="font-size: 24px; font-weight: bold; color: #16a34a;">${btn.count}</span>
-                <span style="font-size: 10px; color: #6b7280; text-transform: uppercase; margin-top: 4px;">${btn.label}</span>
+                <span style="font-size: 10px; color: ${colors.textMuted}; text-transform: uppercase; margin-top: 4px;">${btn.label}</span>
               </button>
             `).join('')}
           </div>
@@ -397,9 +404,9 @@ function renderSelectorContent() {
     contenidoCentral = `
       <div style="margin-bottom: 12px;">
         <div style="position: relative;">
-          <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6b7280;"></i>
+          <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: ${colors.textMuted};"></i>
           <input type="text" placeholder="Buscar número" 
-            style="width: 100%; background: #f3f4f6 !important; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px 12px 12px 40px; color: #111827 !important;"
+            style="width: 100%; background: ${colors.bgInput} !important; border: 1px solid ${colors.border}; border-radius: 8px; padding: 12px 12px 12px 40px; color: ${colors.textMain} !important;"
             value="${searchValue}" 
             oninput="buscarNumero(this.value)">
         </div>
@@ -414,15 +421,15 @@ function renderSelectorContent() {
   let seleccionadosHtml = '';
   if (seleccionadosCount > 0) {
     const listaNumeros = numerosSeleccionados.map(n =>
-      `<button onclick="toggleNumero(${n})" style="display: inline-flex; align-items: center; background: rgba(22, 163, 74, 0.2) !important; border: 1px solid rgba(22, 163, 74, 0.5); color: #111827 !important; font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Clic para borrar">
+      `<button onclick="toggleNumero(${n})" style="display: inline-flex; align-items: center; background: rgba(22, 163, 74, 0.2) !important; border: 1px solid rgba(22, 163, 74, 0.5); color: ${colors.textMain} !important; font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 4px; cursor: pointer;" title="Clic para borrar">
         ${formatTicketNumber(n, total)} <i class="fas fa-times" style="margin-left: 4px; opacity: 0.5;"></i>
       </button>`
     ).join(' ');
 
     seleccionadosHtml = `
-      <div style="margin-top: 16px; background: #f3f4f6 !important; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db;">
+      <div style="margin-top: 16px; background: ${colors.bgInput} !important; padding: 12px; border-radius: 8px; border: 1px solid ${colors.border};">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: bold;">Tickets seleccionados (${seleccionadosCount})</span>
+          <span style="font-size: 12px; color: ${colors.textMuted}; text-transform: uppercase; font-weight: bold;">Tickets seleccionados (${seleccionadosCount})</span>
           <button onclick="limpiarNumeros()" style="color: #ef4444; font-size: 12px; cursor: pointer; background: none; border: none;">
             <i class="fas fa-trash-alt"></i> Limpiar todo
           </button>
@@ -444,34 +451,34 @@ function renderSelectorContent() {
       </button>
     </div>
 
-    <div style="padding: 24px; margin-top: -24px; position: relative; background: #ffffff !important; border-radius: 24px 24px 0 0; min-height: 500px;">
+    <div style="padding: 24px; margin-top: -24px; position: relative; background: ${colors.bgCard} !important; border-radius: 24px 24px 0 0; min-height: 500px;">
       <h2 style="font-size: 28px; font-weight: 800; color: #16a34a; margin-bottom: 8px;">${rifa.title}</h2>
-      <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">${rifa.description}</p>
+      <p style="color: ${colors.textMuted}; font-size: 14px; margin-bottom: 16px;">${rifa.description}</p>
       
       ${premiosHtml}
 
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; text-align: center; background: #f3f4f6 !important; border-radius: 12px; padding: 8px; border: 1px solid #d1d5db;">
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; text-align: center; background: ${colors.bgInput} !important; border-radius: 12px; padding: 8px; border: 1px solid ${colors.border};">
         <div style="padding: 4px;">
-          <div style="font-size: 12px; color: #6b7280; text-transform: uppercase;">Precio</div>
+          <div style="font-size: 12px; color: ${colors.textMuted}; text-transform: uppercase;">Precio</div>
           <div style="color: #16a34a; font-weight: bold;">${rifa.priceBs} Bs</div>
         </div>
-        <div style="padding: 4px; border-left: 1px solid #d1d5db;">
-          <div style="font-size: 12px; color: #6b7280; text-transform: uppercase;">Fecha</div>
-          <div style="color: #111827 !important; font-weight: bold;">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : 'Pronto'}</div>
+        <div style="padding: 4px; border-left: 1px solid ${colors.border};">
+          <div style="font-size: 12px; color: ${colors.textMuted}; text-transform: uppercase;">Fecha</div>
+          <div style="color: ${colors.textMain} !important; font-weight: bold;">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : 'Pronto'}</div>
         </div>
-        <div style="padding: 4px; border-left: 1px solid #d1d5db;">
-          <div style="font-size: 12px; color: #6b7280; text-transform: uppercase;">Disponibles</div>
-          <div style="color: #111827 !important; font-weight: bold;">${disponiblesCount}</div>
+        <div style="padding: 4px; border-left: 1px solid ${colors.border};">
+          <div style="font-size: 12px; color: ${colors.textMuted}; text-transform: uppercase;">Disponibles</div>
+          <div style="color: ${colors.textMain} !important; font-weight: bold;">${disponiblesCount}</div>
         </div>
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px;">
         <button onclick="cambiarModoVista('random')" 
-          style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid ${currentViewMode === 'random' ? '#16a34a' : 'transparent'}; background: ${currentViewMode === 'random' ? '#ffffff' : '#f3f4f6'} !important; color: ${currentViewMode === 'random' ? '#16a34a' : '#6b7280'} !important;">
+          style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid ${currentViewMode === 'random' ? '#16a34a' : 'transparent'}; background: ${currentViewMode === 'random' ? colors.bgCard : colors.bgInput} !important; color: ${currentViewMode === 'random' ? '#16a34a' : colors.textMuted} !important;">
           <i class="fas fa-dice"></i> Azar
         </button>
         <button onclick="cambiarModoVista('table')" 
-          style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid ${currentViewMode === 'table' ? '#16a34a' : 'transparent'}; background: ${currentViewMode === 'table' ? '#ffffff' : '#f3f4f6'} !important; color: ${currentViewMode === 'table' ? '#16a34a' : '#6b7280'} !important;">
+          style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid ${currentViewMode === 'table' ? '#16a34a' : 'transparent'}; background: ${currentViewMode === 'table' ? colors.bgCard : colors.bgInput} !important; color: ${currentViewMode === 'table' ? '#16a34a' : colors.textMuted} !important;">
           <i class="fas fa-th"></i> Tabla
         </button>
       </div>
@@ -482,10 +489,10 @@ function renderSelectorContent() {
 
       ${seleccionadosHtml}
 
-      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #d1d5db; position: sticky; bottom: 0; background: #ffffff !important; padding-bottom: 8px;">
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid ${colors.border}; position: sticky; bottom: 0; background: ${colors.bgCard} !important; padding-bottom: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div style="font-size: 14px; color: #6b7280;">Total a pagar:</div>
-          <div style="font-size: 24px; font-weight: bold; color: #111827 !important;">${totalPagar} Bs</div>
+          <div style="font-size: 14px; color: ${colors.textMuted};">Total a pagar:</div>
+          <div style="font-size: 24px; font-weight: bold; color: ${colors.textMain} !important;">${totalPagar} Bs</div>
         </div>
         <button id="btn-continuar-compra" onclick="continuarCompra()" 
           style="width: 100%; background: linear-gradient(to right, #22c55e, #10b981) !important; color: #000 !important; font-weight: 800; padding: 16px; border-radius: 12px; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; opacity: ${seleccionadosCount === 0 ? '0.5' : '1'};"
@@ -495,12 +502,12 @@ function renderSelectorContent() {
         </button>
       </div>
     </div>
+    </div>
   `;
 }
 // --- FIN DE CAMBIO (TAREA 5 - vFinal) ---
-// Lógica para seleccionar/deseleccionar número
 
-// --- INICIO DE CAMBIO (TAREA 5 - vFinal) ---
+// Lógica para seleccionar/deseleccionar número
 function toggleNumero(num, elementoBoton) {
   const idx = numerosSeleccionados.indexOf(num);
   if (idx >= 0) {
@@ -1637,11 +1644,11 @@ function renderSelectorContent() {
   let premiosHtml = '';
   if (rifa.prizes && rifa.prizes.length > 0) {
     premiosHtml = `
-            <div class="mb-4 bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+            <div class="mb-4 bg-input p-3 rounded-lg border border-border">
                 <span class="text-green-400 font-bold block mb-2"><i class="fas fa-trophy mr-1"></i> Premios:</span>
                 <ul class="space-y-1">
                     ${rifa.prizes.map((p, i) => `
-                        <li class="text-gray-300 text-sm flex items-start gap-2">
+                        <li class="text-muted text-sm flex items-start gap-2">
                             <span class="bg-green-500 text-black text-sm font-bold px-1.5 rounded">
                                 ${p.place || (i + 1)}°
                             </span>
@@ -1669,25 +1676,25 @@ function renderSelectorContent() {
     contenidoCentral = `
             <div class="flex flex-col items-center py-6 animate-fade-in">
                 <div class="w-full max-w-xs mb-6">
-                    <label class="block text-gray-400 text-sm mb-2 text-center font-bold">Escribe una cantidad</label>
+                    <label class="block text-muted text-sm mb-2 text-center font-bold">Escribe una cantidad</label>
                     <div class="flex gap-2">
                         <input type="number" id="input-cantidad-azar" placeholder="Ej: 50" 
-                            class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-center text-white text-xl font-bold focus:border-green-500 outline-none transition-colors"
+                            class="w-full bg-input border border-border rounded-lg px-4 py-3 text-center text-main text-xl font-bold focus:border-green-500 outline-none transition-colors"
                             onkeydown="if(event.key === 'Enter') agregarDesdeInput()">
-                        <button onclick="agregarDesdeInput()" class="bg-gray-700 hover:bg-green-500 hover:text-black text-white px-4 rounded-lg transition-colors shadow-lg">
+                        <button onclick="agregarDesdeInput()" class="bg-input hover:bg-green-500 hover:text-black text-main px-4 rounded-lg transition-colors shadow-lg border border-border">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
 
                 <div class="w-full mb-4">
-                     <p class="text-gray-500 text-xs text-center mb-3 uppercase tracking-wide font-bold">O elige una opción rápida</p>
+                     <p class="text-muted text-xs text-center mb-3 uppercase tracking-wide font-bold">O elige una opción rápida</p>
                      <div class="grid grid-cols-3 gap-3">
                         ${btns.map(btn => `
                             <button onclick="agregarAlAzar(${btn.count})" 
-                                class="flex flex-col items-center justify-center bg-gray-800 border-2 border-gray-700 hover:border-green-500 hover:bg-gray-700/80 text-white py-4 rounded-xl transition-all duration-200 active:scale-95 group shadow-md">
-                                <span class="text-2xl font-bold text-green-400 group-hover:text-green-300">${btn.count}</span>
-                                <span class="text-[10px] text-gray-400 uppercase mt-1 font-bold">${btn.label}</span>
+                                class="flex flex-col items-center justify-center bg-input border-2 border-border hover:border-green-500 hover:bg-hover text-main py-4 rounded-xl transition-all duration-200 active:scale-95 group shadow-md">
+                                <span class="text-2xl font-bold text-primary group-hover:text-primary-hover">${btn.count}</span>
+                                <span class="text-[10px] text-muted uppercase mt-1 font-bold">${btn.label}</span>
                             </button>
                         `).join('')}
                      </div>
@@ -1698,9 +1705,9 @@ function renderSelectorContent() {
     contenidoCentral = `
             <div class="mb-3 animate-fade-in">
                 <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted"></i>
                     <input type="text" placeholder="Buscar número (ej: 0429)" 
-                        class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:border-green-500 outline-none shadow-inner" 
+                        class="w-full bg-input border border-border rounded-lg pl-10 pr-4 py-3 text-main focus:border-green-500 outline-none shadow-inner" 
                         value="${searchValue}" oninput="buscarNumero(this.value)">
                 </div>
             </div>
@@ -1713,43 +1720,43 @@ function renderSelectorContent() {
   return `
         <div class="relative h-48 sm:h-64">
             <img src="${rifa.image}" alt="${rifa.title}" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-site-bg via-site-bg/60 to-transparent"></div>
             <button onclick="cerrarModalSelector()" class="absolute top-4 right-4 bg-black/60 hover:bg-black text-white w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-md z-10 font-bold">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <div class="p-4 sm:p-6 -mt-8 relative bg-gray-800 rounded-t-3xl min-h-[500px] flex flex-col shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-gray-700">
+        <div class="p-4 sm:p-6 -mt-8 relative bg-card rounded-t-3xl min-h-[500px] flex flex-col shadow-[0_-5px_20px_rgba(0,0,0,0.3)] border-t border-border">
             
-            <h2 class="text-2xl sm:text-3xl font-extrabold text-green-400 mb-2 leading-tight">${rifa.title}</h2>
-            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${rifa.description}</p>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-primary mb-2 leading-tight">${rifa.title}</h2>
+            <p class="text-muted text-sm mb-4 line-clamp-2">${rifa.description}</p>
             
             ${premiosHtml}
 
-            <div class="grid grid-cols-3 gap-2 mb-6 text-center bg-gray-900 rounded-xl p-3 border border-gray-700/50 shadow-inner">
+            <div class="grid grid-cols-3 gap-2 mb-6 text-center bg-input rounded-xl p-3 border border-border shadow-inner">
                 <div class="p-1">
-                    <div class="text-sm text-gray-500 uppercase font-bold">Precio</div>
-                    <div class="text-green-400 font-bold text-base">${rifa.priceBs} Bs</div>
+                    <div class="text-sm text-muted uppercase font-bold">Precio</div>
+                    <div class="text-primary font-bold text-base">${rifa.priceBs} Bs</div>
                 </div>
-                <div class="p-1 border-l border-gray-700">
-                    <div class="text-sm text-gray-500 uppercase font-bold">Fecha</div>
-                    <div class="text-white font-bold text-base">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : 'Pronto'}</div>
+                <div class="p-1 border-l border-border">
+                    <div class="text-sm text-muted uppercase font-bold">Fecha</div>
+                    <div class="text-main font-bold text-base">${rifa.drawDate ? new Date(rifa.drawDate).toLocaleDateString() : 'Pronto'}</div>
                 </div>
-                <div class="p-1 border-l border-gray-700">
-                    <div class="text-sm text-gray-500 uppercase font-bold">Quedan</div>
-                    <div class="text-white font-bold text-lg">${disponiblesCount}</div>
+                <div class="p-1 border-l border-border">
+                    <div class="text-sm text-muted uppercase font-bold">Quedan</div>
+                    <div class="text-main font-bold text-lg">${disponiblesCount}</div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-6 bg-gray-900/50 p-1 rounded-xl">
+            <div class="grid grid-cols-2 gap-3 mb-6 bg-input p-1 rounded-xl">
                 <button onclick="cambiarModoVista('random')" 
                     class="flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all duration-200 border-2 
-                    ${currentViewMode === 'random' ? 'bg-gray-700 border-green-500 text-green-400 shadow-md' : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300'}">
+                    ${currentViewMode === 'random' ? 'bg-card border-primary text-primary shadow-md' : 'bg-transparent border-transparent text-muted hover:text-main'}">
                     <i class="fas fa-dice"></i> Azar
                 </button>
                 <button onclick="cambiarModoVista('table')" 
                     class="flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all duration-200 border-2 
-                    ${currentViewMode === 'table' ? 'bg-gray-700 border-green-500 text-green-400 shadow-md' : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300'}">
+                    ${currentViewMode === 'table' ? 'bg-card border-primary text-primary shadow-md' : 'bg-transparent border-transparent text-muted hover:text-main'}">
                     <i class="fas fa-th"></i> Tabla
                 </button>
             </div>
@@ -1777,16 +1784,16 @@ function generarHtmlFooterResumen() {
   if (seleccionadosCount > 0) {
     const numsSorted = [...numerosSeleccionados].sort((a, b) => a - b);
     pillsHtml = `
-            <div class="bg-gray-900 p-3 rounded-xl border border-gray-700 mb-4 animate-fade-in-up">
+            <div class="bg-input p-3 rounded-xl border border-border mb-4 animate-fade-in-up">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs text-gray-400 uppercase font-bold">Tus Tickets (${seleccionadosCount})</span>
+                    <span class="text-xs text-muted uppercase font-bold">Tus Tickets (${seleccionadosCount})</span>
                     <button onclick="limpiarNumeros()" class="text-red-400 text-xs hover:text-red-300 font-bold flex items-center gap-1 transition-colors">
                         <i class="fas fa-trash-alt"></i> Borrar todos
                     </button>
                 </div>
                 <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
                     ${numsSorted.map(n => `
-                        <button onclick="toggleNumero(${n})" class="group bg-gray-800 border border-green-500/30 text-green-400 hover:bg-red-500/20 hover:border-red-500 hover:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1" title="Clic para eliminar">
+                        <button onclick="toggleNumero(${n})" class="group bg-card border border-primary/30 text-primary hover:bg-red-500/20 hover:border-red-500 hover:text-red-400 text-xs font-bold px-3 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1" title="Clic para eliminar">
                             ${formatTicketNumber(n, total)}
                             <i class="fas fa-times opacity-50 group-hover:opacity-100"></i>
                         </button>
@@ -1799,15 +1806,15 @@ function generarHtmlFooterResumen() {
   // Botón Continuar
   const disabled = seleccionadosCount === 0;
   const btnClass = disabled
-    ? "bg-gray-700 text-gray-500 cursor-not-allowed opacity-50"
+    ? "bg-input text-muted cursor-not-allowed opacity-50"
     : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-black shadow-lg shadow-green-500/20 transform active:scale-95";
 
   return `
         ${pillsHtml}
-        <div class="pt-2 border-t border-gray-700 sticky bottom-0 bg-gray-800 z-20 pb-2">
+        <div class="pt-2 border-t border-border sticky bottom-0 bg-card z-20 pb-2">
             <div class="flex justify-between items-end mb-3 px-1">
-                <div class="text-sm text-gray-400 font-medium">Total a pagar:</div>
-                <div class="text-2xl font-extrabold text-white tracking-tight">${totalPagar} Bs</div>
+                <div class="text-sm text-muted font-medium">Total a pagar:</div>
+                <div class="text-2xl font-extrabold text-main tracking-tight">${totalPagar} Bs</div>
             </div>
             <button id="btn-continuar-compra" onclick="continuarCompra()" ${disabled ? 'disabled' : ''}
                 class="w-full py-4 rounded-xl font-extrabold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${btnClass}">
@@ -1982,7 +1989,98 @@ function cerrarModalTop() {
   document.getElementById('modal-top-buyers').classList.add('hidden');
 }
 
-// Inicializar el tema al cargar
+// ============ 7. LÓGICA DE CARGA DE RIFAS (INICIO) ===============
+
+async function loadRaffles() {
+  try {
+    const res = await fetch(API + '/api/raffles');
+    if (!res.ok) throw new Error('Error al cargar rifas');
+    const raffles = await res.json();
+    rifasGlobal = raffles; // Actualizar variable global
+    renderRafflesLists(raffles);
+  } catch (error) {
+    console.error('Error loading raffles:', error);
+    const container = document.getElementById('rifas-container');
+    if (container) container.innerHTML = '<p class="text-center text-red-500">Error al cargar las rifas disponibles.</p>';
+  }
+}
+
+function renderRafflesLists(raffles) {
+  const container = document.getElementById('rifas-container');
+  if (!container) return;
+
+  // Filtrar solo activas (y opcionalmente ordenarlas)
+  const activeRaffles = raffles.filter(r => r.status === 'activa');
+
+  if (activeRaffles.length === 0) {
+    container.innerHTML = '<p class="text-center text-muted text-lg py-10">No hay rifas activas en este momento. ¡Vuelve pronto!</p>';
+    return;
+  }
+
+  let html = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">';
+
+  activeRaffles.forEach(r => {
+    // Precios y monedas
+    const price = r.priceBs + ' Bs';
+
+    // Progreso
+    const todas = r.totalNumbers || 100;
+    const vendidos = (r.numbersSold || []).length;
+    const reservados = (r.numbersReserved || []).length;
+    // OJO: calculamos disponibles reales
+    const ocupados = [...new Set([...(r.numbersSold || []), ...(r.numbersReserved || [])])].length;
+    const percent = Math.min(100, Math.round((ocupados / todas) * 100));
+
+    html += `
+      <div class="bg-card rounded-2xl overflow-hidden shadow-lg border border-border flex flex-col hover:transform hover:scale-[1.02] transition-all duration-300 group">
+        <!-- Imagen -->
+        <div class="relative h-48 sm:h-56 overflow-hidden">
+          <img src="${r.image || 'img/placeholder.jpg'}" alt="${r.title}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+          <div class="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-xs px-2 py-1 rounded font-bold border border-white/20">
+             ${r.drawDate ? 'Sortea: ' + new Date(r.drawDate).toLocaleDateString() : 'Fecha pendiente'}
+          </div>
+          ${r.isHot ? '<div class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded font-bold animate-pulse">🔥 POPULAR</div>' : ''}
+        </div>
+        
+        <!-- Info -->
+        <div class="p-5 flex-1 flex flex-col">
+          <h3 class="text-xl font-bold text-primary mb-2">${r.title}</h3>
+          <p class="text-sm text-muted mb-4 line-clamp-2">${r.description || 'Participa y gana increíbles premios.'}</p>
+          
+          <div class="mt-auto">
+             <!-- Barra de Progreso -->
+             <div class="flex justify-between items-center mb-1 text-sm font-medium">
+               <span class="text-muted text-xs uppercase tracking-wider">Tickets vendidos</span>
+               <span class="text-primary font-bold">${percent}%</span>
+             </div>
+             <div class="w-full bg-input rounded-full h-2.5 mb-4 overflow-hidden border border-border/50">
+                <div class="bg-gradient-to-r from-primary to-green-400 h-full rounded-full transition-all duration-1000 ease-out" style="width: ${percent}%"></div>
+             </div>
+             
+             <!-- Footer Card -->
+             <div class="flex justify-between items-center pt-2 border-t border-border">
+                <div class="flex flex-col">
+                   <span class="text-[10px] text-muted uppercase font-bold">Precio Ticket</span>
+                   <span class="text-2xl font-black text-primary">${price}</span>
+                </div>
+                <button onclick="abrirModalSelector('${r._id}')" 
+                  class="bg-btn hover:brightness-110 text-btn-text font-bold py-2.5 px-6 rounded-xl shadow-lg transition-transform active:scale-95 border border-white/10 flex items-center gap-2">
+                  <span>Participar</span>
+                  <i class="fas fa-ticket-alt"></i>
+                </button>
+             </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// Inicializar el tema y las rifas al cargar
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  loadRaffles();
 });

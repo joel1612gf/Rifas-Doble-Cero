@@ -4,5 +4,6 @@
     "**/uploads/**",
     "**/*.tmp",
     "**/*.log"
-  ]
+  ],
+  "liveServer.settings.port": 5501
 }
